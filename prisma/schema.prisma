@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Etudiant {
+  id              String   @id @default(cuid())
+  nom             String
+  prenom          String
+  dateNaissance   DateTime
+  sexe            String
+  etablissementId String
+  etablissement   Etablissement @relation(fields: [etablissementId], references: [id])
+  niveau          String
+  inscriptions    Inscription[]
+  notes           Note[]
+  alertes         Alerte[]
+  createdAt       DateTime @default(now())
+}
+
+model Etablissement {
+  id          String   @id @default(cuid())
+  nom         String
+  departement String
+  commune     String
+  etudiants   Etudiant[]
+}
+
+model Inscription {
+  id            String   @id @default(cuid())
+  etudiantId    String
+  etudiant      Etudiant @relation(fields: [etudiantId], references: [id])
+  anneeScolaire String
+  niveau        String
+  statut        String
+}
+
+model Note {
+  id            String   @id @default(cuid())
+  etudiantId    String
+  etudiant      Etudiant @relation(fields: [etudiantId], references: [id])
+  matiere       String
+  valeur        Float
+  periode       String
+  anneeScolaire String
+  createdAt     DateTime @default(now())
+}
+
+model Alerte {
+  id            String   @id @default(cuid())
+  etudiantId    String
+  etudiant      Etudiant @relation(fields: [etudiantId], references: [id])
+  type          String
+  niveauRisque  String
+  moyenneAvant  Float
+  moyenneApres  Float
+  ecartPourcent Float
+  periode       String
+  statut        String   @default("active")
+  createdAt     DateTime @default(now())
+}
