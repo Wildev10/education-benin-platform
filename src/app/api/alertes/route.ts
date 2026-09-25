@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 const ordreNiveauxRisque: Record<string, number> = {
   eleve: 0,
   moyen: 1,
+  eleve: 2,
 };
 
 export async function GET(request: Request) {
