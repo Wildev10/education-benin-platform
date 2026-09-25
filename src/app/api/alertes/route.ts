@@ -3,7 +3,6 @@ import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 
 const ordreNiveauxRisque: Record<string, number> = {
-  eleve: 0,
   moyen: 1,
   eleve: 2,
 };

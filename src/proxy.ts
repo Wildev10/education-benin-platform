@@ -1,8 +1,14 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextAuthRequest } from "next-auth";
+import type { NextFetchEvent, NextRequest } from "next/server";
 
-const authProxy = auth((request) => {
+type AuthMiddleware = (
+  request: NextAuthRequest,
+  event: NextFetchEvent
+) => ReturnType<import("next/server").NextMiddleware>;
+
+const authMiddleware: AuthMiddleware = (request) => {
   const { pathname } = request.nextUrl;
   const session = request.auth;
 
@@ -28,10 +34,12 @@ const authProxy = auth((request) => {
   }
 
   return NextResponse.next();
-});
+};
 
-export function proxy(request: NextRequest) {
-  return authProxy(request);
+const authProxy = auth(authMiddleware);
+
+export function proxy(request: NextRequest, event: NextFetchEvent) {
+  return authProxy(request, event);
 }
 
 export default proxy;
