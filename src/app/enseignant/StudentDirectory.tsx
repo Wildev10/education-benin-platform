@@ -16,14 +16,23 @@ type Etudiant = {
   etablissement: Etablissement;
 };
 
+type ActiveAlert = {
+  etudiant: { id: string };
+};
+
 const niveaux = ["Seconde C", "Première D", "Terminale D"];
 
 export default function StudentDirectory({
   etablissements,
+  detailBasePath = "/enseignant/etudiants",
+  showActiveAlerts = false,
 }: {
   etablissements: Etablissement[];
+  detailBasePath?: string;
+  showActiveAlerts?: boolean;
 }) {
   const [etudiants, setEtudiants] = useState<Etudiant[]>([]);
+  const [activeAlertStudentIds, setActiveAlertStudentIds] = useState<Set<string>>(new Set());
   const [etablissementId, setEtablissementId] = useState("");
   const [niveau, setNiveau] = useState("");
   const [loading, setLoading] = useState(true);
@@ -41,12 +50,23 @@ export default function StudentDirectory({
       if (niveau) params.set("niveau", niveau);
 
       try {
-        const response = await fetch(`/api/etudiants?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? "Erreur de chargement");
-        setEtudiants(data);
+        const requests = [
+          fetch(`/api/etudiants?${params.toString()}`, { signal: controller.signal }),
+        ];
+        if (showActiveAlerts) {
+          requests.push(fetch("/api/alertes?statut=active", { signal: controller.signal }));
+        }
+
+        const responses = await Promise.all(requests);
+        const studentData = await responses[0].json();
+        if (!responses[0].ok) throw new Error(studentData.error ?? "Erreur de chargement");
+
+        setEtudiants(studentData);
+        if (showActiveAlerts) {
+          const alertData = await responses[1].json() as ActiveAlert[];
+          if (!responses[1].ok) throw new Error("Impossible de charger les alertes actives.");
+          setActiveAlertStudentIds(new Set(alertData.map((alert) => alert.etudiant.id)));
+        }
       } catch (requestError) {
         if (requestError instanceof DOMException && requestError.name === "AbortError") {
           return;
@@ -59,7 +79,7 @@ export default function StudentDirectory({
 
     void loadStudents();
     return () => controller.abort();
-  }, [etablissementId, niveau]);
+  }, [etablissementId, niveau, showActiveAlerts]);
 
   return (
     <section aria-labelledby="liste-etudiants" className="mt-8">
@@ -132,19 +152,31 @@ export default function StudentDirectory({
                 <th scope="col" className="px-5 py-3 font-semibold">Prénom</th>
                 <th scope="col" className="px-5 py-3 font-semibold">Établissement</th>
                 <th scope="col" className="px-5 py-3 font-semibold">Niveau</th>
+                {showActiveAlerts && <th scope="col" className="px-5 py-3 font-semibold">Suivi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {etudiants.map((etudiant) => (
                 <tr key={etudiant.id} className="transition hover:bg-teal-50">
                   <td className="px-5 py-4 font-semibold text-slate-950">
-                    <Link href={`/enseignant/etudiants/${etudiant.id}`} className="focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2">
+                    <Link href={`${detailBasePath}/${etudiant.id}`} className="focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2">
                       {etudiant.nom}
                     </Link>
                   </td>
                   <td className="px-5 py-4 text-slate-800">{etudiant.prenom}</td>
                   <td className="px-5 py-4 text-slate-800">{etudiant.etablissement.nom}</td>
                   <td className="px-5 py-4 text-slate-800">{etudiant.niveau}</td>
+                  {showActiveAlerts && (
+                    <td className="px-5 py-4">
+                      {activeAlertStudentIds.has(etudiant.id) ? (
+                        <span className="inline-flex rounded-full border border-red-300 bg-red-50 px-3 py-1 text-sm font-bold text-red-900">
+                          Alerte active
+                        </span>
+                      ) : (
+                        <span className="text-sm text-slate-600">Aucune alerte</span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
