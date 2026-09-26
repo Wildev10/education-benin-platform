@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EduTech Bénin
 
-## Getting Started
+> **Personne ne voit un décrochage venir avant qu'il soit acté. Notre plateforme le détecte automatiquement.**
 
-First, run the development server:
+EduTech Bénin est une plateforme de suivi scolaire pensée pour aider les établissements à agir plus tôt, avec des informations lisibles par les personnes qui accompagnent réellement l'élève.
+
+## Le problème
+
+Les enseignants et les établissements disposent rarement d'un outil simple pour repérer une baisse de résultats avant qu'elle ne devienne un décrochage scolaire acté. Une note isolée ne suffit pas toujours à alerter, mais l'évolution des moyennes sur plusieurs périodes peut révéler un signal important.
+
+## La solution
+
+La plateforme relie les informations scolaires, les notes et les alertes autour de trois espaces :
+
+- **Étudiant** : consulte sa fiche, ses notes par période et l'évolution de ses moyennes, dans un langage simple et sans jargon d'alerte.
+- **Enseignant** : consulte les étudiants, filtre par établissement ou niveau, saisit les notes et voit immédiatement si une alerte est déclenchée.
+- **Admin / Ministère** : suit les indicateurs nationaux, les alertes actives et leur niveau de risque, puis marque les alertes traitées.
+
+À chaque saisie de note, la plateforme compare la moyenne de la période avec la période précédente :
+
+- **Risque élevé** : baisse supérieure ou égale à 20 % et moyenne après la baisse inférieure à 10/20.
+- **Risque moyen** : baisse supérieure ou égale à 15 %.
+
+Cette règle a été choisie délibérément : elle est simple, explicable et défendable devant un établissement ou un ministère. Le projet ne prétend pas faire une prédiction opaque : une règle claire permet de comprendre pourquoi une alerte apparaît et d'agir dessus.
+
+## Fonctionnalités clés
+
+- Détection automatique d'alerte de décrochage à la saisie d'une note.
+- Trois espaces avec des permissions strictes selon le rôle.
+- Assistant IA en langage naturel pour interroger les étudiants et les alertes.
+- Accessibilité intégrée : contraste élevé, taille de police ajustable, lecture vocale et langage simplifié.
+- Interface déployée et testable en ligne.
+
+## Plateforme en ligne
+
+[Ouvrir EduTech Bénin](https://education-benin-platform.vercel.app)
+
+## Stack technique
+
+- Next.js 16 avec App Router et TypeScript
+- Prisma et PostgreSQL (Neon)
+- Auth.js v5
+- Tailwind CSS
+- Gemini API
+- Recharts
+- Déploiement Vercel
+
+## Comptes de démonstration
+
+| Espace | Identifiant | Mot de passe |
+| --- | --- | --- |
+| Admin / Ministère | `admin@edutech.bj` | `password123` |
+| Enseignant | `enseignant@edutech.bj` | `password123` |
+| Étudiant | `etudiant@edutech.bj` | `password123` |
+
+## Lancer le projet en local
+
+### Prérequis
+
+- Node.js 20 ou plus récent
+- Une base PostgreSQL accessible
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <url-du-depot>
+cd education-benin-platform
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Créez un fichier `.env` à la racine avec ces trois variables :
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```dotenv
+DATABASE_URL="<url-de-connexion-postgresql>"
+AUTH_SECRET="<secret-authjs>"
+GEMINI_API_KEY="<cle-api-gemini>"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Initialisez la base puis lancez l'application :
 
-## Learn More
+```bash
+npx prisma generate
+npx prisma db push
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Ouvrez ensuite [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Choix assumés et limites
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Pas de vrai ML ou de prédiction** : une règle simple et explicable a été privilégiée, car elle suffit pour démontrer le signal et reste plus défendable à l'oral.
+- **Pas de notifications SMS ou email réelles** : l'alerte apparaît dans les dashboards Admin et Enseignant.
+- **Un seul niveau de permission Admin** : l'Admin voit l'ensemble des établissements et des étudiants ; il n'y a pas encore de granularité fine par établissement.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ces limites sont volontaires pour garder le prototype centré sur sa promesse : détecter tôt, expliquer clairement et donner aux équipes un point de départ concret pour agir.
