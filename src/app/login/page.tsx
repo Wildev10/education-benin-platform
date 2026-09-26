@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import AccessibilityControls from "@/components/AccessibilityControls";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,13 +31,15 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-8">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
+      <AccessibilityControls />
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
         <h1 className="text-2xl font-bold">Connexion</h1>
 
         <div>
-          <label className="block text-sm mb-1">Email</label>
+          <label htmlFor="email" className="mb-1 block text-sm font-semibold">Email</label>
           <input
+            id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -46,8 +49,9 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label className="block text-sm mb-1">Mot de passe</label>
+          <label htmlFor="password" className="mb-1 block text-sm font-semibold">Mot de passe</label>
           <input
+            id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

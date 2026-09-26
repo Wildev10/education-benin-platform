@@ -69,9 +69,8 @@ export async function interpreterQuestion(
       }
 
       try {
-        return parserReponse(
-          await genererAvecModele(ai, primaryModel, question)
-        );
+        const response = await genererAvecModele(ai, primaryModel, question);
+        return parserReponse(response);
       } catch (error) {
         latestError = error;
         if (!est503(error)) return unknownQuery;
@@ -80,9 +79,8 @@ export async function interpreterQuestion(
 
     console.log(`[assistant] fallback vers ${fallbackModel}`);
     try {
-      return parserReponse(
-        await genererAvecModele(ai, fallbackModel, question)
-      );
+      const response = await genererAvecModele(ai, fallbackModel, question);
+      return parserReponse(response);
     } catch (error) {
       latestError = error;
     }

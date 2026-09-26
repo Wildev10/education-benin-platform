@@ -17,7 +17,7 @@ export default async function AdminStudentsPage() {
           Liste des étudiants
         </h1>
         <p className="mt-3 text-lg leading-8 text-slate-700">
-          Repérez rapidement les étudiants qui nécessitent un suivi particulier.
+          Trouvez vite les étudiants à suivre.
         </p>
       </div>
       <StudentDirectory

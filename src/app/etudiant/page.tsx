@@ -107,7 +107,7 @@ export default async function EtudiantPage() {
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
           Bonjour, {etudiant.prenom}
         </h1>
-        <p className="mt-3 text-lg leading-8 text-slate-700">Voici un aperçu de tes résultats, période par période.</p>
+        <p className="mt-3 text-lg leading-8 text-slate-700">Voici tes résultats par période.</p>
       </div>
 
       <section aria-labelledby="profile-title" className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

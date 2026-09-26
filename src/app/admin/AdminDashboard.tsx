@@ -159,6 +159,7 @@ export default function AdminDashboard({
                         {alert.etudiant.prenom} {alert.etudiant.nom}
                       </Link>
                       <span className={`rounded-full border px-3 py-1 text-sm font-bold ${riskClasses(alert.niveauRisque)}`}>
+                        <span aria-hidden="true">⚠ </span>
                         Niveau {riskLabel(alert.niveauRisque)}
                       </span>
                     </div>

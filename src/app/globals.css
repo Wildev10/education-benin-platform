@@ -12,15 +12,42 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+html[data-font-size="large"] {
+  font-size: 112.5%;
+}
+
+html[data-font-size="x-large"] {
+  font-size: 125%;
+}
+
+:focus-visible {
+  outline: 3px solid #0f766e;
+  outline-offset: 3px;
+}
+
+html[data-theme="high-contrast"] {
+  color-scheme: dark;
+}
+
+html[data-theme="high-contrast"] body,
+html[data-theme="high-contrast"] body * {
+  background-color: #000 !important;
+  border-color: #fff !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="high-contrast"] a,
+html[data-theme="high-contrast"] button {
+  text-decoration: underline;
+}
+
+html[data-theme="high-contrast"] :focus-visible {
+  outline-color: #fff;
 }

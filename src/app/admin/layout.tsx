@@ -35,6 +35,12 @@ export default async function AdminLayout({
           >
             Étudiants
           </Link>
+          <Link
+            href="/admin/assistant"
+            className="border-b-2 border-transparent px-1 py-3 text-sm font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2"
+          >
+            Assistant
+          </Link>
         </div>
       </nav>
       {children}
