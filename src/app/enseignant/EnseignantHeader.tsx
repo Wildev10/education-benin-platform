@@ -5,9 +5,11 @@ import { signOut } from "next-auth/react";
 export default function EnseignantHeader({
   name,
   email,
+  spaceLabel = "Espace enseignant",
 }: {
   name: string;
   email: string;
+  spaceLabel?: string;
 }) {
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -16,7 +18,7 @@ export default function EnseignantHeader({
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-700">
             EduTech Bénin
           </p>
-          <p className="mt-1 text-sm text-slate-600">Espace enseignant</p>
+          <p className="mt-1 text-sm text-slate-600">{spaceLabel}</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden text-right sm:block">
