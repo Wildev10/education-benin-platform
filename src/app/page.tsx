@@ -1,15 +1,21 @@
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 export default async function Home() {
   const session = await auth();
 
-  return (
-    <main className="p-8">
-      <h1 className="text-2xl font-bold">EduTech Bénin</h1>
-      <p>Plateforme de suivi et d'alerte décrochage scolaire.</p>
-      <pre className="mt-4 bg-gray-100 p-4 rounded text-sm">
-        {JSON.stringify(session, null, 2)}
-      </pre>
-    </main>
-  );
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  switch (session.user.role) {
+    case "admin":
+      redirect("/admin");
+    case "enseignant":
+      redirect("/enseignant");
+    case "etudiant":
+      redirect("/etudiant");
+    default:
+      redirect("/login");
+  }
 }
