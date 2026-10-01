@@ -91,5 +91,6 @@ Ouvrez ensuite [http://localhost:3000](http://localhost:3000).
 - **Pas de vrai ML ou de prédiction** : une règle simple et explicable a été privilégiée, car elle suffit pour démontrer le signal et reste plus défendable à l'oral.
 - **Pas de notifications SMS ou email réelles** : l'alerte apparaît dans les dashboards Admin et Enseignant.
 - **Un seul niveau de permission Admin** : l'Admin voit l'ensemble des établissements et des étudiants ; il n'y a pas encore de granularité fine par établissement.
+- **Pas d'inscription libre** : les comptes sont créés par l'administration (modèle réaliste pour une plateforme institutionnelle), évitant qu'un utilisateur puisse s'auto-attribuer un rôle sensible comme Admin ou Enseignant.
 
 Ces limites sont volontaires pour garder le prototype centré sur sa promesse : détecter tôt, expliquer clairement et donner aux équipes un point de départ concret pour agir.
