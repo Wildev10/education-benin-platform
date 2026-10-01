@@ -58,6 +58,10 @@ export default function StudentDirectory({
         }
 
         const responses = await Promise.all(requests);
+        if (responses.some((response) => response.status === 401)) {
+          window.location.assign("/login");
+          return;
+        }
         const studentData = await responses[0].json();
         if (!responses[0].ok) throw new Error(studentData.error ?? "Erreur de chargement");
 

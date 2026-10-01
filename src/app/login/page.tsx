@@ -10,24 +10,32 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [erreur, setErreur] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErreur("");
+    setLoading(true);
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (res?.error) {
-      setErreur("Email ou mot de passe incorrect.");
-      return;
+      if (res?.error) {
+        setErreur("Email ou mot de passe incorrect.");
+        return;
+      }
+
+      router.push("/");
+      router.refresh();
+    } catch {
+      setErreur("La connexion est indisponible. Vérifie ta connexion puis réessaie.");
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
@@ -60,10 +68,10 @@ export default function LoginPage() {
           />
         </div>
 
-        {erreur && <p className="text-red-600 text-sm">{erreur}</p>}
+        {erreur && <p role="alert" className="text-red-600 text-sm">{erreur}</p>}
 
-        <button type="submit" className="w-full bg-black text-white rounded p-2">
-          Se connecter
+        <button type="submit" disabled={loading} className="w-full rounded bg-black p-2 text-white disabled:cursor-not-allowed disabled:opacity-60">
+          {loading ? "Connexion..." : "Se connecter"}
         </button>
       </form>
     </main>

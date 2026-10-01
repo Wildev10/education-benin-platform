@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import AdminStudentDetail from "./AdminStudentDetail";
 
 type PageProps = {
@@ -21,6 +21,7 @@ export default async function AdminStudentPage({ params }: PageProps) {
     cache: "no-store",
   });
 
+  if (response.status === 401) redirect("/login");
   if (response.status === 404) notFound();
   if (!response.ok) {
     throw new Error("Impossible de récupérer la fiche étudiant.");

@@ -97,6 +97,10 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ statut: "traitee" }),
       });
+      if (response.status === 401) {
+        window.location.assign("/login");
+        return;
+      }
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Impossible de traiter l’alerte.");
       setAlerts((current) => current.map((alert) => (

@@ -64,6 +64,10 @@ export default function StudentDetail({
           anneeScolaire: "2025-2026",
         }),
       });
+      if (response.status === 401) {
+        window.location.assign("/login");
+        return;
+      }
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error ?? "Impossible d'enregistrer la note.");
