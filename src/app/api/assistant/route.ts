@@ -73,7 +73,11 @@ export async function POST(request: Request) {
     const groupes = requete.regrouperPar
       ? compter(lignes, requete.regrouperPar)
       : null;
-    const reponse = construireReponse(requete, lignes.length, groupes, mode);
+    const etudiantsDistincts =
+      requete.type === "alertes"
+        ? new Set((lignes as Array<{ etudiantId: string }>).map((a) => a.etudiantId)).size
+        : null;
+    const reponse = construireReponse(requete, lignes.length, groupes, mode, etudiantsDistincts);
     console.info(
       `[assistant] ${mode} : ${requete.type}, ${lignes.length} résultat(s)`
     );
@@ -183,7 +187,8 @@ function construireReponse(
   requete: Requete,
   total: number,
   groupes: Array<[string, number]> | null,
-  mode: Mode
+  mode: Mode,
+  etudiantsDistincts: number | null
 ) {
   const { type, filtres } = requete;
   const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
@@ -203,14 +208,20 @@ function construireReponse(
     if (qualificatif) qualificatif = ` ${qualificatif}`;
   }
 
+  // "6 alertes concernant 4 étudiants" : une alerte n'est pas un étudiant.
+  const concernant =
+    etudiantsDistincts !== null && total > 0
+      ? ` concernant ${pluriel(etudiantsDistincts, "étudiant")}`
+      : "";
+
   let phrase: string;
   if (groupes && requete.regrouperPar) {
     const detail = groupes.map(([cle, n]) => `${cle} : ${n}`).join(" ; ");
-    phrase = `Il y a ${pluriel(total, nom)}${qualificatif}${decrireFiltres(filtres)}, par ${requete.regrouperPar === "etablissement" ? "établissement" : "niveau"} — ${detail || "aucun résultat"}.`;
+    phrase = `Il y a ${pluriel(total, nom)}${qualificatif}${concernant}${decrireFiltres(filtres)}, par ${requete.regrouperPar === "etablissement" ? "établissement" : "niveau"} — ${detail || "aucun résultat"}.`;
   } else if (total === 0) {
     phrase = `Aucun${type === "alertes" ? "e" : ""} ${nom}${qualificatif} ne correspond${decrireFiltres(filtres)}.`;
   } else {
-    phrase = `Il y a ${pluriel(total, nom)}${qualificatif}${decrireFiltres(filtres)}${total > 10 ? " (les 10 premiers sont affichés)" : ""}.`;
+    phrase = `Il y a ${pluriel(total, nom)}${qualificatif}${concernant}${decrireFiltres(filtres)}${total > 10 ? " (les 10 premiers sont affichés)" : ""}.`;
   }
 
   return mode === "sans_ia"
