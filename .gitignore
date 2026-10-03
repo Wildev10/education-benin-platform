@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# cookies de session curl (jetons Auth.js)
+cookies.txt
+*-cookies.txt
