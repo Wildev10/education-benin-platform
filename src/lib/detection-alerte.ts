@@ -13,7 +13,9 @@ type MoyennePeriode = {
   noteCount: number;
 };
 
-export async function detecterAlerte(etudiantId: string): Promise<boolean> {
+export type IssueDetection = "creee" | "mise_a_jour" | null;
+
+export async function detecterAlerte(etudiantId: string): Promise<IssueDetection> {
   const notes = await prisma.note.findMany({
     where: { etudiantId },
     select: {
@@ -55,11 +57,11 @@ export async function detecterAlerte(etudiantId: string): Promise<boolean> {
       (ordrePeriodes[b.periode] ?? Number.MAX_SAFE_INTEGER);
   });
 
-  if (periodes.length < 2) return false;
+  if (periodes.length < 2) return null;
 
   const periodeAvant = periodes[periodes.length - 2];
   const periodeRecente = periodes[periodes.length - 1];
-  if (periodeAvant.moyenne <= 0) return false;
+  if (periodeAvant.moyenne <= 0) return null;
 
   const ecartPourcent =
     ((periodeAvant.moyenne - periodeRecente.moyenne) /
@@ -72,18 +74,42 @@ export async function detecterAlerte(etudiantId: string): Promise<boolean> {
   } else if (ecartPourcent >= 15) {
     niveauRisque = "moyen";
   } else {
-    return false;
+    return null;
   }
 
+  // Une seule alerte par étudiant + période + année scolaire, quel que soit son
+  // statut. Les anciennes alertes (sans année) comptent pour toute année.
   const alerteExistante = await prisma.alerte.findFirst({
     where: {
       etudiantId,
       periode: periodeRecente.periode,
-      statut: "active",
+      OR: [
+        { anneeScolaire: periodeRecente.anneeScolaire },
+        { anneeScolaire: null },
+      ],
     },
+    orderBy: { createdAt: "desc" },
   });
 
-  if (alerteExistante) return false;
+  if (alerteExistante) {
+    // Une alerte active qui s'aggrave (moyen -> élevé) est mise à jour.
+    if (
+      alerteExistante.statut === "active" &&
+      alerteExistante.niveauRisque === "moyen" &&
+      niveauRisque === "eleve"
+    ) {
+      await prisma.alerte.update({
+        where: { id: alerteExistante.id },
+        data: {
+          niveauRisque,
+          moyenneApres: periodeRecente.moyenne,
+          ecartPourcent,
+        },
+      });
+      return "mise_a_jour";
+    }
+    return null;
+  }
 
   await prisma.alerte.create({
     data: {
@@ -94,9 +120,10 @@ export async function detecterAlerte(etudiantId: string): Promise<boolean> {
       moyenneApres: periodeRecente.moyenne,
       ecartPourcent,
       periode: periodeRecente.periode,
+      anneeScolaire: periodeRecente.anneeScolaire,
       statut: "active",
     },
   });
 
-  return true;
+  return "creee";
 }

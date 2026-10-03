@@ -81,6 +81,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const etudiant = await prisma.etudiant.findUnique({
+      where: { id: body.etudiantId.trim() },
+      select: { id: true },
+    });
+    if (!etudiant) {
+      return NextResponse.json(
+        { error: "Étudiant introuvable" },
+        { status: 404 }
+      );
+    }
+
     const note = await prisma.note.create({
       data: {
         etudiantId: body.etudiantId.trim(),
@@ -91,9 +102,16 @@ export async function POST(request: Request) {
       },
     });
 
-    const alerteCreee = await detecterAlerte(note.etudiantId);
+    const issue = await detecterAlerte(note.etudiantId);
 
-    return NextResponse.json({ ...note, alerteCreee }, { status: 201 });
+    return NextResponse.json(
+      {
+        ...note,
+        alerteCreee: issue !== null,
+        alerteMiseAJour: issue === "mise_a_jour",
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Erreur lors de la création de la note", error);
     return NextResponse.json(

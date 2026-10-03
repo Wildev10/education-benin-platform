@@ -62,6 +62,7 @@ model Alerte {
   moyenneApres  Float
   ecartPourcent Float
   periode       String
+  anneeScolaire String?
   statut        String   @default("active")
   createdAt     DateTime @default(now())
 }
