@@ -1,30 +1,34 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { validerRequete } from "@/lib/assistant-referentiel";
+import type { Referentiel, Requete } from "@/lib/assistant-referentiel";
 
-export type AssistantQueryType = "etudiants" | "alertes" | "inconnu";
+// Erreur d'appel Gemini (a) ou réponse exploitable (b) : jamais mélangés.
+export type RaisonIndisponible =
+  | "quota"
+  | "surcharge"
+  | "cle"
+  | "timeout"
+  | "autre";
 
-export type AssistantFilters = {
-  etablissementId?: string;
-  departement?: string;
-  niveau?: string;
-  niveauRisque?: "moyen" | "eleve";
-  statutAlerte?: "active" | "traitee";
-  periode?: string;
-};
+export type ResultatIA =
+  | { statut: "ok"; requete: Requete }
+  | { statut: "indisponible"; raison: RaisonIndisponible };
 
-export type AssistantQuery = {
-  type: AssistantQueryType;
-  filtres: AssistantFilters;
-};
+const modeles = ["gemini-flash-latest", "gemini-flash-lite-latest"];
+const retries503 = 2;
+// Gemini refuse toute échéance inférieure à 10 s.
+const timeoutMs = 15000;
 
 const filtreSchema = {
   type: Type.OBJECT,
   properties: {
-    etablissementId: { type: Type.STRING },
+    etablissement: { type: Type.STRING },
     departement: { type: Type.STRING },
+    commune: { type: Type.STRING },
     niveau: { type: Type.STRING },
+    periode: { type: Type.STRING },
     niveauRisque: { type: Type.STRING, enum: ["moyen", "eleve"] },
     statutAlerte: { type: Type.STRING, enum: ["active", "traitee"] },
-    periode: { type: Type.STRING },
   },
 };
 
@@ -33,140 +37,104 @@ const reponseSchema = {
   properties: {
     type: { type: Type.STRING, enum: ["etudiants", "alertes", "inconnu"] },
     filtres: filtreSchema,
+    regrouperPar: { type: Type.STRING, enum: ["etablissement", "niveau"] },
   },
   required: ["type", "filtres"],
 };
 
-const systemInstruction = `Tu traduis une question en français en filtre structuré pour une application scolaire.
-Les seules données interrogeables sont les étudiants et les alertes.
-Pour les étudiants, les champs filtrables sont etablissementId, departement (via l'établissement lié), niveau et periode (via les notes liées si la question demande une période).
-Pour les alertes, les champs filtrables sont etablissementId, departement (via l'étudiant puis son établissement), niveau, niveauRisque (seulement "moyen" ou "eleve"), statutAlerte (seulement "active" ou "traitee") et periode.
-Utilise uniquement les noms de champs indiqués, sans SQL ni code.
-Si la question ne permet pas d'identifier un filtre exploitable ou ne concerne pas ces données, retourne type "inconnu" et filtres {}.
+function creerConsigne(ref: Referentiel) {
+  return `Tu traduis une question en français en filtre JSON pour une application scolaire. Tu ne produis jamais de SQL ni de code.
+Données interrogeables : les étudiants (type "etudiants") et les alertes de baisse de résultats (type "alertes"). Une question sur les étudiants "à risque" concerne les alertes.
+Filtres possibles (n'utilise que des valeurs EXACTES de ces listes, sinon omets le filtre) :
+- etablissement : ${ref.etablissements.join(" | ")}
+- departement : ${ref.departements.join(" | ")}
+- commune : ${ref.communes.join(" | ")}
+- niveau : ${ref.niveaux.join(" | ")}
+- periode : ${ref.periodes.join(" | ")}
+- niveauRisque (alertes seulement) : "moyen" ou "eleve"
+- statutAlerte (alertes seulement) : "active" ou "traitee"
+regrouperPar : "etablissement" ou "niveau" quand la question demande une répartition ou un nombre par établissement ou par niveau.
+Si la question ne concerne pas ces données, retourne type "inconnu" et filtres {}.
 Retourne exclusivement l'objet JSON demandé.`;
-
-const unknownQuery: AssistantQuery = { type: "inconnu", filtres: {} };
-const primaryModel = "gemini-flash-latest";
-const fallbackModel = "gemini-flash-lite-latest";
+}
 
 export async function interpreterQuestion(
-  question: string
-): Promise<AssistantQuery> {
-  if (!question.trim() || !process.env.GEMINI_API_KEY) return unknownQuery;
+  question: string,
+  ref: Referentiel
+): Promise<ResultatIA> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("[assistant] GEMINI_API_KEY absente de l'environnement");
+    return { statut: "indisponible", raison: "cle" };
+  }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    let latestError: unknown;
+  const ai = new GoogleGenAI({ apiKey });
+  const consigne = creerConsigne(ref);
+  let derniereRaison: RaisonIndisponible = "autre";
 
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      if (attempt > 1) {
-        await attendre(attempt === 2 ? 1000 : 2000);
-        console.log(
-          `[assistant] tentative ${attempt}/3 sur ${primaryModel} après 503`
-        );
-      } else {
-        console.log(`[assistant] tentative 1/3 sur ${primaryModel}`);
-      }
+  for (const modele of modeles) {
+    for (let essai = 0; essai <= retries503; essai += 1) {
+      if (essai > 0) await attendre(essai * 1000);
 
       try {
-        const response = await genererAvecModele(ai, primaryModel, question);
-        return parserReponse(response);
+        const response = await ai.models.generateContent({
+          model: modele,
+          contents: question,
+          config: {
+            systemInstruction: consigne,
+            responseMimeType: "application/json",
+            responseSchema: reponseSchema,
+            temperature: 0,
+            httpOptions: { timeout: timeoutMs },
+          },
+        });
+        return {
+          statut: "ok",
+          requete: validerRequete(JSON.parse(response.text ?? ""), ref),
+        };
       } catch (error) {
-        latestError = error;
-        if (!est503(error)) return unknownQuery;
+        derniereRaison = classerErreur(error);
+        console.error(
+          `[assistant] ${modele} : ${derniereRaison}`,
+          derniereRaison === "autre" ? resumeErreur(error) : ""
+        );
+
+        // Clé invalide : inutile d'essayer un autre modèle.
+        if (derniereRaison === "cle") return { statut: "indisponible", raison: "cle" };
+        // 503 : on réessaie le même modèle. Tout le reste (429, timeout...) : modèle suivant.
+        if (derniereRaison !== "surcharge") break;
       }
     }
-
-    console.log(`[assistant] fallback vers ${fallbackModel}`);
-    try {
-      const response = await genererAvecModele(ai, fallbackModel, question);
-      return parserReponse(response);
-    } catch (error) {
-      latestError = error;
-    }
-
-    if (latestError) {
-      console.log("[assistant] fallback Gemini indisponible, réponse inconnue");
-    }
-    return unknownQuery;
-  } catch (error) {
-    console.log("[assistant] erreur Gemini non retentée, réponse inconnue");
-    return unknownQuery;
   }
+
+  return { statut: "indisponible", raison: derniereRaison };
 }
 
-async function genererAvecModele(
-  ai: GoogleGenAI,
-  model: string,
-  question: string
-) {
-  console.log(`[assistant] appel ${model}`);
-  return ai.models.generateContent({
-    model,
-    contents: question,
-    config: {
-      systemInstruction,
-      responseMimeType: "application/json",
-      responseSchema: reponseSchema,
-      temperature: 0,
-    },
-  });
+function classerErreur(error: unknown): RaisonIndisponible {
+  const e = error as {
+    name?: string;
+    message?: string;
+    status?: number;
+    error?: { code?: number };
+  };
+  const code = e?.status ?? e?.error?.code;
+  if (code === 429) return "quota";
+  if (code === 503) return "surcharge";
+  if (code === 504) return "timeout";
+  if (code === 401 || code === 403 || (code === 400 && /api key/i.test(e?.message ?? ""))) {
+    return "cle";
+  }
+  if (e?.name === "AbortError" || /timeout|timed out|abort/i.test(e?.message ?? "")) {
+    return "timeout";
+  }
+  return "autre";
 }
 
-function parserReponse(response: { text?: string | null }): AssistantQuery {
-  return normaliserRequete(JSON.parse(response.text ?? ""));
-}
-
-function est503(error: unknown) {
-  if (!error || typeof error !== "object") return false;
-  const candidate = error as { status?: unknown; error?: { code?: unknown } };
-  return candidate.status === 503 || candidate.error?.code === 503;
+function resumeErreur(error: unknown) {
+  const e = error as { status?: number; message?: string };
+  return `${e?.status ?? ""} ${(e?.message ?? String(error)).slice(0, 150)}`.trim();
 }
 
 function attendre(delaiMs: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, delaiMs));
-}
-
-function normaliserRequete(value: unknown): AssistantQuery {
-  if (!value || typeof value !== "object") return unknownQuery;
-
-  const candidate = value as {
-    type?: unknown;
-    filtres?: unknown;
-  };
-  if (
-    candidate.type !== "etudiants" &&
-    candidate.type !== "alertes" &&
-    candidate.type !== "inconnu"
-  ) {
-    return unknownQuery;
-  }
-
-  if (!candidate.filtres || typeof candidate.filtres !== "object") {
-    return { type: candidate.type, filtres: {} };
-  }
-
-  const raw = candidate.filtres as Record<string, unknown>;
-  const filtres: AssistantFilters = {};
-  for (const field of [
-    "etablissementId",
-    "departement",
-    "niveau",
-    "periode",
-  ] as const) {
-    if (typeof raw[field] === "string" && raw[field].trim()) {
-      filtres[field] = raw[field].trim();
-    }
-  }
-  if (raw.niveauRisque === "moyen" || raw.niveauRisque === "eleve") {
-    filtres.niveauRisque = raw.niveauRisque;
-  }
-  if (raw.statutAlerte === "active" || raw.statutAlerte === "traitee") {
-    filtres.statutAlerte = raw.statutAlerte;
-  }
-
-  return {
-    type: candidate.type,
-    filtres: candidate.type === "inconnu" ? {} : filtres,
-  };
 }

@@ -1,8 +1,13 @@
-import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth-guard";
 import { interpreterQuestion } from "@/lib/ai-query";
+import type { RaisonIndisponible } from "@/lib/ai-query";
+import { analyserSansIA } from "@/lib/assistant-fallback";
+import { chargerReferentiel, exemplesQuestions } from "@/lib/assistant-referentiel";
+import type { Filtres, Referentiel, Requete } from "@/lib/assistant-referentiel";
 import { prisma } from "@/lib/prisma";
+
+type Mode = "ia" | "sans_ia";
 
 export async function POST(request: Request) {
   const access = await requireRole(["admin", "enseignant"]);
@@ -16,30 +21,71 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    const question: string = body.question;
 
-    const requete = await interpreterQuestion(body.question);
-    if (requete.type === "inconnu") {
-      return NextResponse.json({
-        reponse: "Je n'ai pas compris votre question, essayez de reformuler.",
-        nombreResultats: 0,
-        donnees: [],
-      });
+    const ref = await chargerReferentiel();
+    const resultat = await interpreterQuestion(question, ref);
+
+    let requete: Requete | null;
+    let mode: Mode = "ia";
+    let raison: RaisonIndisponible | undefined;
+
+    if (resultat.statut === "ok") {
+      requete = resultat.requete;
+    } else {
+      // Cas (a) : Gemini en erreur sur tous les modèles -> analyseur sans IA.
+      raison = resultat.raison;
+      mode = "sans_ia";
+      requete = analyserSansIA(question, ref);
+      console.error(
+        `[assistant] Gemini indisponible (${raison}), mode sans IA : ${requete ? requete.type : "question non comprise"}`
+      );
+      if (!requete) {
+        return reponseTexte(
+          `L'assistant est temporairement indisponible, réessayez dans quelques minutes. Le mode simple n'a pas compris votre question non plus. ${exemples()}`,
+          "indisponible",
+          raison
+        );
+      }
     }
 
-    const donnees =
+    // Cas (b) : Gemini a répondu, mais la question est hors périmètre.
+    if (!requete || requete.type === "inconnu") {
+      console.info("[assistant] question hors périmètre");
+      return reponseTexte(
+        `Je n'ai pas compris votre question. ${exemples()}`,
+        "ia"
+      );
+    }
+
+    if (requete.valeursInconnues.length > 0) {
+      return reponseTexte(
+        `Je ne connais pas ${requete.valeursInconnues.join(", ")}. ${valeursPossibles(ref)}`,
+        mode
+      );
+    }
+
+    const lignes =
       requete.type === "etudiants"
         ? await rechercherEtudiants(requete.filtres)
         : await rechercherAlertes(requete.filtres);
-    const resume = creerResume(requete.type, donnees);
-    const reponse = await formulerReponse(body.question, requete.type, donnees.length, resume);
+
+    const groupes = requete.regrouperPar
+      ? compter(lignes, requete.regrouperPar)
+      : null;
+    const reponse = construireReponse(requete, lignes.length, groupes, mode);
+    console.info(
+      `[assistant] ${mode} : ${requete.type}, ${lignes.length} résultat(s)`
+    );
 
     return NextResponse.json({
       reponse,
-      nombreResultats: donnees.length,
-      donnees: donnees.slice(0, 10),
+      mode,
+      nombreResultats: lignes.length,
+      donnees: groupes ? [] : lignes.slice(0, 10),
     });
   } catch (error) {
-    console.error("Erreur lors du traitement de la requête assistant", error);
+    console.error("[assistant] erreur lors du traitement de la requête", error);
     return NextResponse.json(
       { error: "Impossible de traiter la question" },
       { status: 500 }
@@ -47,130 +93,127 @@ export async function POST(request: Request) {
   }
 }
 
-async function rechercherEtudiants(filtres: {
-  etablissementId?: string;
-  departement?: string;
-  niveau?: string;
-  periode?: string;
-}) {
+function reponseTexte(reponse: string, mode: Mode | "indisponible", raison?: RaisonIndisponible) {
+  return NextResponse.json({
+    reponse,
+    mode,
+    ...(raison ? { raison } : {}),
+    nombreResultats: 0,
+    donnees: [],
+  });
+}
+
+function exemples() {
+  return `Exemples : ${exemplesQuestions.map((e) => `« ${e} »`).join(", ")}.`;
+}
+
+function valeursPossibles(ref: Referentiel) {
+  return `Établissements : ${ref.etablissements.join(", ")}. Communes : ${ref.communes.join(", ")}. Départements : ${ref.departements.join(", ")}. Niveaux : ${ref.niveaux.join(", ")}.`;
+}
+
+// Toutes les valeurs de `filtres` viennent de la liste blanche (validerRequete).
+function conditionsEtudiant(filtres: Filtres) {
+  return {
+    ...(filtres.etablissement || filtres.departement || filtres.commune
+      ? {
+          etablissement: {
+            ...(filtres.etablissement ? { nom: filtres.etablissement } : {}),
+            ...(filtres.departement ? { departement: filtres.departement } : {}),
+            ...(filtres.commune ? { commune: filtres.commune } : {}),
+          },
+        }
+      : {}),
+    ...(filtres.niveau ? { niveau: filtres.niveau } : {}),
+  };
+}
+
+type Ligne = {
+  niveau: string;
+  etablissement: { nom: string };
+};
+
+async function rechercherEtudiants(filtres: Filtres) {
   return prisma.etudiant.findMany({
     where: {
-      ...(filtres.etablissementId || filtres.departement
-        ? {
-            etablissement: {
-              ...(filtres.etablissementId
-                ? { id: filtres.etablissementId }
-                : {}),
-              ...(filtres.departement
-                ? { departement: { contains: filtres.departement, mode: "insensitive" } }
-                : {}),
-            },
-          }
-        : {}),
-      ...(filtres.niveau
-        ? { niveau: { contains: filtres.niveau, mode: "insensitive" } }
-        : {}),
+      ...conditionsEtudiant(filtres),
       ...(filtres.periode
-        ? { notes: { some: { periode: { contains: filtres.periode, mode: "insensitive" } } } }
+        ? { notes: { some: { periode: filtres.periode } } }
         : {}),
     },
     include: { etablissement: true },
   });
 }
 
-async function rechercherAlertes(filtres: {
-  etablissementId?: string;
-  departement?: string;
-  niveau?: string;
-  niveauRisque?: "moyen" | "eleve";
-  statutAlerte?: "active" | "traitee";
-  periode?: string;
-}) {
+async function rechercherAlertes(filtres: Filtres) {
   return prisma.alerte.findMany({
     where: {
       ...(filtres.niveauRisque ? { niveauRisque: filtres.niveauRisque } : {}),
       ...(filtres.statutAlerte ? { statut: filtres.statutAlerte } : {}),
-      ...(filtres.periode
-        ? { periode: { contains: filtres.periode, mode: "insensitive" } }
-        : {}),
-      etudiant: {
-        ...(filtres.niveau
-          ? { niveau: { contains: filtres.niveau, mode: "insensitive" } }
-          : {}),
-        ...(filtres.etablissementId || filtres.departement
-          ? {
-              etablissement: {
-                ...(filtres.etablissementId
-                  ? { id: filtres.etablissementId }
-                  : {}),
-                ...(filtres.departement
-                  ? { departement: { contains: filtres.departement, mode: "insensitive" } }
-                  : {}),
-              },
-            }
-          : {}),
-      },
+      ...(filtres.periode ? { periode: filtres.periode } : {}),
+      etudiant: conditionsEtudiant(filtres),
     },
-    include: {
-      etudiant: { include: { etablissement: true } },
-    },
+    include: { etudiant: { include: { etablissement: true } } },
   });
 }
 
-function creerResume(type: "etudiants" | "alertes", donnees: unknown[]) {
-  if (type === "etudiants") {
-    const parNiveau = new Map<string, number>();
-    for (const item of donnees as Array<{ niveau: string }>) {
-      parNiveau.set(item.niveau, (parNiveau.get(item.niveau) ?? 0) + 1);
-    }
-    return {
-      type,
-      parNiveau: Object.fromEntries(parNiveau),
-    };
+function compter(lignes: unknown[], par: "etablissement" | "niveau") {
+  const groupes = new Map<string, number>();
+  for (const brut of lignes) {
+    const item = brut as Ligne & { etudiant?: Ligne };
+    const source = item.etudiant ?? item;
+    const cle = par === "niveau" ? source.niveau : source.etablissement.nom;
+    groupes.set(cle, (groupes.get(cle) ?? 0) + 1);
   }
-
-  const parRisque = new Map<string, number>();
-  const parStatut = new Map<string, number>();
-  for (const item of donnees as Array<{ niveauRisque: string; statut: string }>) {
-    parRisque.set(item.niveauRisque, (parRisque.get(item.niveauRisque) ?? 0) + 1);
-    parStatut.set(item.statut, (parStatut.get(item.statut) ?? 0) + 1);
-  }
-  return {
-    type,
-    parRisque: Object.fromEntries(parRisque),
-    parStatut: Object.fromEntries(parStatut),
-  };
+  return Array.from(groupes.entries()).sort((a, b) => b[1] - a[1]);
 }
 
-async function formulerReponse(
-  question: string,
-  type: "etudiants" | "alertes",
-  nombreResultats: number,
-  resume: object
+function decrireFiltres(filtres: Filtres) {
+  const parties = [
+    filtres.etablissement && `établissement ${filtres.etablissement}`,
+    filtres.commune && `commune ${filtres.commune}`,
+    filtres.departement && `département ${filtres.departement}`,
+    filtres.niveau && `niveau ${filtres.niveau}`,
+    filtres.periode && `période ${filtres.periode}`,
+  ].filter(Boolean);
+  return parties.length > 0 ? ` (${parties.join(", ")})` : "";
+}
+
+// La phrase est construite par le code : aucun appel IA supplémentaire.
+function construireReponse(
+  requete: Requete,
+  total: number,
+  groupes: Array<[string, number]> | null,
+  mode: Mode
 ) {
-  if (!process.env.GEMINI_API_KEY) {
-    return `J'ai trouvé ${nombreResultats} résultat${nombreResultats > 1 ? "s" : ""}.`;
+  const { type, filtres } = requete;
+  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
+  const nom = type === "etudiants" ? "étudiant" : "alerte";
+
+  let qualificatif = "";
+  if (type === "alertes") {
+    const statut = filtres.statutAlerte
+      ? filtres.statutAlerte === "active"
+        ? total > 1 ? "actives" : "active"
+        : total > 1 ? "traitées" : "traitée"
+      : "";
+    const risque = filtres.niveauRisque
+      ? `de risque ${filtres.niveauRisque === "eleve" ? "élevé" : "moyen"}`
+      : "";
+    qualificatif = [statut, risque].filter(Boolean).join(" ");
+    if (qualificatif) qualificatif = ` ${qualificatif}`;
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
-      contents: JSON.stringify({ question, type, nombreResultats, resume }),
-      config: {
-        systemInstruction:
-          "Réponds en une phrase courte et naturelle en français. Base-toi uniquement sur le nombre et le résumé fournis. N'invente aucune donnée et ne fournis ni SQL ni code.",
-        temperature: 0.2,
-      },
-    });
-
-    return response.text?.trim() || reponseLocale(nombreResultats);
-  } catch {
-    console.log("[assistant] formulation Gemini indisponible, réponse locale");
-    return reponseLocale(nombreResultats);
+  let phrase: string;
+  if (groupes && requete.regrouperPar) {
+    const detail = groupes.map(([cle, n]) => `${cle} : ${n}`).join(" ; ");
+    phrase = `Il y a ${pluriel(total, nom)}${qualificatif}${decrireFiltres(filtres)}, par ${requete.regrouperPar === "etablissement" ? "établissement" : "niveau"} — ${detail || "aucun résultat"}.`;
+  } else if (total === 0) {
+    phrase = `Aucun${type === "alertes" ? "e" : ""} ${nom}${qualificatif} ne correspond${decrireFiltres(filtres)}.`;
+  } else {
+    phrase = `Il y a ${pluriel(total, nom)}${qualificatif}${decrireFiltres(filtres)}${total > 10 ? " (les 10 premiers sont affichés)" : ""}.`;
   }
-}
 
-function reponseLocale(nombreResultats: number) {
-  return `J'ai trouvé ${nombreResultats} résultat${nombreResultats > 1 ? "s" : ""}.`;
+  return mode === "sans_ia"
+    ? `${phrase} (Calculé sans IA : l'assistant IA est temporairement indisponible.)`
+    : phrase;
 }
