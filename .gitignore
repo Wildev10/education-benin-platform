@@ -45,3 +45,6 @@ next-env.d.ts
 # cookies de session curl (jetons Auth.js)
 cookies.txt
 *-cookies.txt
+
+# sortie de secours du recalcul (ids locaux)
+prisma/alertes-creees.json

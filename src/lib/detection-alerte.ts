@@ -15,7 +15,26 @@ type MoyennePeriode = {
 
 export type IssueDetection = "creee" | "mise_a_jour" | null;
 
+export type DetailDetection = {
+  alerteId?: string; // alerte créée ou modifiée (absent en simulation)
+  issue: "creee" | "mise_a_jour";
+  periode: string;
+  anneeScolaire: string;
+  niveauRisque: string;
+  moyenneAvant: number;
+  moyenneApres: number;
+  ecartPourcent: number;
+};
+
 export async function detecterAlerte(etudiantId: string): Promise<IssueDetection> {
+  return (await analyserAlerte(etudiantId))?.issue ?? null;
+}
+
+// En mode simulation, rien n'est écrit : la fonction décrit ce qu'elle ferait.
+export async function analyserAlerte(
+  etudiantId: string,
+  simulation = false
+): Promise<DetailDetection | null> {
   const notes = await prisma.note.findMany({
     where: { etudiantId },
     select: {
@@ -91,6 +110,15 @@ export async function detecterAlerte(etudiantId: string): Promise<IssueDetection
     orderBy: { createdAt: "desc" },
   });
 
+  const detail = {
+    periode: periodeRecente.periode,
+    anneeScolaire: periodeRecente.anneeScolaire,
+    niveauRisque,
+    moyenneAvant: periodeAvant.moyenne,
+    moyenneApres: periodeRecente.moyenne,
+    ecartPourcent,
+  };
+
   if (alerteExistante) {
     // Une alerte active qui s'aggrave (moyen -> élevé) est mise à jour.
     if (
@@ -98,32 +126,38 @@ export async function detecterAlerte(etudiantId: string): Promise<IssueDetection
       alerteExistante.niveauRisque === "moyen" &&
       niveauRisque === "eleve"
     ) {
-      await prisma.alerte.update({
-        where: { id: alerteExistante.id },
-        data: {
-          niveauRisque,
-          moyenneApres: periodeRecente.moyenne,
-          ecartPourcent,
-        },
-      });
-      return "mise_a_jour";
+      if (!simulation) {
+        await prisma.alerte.update({
+          where: { id: alerteExistante.id },
+          data: {
+            niveauRisque,
+            moyenneApres: periodeRecente.moyenne,
+            ecartPourcent,
+          },
+        });
+      }
+      return { issue: "mise_a_jour", alerteId: alerteExistante.id, ...detail };
     }
     return null;
   }
 
-  await prisma.alerte.create({
-    data: {
-      etudiantId,
-      type: "baisse_moyenne",
-      niveauRisque,
-      moyenneAvant: periodeAvant.moyenne,
-      moyenneApres: periodeRecente.moyenne,
-      ecartPourcent,
-      periode: periodeRecente.periode,
-      anneeScolaire: periodeRecente.anneeScolaire,
-      statut: "active",
-    },
-  });
+  let alerteId: string | undefined;
+  if (!simulation) {
+    const creee = await prisma.alerte.create({
+      data: {
+        etudiantId,
+        type: "baisse_moyenne",
+        niveauRisque,
+        moyenneAvant: periodeAvant.moyenne,
+        moyenneApres: periodeRecente.moyenne,
+        ecartPourcent,
+        periode: periodeRecente.periode,
+        anneeScolaire: periodeRecente.anneeScolaire,
+        statut: "active",
+      },
+    });
+    alerteId = creee.id;
+  }
 
-  return "creee";
+  return { issue: "creee", alerteId, ...detail };
 }
