@@ -59,7 +59,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-page px-4 py-12">
       <div className="mb-6 w-full max-w-sm">
-        <AccessibilityControls />
+        <AccessibilityControls variant="light" />
       </div>
 
       <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-surface shadow-md">
