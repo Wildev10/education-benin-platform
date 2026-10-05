@@ -55,7 +55,7 @@ export default function AssistantChat() {
     setMessages((current) => [
       ...current,
       { id: messageId, role: "user", text: trimmed },
-      { id: messageId + 1, role: "assistant", text: "L’assistant réfléchit..." },
+      { id: messageId + 1, role: "assistant", text: "L'assistant réfléchit…" },
     ]);
     setQuestion("");
     setSending(true);
@@ -96,28 +96,34 @@ export default function AssistantChat() {
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-label="Assistant IA">
-      <div className="min-h-112 max-h-152 space-y-4 overflow-y-auto bg-slate-50 p-5 sm:p-7" aria-live="polite">
+    <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm" aria-label="Assistant IA">
+      <div className="min-h-112 max-h-152 space-y-4 overflow-y-auto bg-page p-5 sm:p-7" aria-live="polite">
         {messages.length === 0 ? (
           <div className="flex min-h-96 items-center justify-center text-center">
             <div className="max-w-xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-teal-700">Questions simples</p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-950">Posez une question sur les données scolaires</h2>
-              <p className="mt-3 text-slate-700">L’assistant cherche les informations utiles et vous les présente.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">Questions simples</p>
+              <h2 className="mt-2 text-2xl font-semibold text-ink">Posez une question sur les données scolaires</h2>
+              <p className="mt-3 text-ink-secondary">L'assistant cherche les informations utiles et vous les présente.</p>
             </div>
           </div>
         ) : messages.map((message) => (
           <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-            <article className={`max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[78%] ${message.role === "user" ? "bg-teal-700 text-white" : message.role === "error" ? "border border-red-200 bg-red-50 text-red-900" : "border border-slate-200 bg-white text-slate-900"}`}>
+            <article className={`max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[78%] ${
+              message.role === "user"
+                ? "bg-ink text-surface"
+                : message.role === "error"
+                  ? "border border-red-200 bg-red-50 text-red-900"
+                  : "border border-border bg-surface text-ink shadow-sm"
+            }`}>
               <p className="leading-7">{message.text}</p>
               {message.results && message.results.length > 0 && (
-                <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                  <p className="border-b border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">Résultats affichés : {message.results.length}</p>
-                  <ul className="divide-y divide-slate-200">
+                <div className="mt-3 overflow-hidden rounded-lg border border-border bg-page">
+                  <p className="border-b border-border px-3 py-2 text-sm font-semibold text-ink-secondary">Résultats affichés : {message.results.length}</p>
+                  <ul className="divide-y divide-border">
                     {message.results.map((result, index) => (
                       <li key={`${message.id}-${index}`} className="px-3 py-2">
-                        <p className="font-semibold text-slate-950">{resultTitle(result)}</p>
-                        <p className="text-sm text-slate-700">{resultMeta(result) || "Donnée correspondante"}</p>
+                        <p className="font-semibold text-ink">{resultTitle(result)}</p>
+                        <p className="text-sm text-ink-secondary">{resultMeta(result) || "Donnée correspondante"}</p>
                       </li>
                     ))}
                   </ul>
@@ -128,13 +134,19 @@ export default function AssistantChat() {
         ))}
       </div>
 
-      <div className="border-t border-slate-200 p-5 sm:p-7">
+      <div className="border-t border-border bg-surface p-5 sm:p-7">
         {messages.length === 0 && (
           <div className="mb-5">
-            <p className="mb-2 text-sm font-semibold text-slate-800">Exemples de questions</p>
+            <p className="mb-2 text-sm font-semibold text-ink">Exemples de questions</p>
             <div className="flex flex-wrap gap-2">
               {examples.map((example) => (
-                <button key={example} type="button" onClick={() => void sendQuestion(example)} disabled={sending} className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-left text-sm font-medium text-teal-900 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => void sendQuestion(example)}
+                  disabled={sending}
+                  className="rounded-lg border border-brand/30 bg-brand-light px-3 py-2 text-left text-sm font-medium text-brand-dark transition hover:border-brand hover:bg-brand-light/80 focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
                   {example}
                 </button>
               ))}
@@ -143,14 +155,26 @@ export default function AssistantChat() {
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label htmlFor="assistant-question" className="mb-2 block text-sm font-semibold text-slate-800">Votre question</label>
-            <input id="assistant-question" type="text" value={question} onChange={(event) => setQuestion(event.target.value)} disabled={sending} placeholder="Ex. Combien d'étudiants sont en Terminale D ?" className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-950 placeholder:text-slate-500 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600 disabled:bg-slate-100" />
+            <label htmlFor="assistant-question" className="mb-2 block text-sm font-semibold text-ink">Votre question</label>
+            <input
+              id="assistant-question"
+              type="text"
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              disabled={sending}
+              placeholder="Ex. Combien d'étudiants sont en Terminale D ?"
+              className="w-full rounded-lg border border-border px-4 py-3 text-ink placeholder:text-ink-secondary/50 transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark disabled:bg-page"
+            />
           </div>
-          <button type="submit" disabled={sending || !question.trim()} className="rounded-lg bg-teal-700 px-5 py-3 font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400">
-            {sending ? "Envoi..." : "Envoyer"}
+          <button
+            type="submit"
+            disabled={sending || !question.trim()}
+            className="rounded-lg bg-brand px-5 py-3 font-semibold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {sending ? "Envoi…" : "Envoyer"}
           </button>
         </form>
-        <p className="mt-3 text-sm text-slate-600" aria-live="polite">{sending ? "L’assistant réfléchit..." : ""}</p>
+        <p className="mt-3 text-sm text-ink-secondary" aria-live="polite">{sending ? "L'assistant réfléchit…" : ""}</p>
       </div>
     </section>
   );

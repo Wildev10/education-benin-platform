@@ -50,7 +50,7 @@ export default function AccessibilityControls() {
       return;
     }
     if (!("speechSynthesis" in window)) {
-      setSpeechMessage("La lecture vocale n’est pas disponible dans ce navigateur.");
+      setSpeechMessage("La lecture vocale n'est pas disponible dans ce navigateur.");
       return;
     }
 
@@ -71,30 +71,30 @@ export default function AccessibilityControls() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2" aria-label="Options d’accessibilité">
+    <div className="flex flex-wrap items-center justify-end gap-2" aria-label="Options d'accessibilité">
       <button
         type="button"
         aria-pressed={highContrast}
         onClick={toggleContrast}
-        className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
+        className="rounded-lg border border-white/20 bg-white/10 px-2.5 py-2 text-sm font-semibold text-surface transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
       >
         <span aria-hidden="true">◐</span> Contraste
       </button>
-      <div className="flex items-center rounded-lg border border-slate-300 bg-white" aria-label="Taille du texte">
-        <button type="button" aria-label="Réduire la taille du texte" onClick={() => changeFontSize("decrease")} className="px-2.5 py-2 text-sm font-bold text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600">A−</button>
-        <span aria-hidden="true" className="border-x border-slate-200 px-1 text-sm text-slate-500">A</span>
-        <button type="button" aria-label="Augmenter la taille du texte" onClick={() => changeFontSize("increase")} className="px-2.5 py-2 text-sm font-bold text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600">A+</button>
+      <div className="flex items-center rounded-lg border border-white/20 bg-white/10" aria-label="Taille du texte">
+        <button type="button" aria-label="Réduire la taille du texte" onClick={() => changeFontSize("decrease")} className="px-2.5 py-2 text-sm font-semibold text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark">A−</button>
+        <span aria-hidden="true" className="border-x border-white/20 px-1 text-sm text-surface/60">A</span>
+        <button type="button" aria-label="Augmenter la taille du texte" onClick={() => changeFontSize("increase")} className="px-2.5 py-2 text-sm font-semibold text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark">A+</button>
       </div>
       {isReading ? (
         <button type="button" onClick={stopReading} className="rounded-lg border border-red-300 bg-red-50 px-2.5 py-2 text-sm font-semibold text-red-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2">
           <span aria-hidden="true">■</span> Arrêter la lecture
         </button>
       ) : (
-        <button type="button" onClick={startReading} className="rounded-lg border border-teal-300 bg-teal-50 px-2.5 py-2 text-sm font-semibold text-teal-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2">
+        <button type="button" onClick={startReading} className="rounded-lg border border-brand/40 bg-brand/10 px-2.5 py-2 text-sm font-semibold text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2 focus-visible:ring-offset-ink">
           <span aria-hidden="true">▶</span> Lire à voix haute
         </button>
       )}
-      {speechMessage && <span role="status" className="basis-full text-right text-sm text-slate-700">{speechMessage}</span>}
+      {speechMessage && <span role="status" className="basis-full text-right text-sm text-surface/60">{speechMessage}</span>}
     </div>
   );
 }
