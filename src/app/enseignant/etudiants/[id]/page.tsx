@@ -17,14 +17,14 @@ export default async function EtudiantPage({
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
-      <div className="mb-8 border-b border-slate-200 pb-7">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-700">Fiche étudiant</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+      <div className="mb-8 border-b border-border pb-7">
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">Fiche étudiant</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           {etudiant.prenom} {etudiant.nom}
         </h1>
-        <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium text-slate-700">
-          <span className="rounded-full bg-white px-3 py-1.5 shadow-sm ring-1 ring-slate-200">{etudiant.etablissement.nom}</span>
-          <span className="rounded-full bg-teal-50 px-3 py-1.5 text-teal-900 ring-1 ring-teal-200">{etudiant.niveau}</span>
+        <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium text-ink-secondary">
+          <span className="rounded-full border border-border bg-surface px-3 py-1.5 shadow-sm">{etudiant.etablissement.nom}</span>
+          <span className="rounded-full bg-brand-light px-3 py-1.5 text-brand-dark ring-1 ring-brand/30">{etudiant.niveau}</span>
         </div>
       </div>
       <StudentDetail
