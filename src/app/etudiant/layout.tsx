@@ -14,7 +14,7 @@ export default async function EtudiantLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
+    <div className="min-h-screen bg-page text-ink">
       <EnseignantHeader
         name={session.user.name ?? session.user.email ?? "Étudiant"}
         email={session.user.email ?? ""}
