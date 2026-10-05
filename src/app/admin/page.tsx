@@ -31,9 +31,9 @@ export default async function AdminPage() {
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
       <div className="max-w-3xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-red-700">Pilotage national</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Dashboard Ministère</h1>
-        <p className="mt-3 text-lg leading-8 text-slate-700">La plateforme repère les baisses avant le décrochage.</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">Pilotage national</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Dashboard Ministère</h1>
+        <p className="mt-3 text-lg leading-8 text-ink-secondary">La plateforme repère les baisses avant le décrochage.</p>
       </div>
       <div className="mt-8">
         <AdminDashboard
