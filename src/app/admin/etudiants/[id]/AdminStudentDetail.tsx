@@ -205,12 +205,17 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
                 <dl className="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-4">
                   <div>
                     <dt className="text-sm font-semibold text-ink-secondary">Moyenne</dt>
-                    <dd className="mt-1 flex items-center gap-1.5 font-semibold">
-                      <span className="text-ink">{alert.moyenneAvant.toFixed(1)}</span>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" className="shrink-0 text-ink-secondary">
-                        <path d="M2 7h10M8 3.5L11.5 7 8 10.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                    <dd className="mt-1 flex items-center gap-2">
+                      <span className="rounded-md border border-border bg-page px-2 py-0.5 text-sm font-semibold text-ink tabular-nums">
+                        {alert.moyenneAvant.toFixed(1)}
+                      </span>
+                      <svg width="22" height="10" viewBox="0 0 22 10" fill="none" aria-hidden="true" className="shrink-0 text-ink-secondary">
+                        <path d="M1 5h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        <path d="M15 1.5L19.5 5 15 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                      <span className="text-red-700">{alert.moyenneApres.toFixed(1)}</span>
+                      <span className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-sm font-semibold text-red-700 tabular-nums">
+                        {alert.moyenneApres.toFixed(1)}
+                      </span>
                     </dd>
                   </div>
                   <div><dt className="text-sm font-semibold text-ink-secondary">Baisse</dt><dd className="mt-1 font-semibold text-red-800">−{alert.ecartPourcent.toFixed(1)} %</dd></div>
