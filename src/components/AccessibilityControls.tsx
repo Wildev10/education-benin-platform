@@ -70,6 +70,7 @@ export default function AccessibilityControls({
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "fr-FR";
+    utterance.rate = 0.85;
     utterance.onend = () => setIsReading(false);
     utterance.onerror = () => setIsReading(false);
     setIsReading(true);
