@@ -115,8 +115,14 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
-      <Link href="/admin" className="text-sm font-semibold text-brand-dark underline underline-offset-4 hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-dark">
-        ← Retour au dashboard
+      <Link
+        href="/admin"
+        className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-ink-secondary shadow-sm transition hover:border-brand hover:bg-brand-light hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+          <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Retour au dashboard
       </Link>
 
       <header className="mt-6 border-b border-border pb-7">
