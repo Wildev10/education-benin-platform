@@ -187,7 +187,13 @@ export default function AdminDashboard({
                   </div>
                   <div>
                     <dt className="text-sm font-semibold text-ink-secondary">Moyenne</dt>
-                    <dd className="mt-1 font-semibold text-ink">{alert.moyenneAvant.toFixed(1)} → {alert.moyenneApres.toFixed(1)}</dd>
+                    <dd className="mt-1 flex items-center gap-1.5 font-semibold">
+                      <span className="text-ink">{alert.moyenneAvant.toFixed(1)}</span>
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" className="shrink-0 text-ink-secondary">
+                        <path d="M2 7h10M8 3.5L11.5 7 8 10.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="text-red-700">{alert.moyenneApres.toFixed(1)}</span>
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-sm font-semibold text-ink-secondary">Baisse</dt>
