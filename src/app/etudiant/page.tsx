@@ -75,6 +75,9 @@ export default async function EtudiantPage() {
         orderBy: [{ periode: "asc" }, { createdAt: "desc" }],
         select: { id: true, matiere: true, valeur: true, periode: true },
       },
+      absences: {
+        select: { periode: true, motif: true },
+      },
     },
   });
 
@@ -135,6 +138,47 @@ export default async function EtudiantPage() {
           <p className="mt-2 text-lg">{resume.detail}</p>
         </section>
       )}
+
+      <section aria-labelledby="absences-title" className="mt-8">
+        <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">Présence</p>
+            <h2 id="absences-title" className="mt-1 text-2xl font-semibold text-ink">Mes absences</h2>
+          </div>
+          <p className="text-sm text-ink-secondary">{etudiant.absences.length} absence{etudiant.absences.length > 1 ? "s" : ""} au total</p>
+        </div>
+        <div className="mt-5 grid gap-5 lg:grid-cols-3">
+          {periodes.map((periode) => {
+            const absPeriode = etudiant.absences.filter((a) => a.periode === periode);
+            const injustifiees = absPeriode.filter((a) => a.motif === "injustifiee").length;
+            const justifiees = absPeriode.filter((a) => a.motif === "justifiee").length;
+            return (
+              <section key={periode} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+                <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-4">
+                  <h3 className="font-semibold text-surface">{periode}</h3>
+                  <span className="rounded-full bg-page px-3 py-1 text-sm font-semibold text-ink-secondary">
+                    {absPeriode.length} absence{absPeriode.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                {absPeriode.length > 0 ? (
+                  <div className="divide-y divide-border">
+                    <div className="flex items-center justify-between px-5 py-3">
+                      <span className="text-sm font-medium text-ink-secondary">Injustifiées</span>
+                      <span className="font-semibold text-ink">{injustifiees}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-5 py-3">
+                      <span className="text-sm font-medium text-ink-secondary">Justifiées</span>
+                      <span className="font-semibold text-ink">{justifiees}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="px-5 py-5 text-ink-secondary">Aucune absence enregistrée.</p>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      </section>
 
       <section aria-labelledby="grades-title" className="mt-8">
         <div className="flex items-end justify-between gap-4 border-b border-border pb-4">

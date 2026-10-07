@@ -30,6 +30,7 @@ export async function GET(_request: Request, context: RouteContext) {
         inscriptions: true,
         notes: true,
         alertes: true,
+        absences: { orderBy: { date: "desc" } },
       },
     });
 

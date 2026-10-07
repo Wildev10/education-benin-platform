@@ -10,7 +10,11 @@ export default async function EtudiantPage({
   const { id } = await params;
   const etudiant = await prisma.etudiant.findUnique({
     where: { id },
-    include: { etablissement: true, notes: { orderBy: { createdAt: "desc" } } },
+    include: {
+      etablissement: true,
+      notes: { orderBy: { createdAt: "desc" } },
+      absences: { orderBy: { date: "desc" } },
+    },
   });
 
   if (!etudiant) notFound();
@@ -35,6 +39,13 @@ export default async function EtudiantPage({
           valeur: note.valeur,
           periode: note.periode,
           anneeScolaire: note.anneeScolaire,
+        }))}
+        initialAbsences={etudiant.absences.map((a) => ({
+          id: a.id,
+          date: a.date.toISOString(),
+          motif: a.motif,
+          periode: a.periode,
+          anneeScolaire: a.anneeScolaire,
         }))}
       />
     </main>

@@ -68,13 +68,15 @@ export async function POST(request: Request) {
     const lignes =
       requete.type === "etudiants"
         ? await rechercherEtudiants(requete.filtres)
-        : await rechercherAlertes(requete.filtres);
+        : requete.type === "absences"
+          ? await rechercherAbsences(requete.filtres)
+          : await rechercherAlertes(requete.filtres);
 
     const groupes = requete.regrouperPar
       ? compter(lignes, requete.regrouperPar)
       : null;
     const etudiantsDistincts =
-      requete.type === "alertes"
+      requete.type === "alertes" || requete.type === "absences"
         ? new Set((lignes as Array<{ etudiantId: string }>).map((a) => a.etudiantId)).size
         : null;
     const reponse = construireReponse(requete, lignes.length, groupes, mode, etudiantsDistincts);
@@ -148,6 +150,17 @@ async function rechercherEtudiants(filtres: Filtres) {
   });
 }
 
+async function rechercherAbsences(filtres: Filtres) {
+  return prisma.absence.findMany({
+    where: {
+      ...(filtres.motifAbsence ? { motif: filtres.motifAbsence } : {}),
+      ...(filtres.periode ? { periode: filtres.periode } : {}),
+      etudiant: conditionsEtudiant(filtres),
+    },
+    include: { etudiant: { include: { etablissement: true } } },
+  });
+}
+
 async function rechercherAlertes(filtres: Filtres) {
   return prisma.alerte.findMany({
     where: {
@@ -178,6 +191,7 @@ function decrireFiltres(filtres: Filtres) {
     filtres.departement && `département ${filtres.departement}`,
     filtres.niveau && `niveau ${filtres.niveau}`,
     filtres.periode && `période ${filtres.periode}`,
+    filtres.motifAbsence && `motif ${filtres.motifAbsence}`,
   ].filter(Boolean);
   return parties.length > 0 ? ` (${parties.join(", ")})` : "";
 }
@@ -192,9 +206,12 @@ function construireReponse(
 ) {
   const { type, filtres } = requete;
   const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
-  const nom = type === "etudiants" ? "étudiant" : "alerte";
+  const nom = type === "etudiants" ? "étudiant" : type === "absences" ? "absence" : "alerte";
 
   let qualificatif = "";
+  if (type === "absences" && filtres.motifAbsence) {
+    qualificatif = ` ${filtres.motifAbsence === "injustifiee" ? "injustifiée" : "justifiée"}${total > 1 ? "s" : ""}`;
+  }
   if (type === "alertes") {
     const statut = filtres.statutAlerte
       ? filtres.statutAlerte === "active"
@@ -208,7 +225,7 @@ function construireReponse(
     if (qualificatif) qualificatif = ` ${qualificatif}`;
   }
 
-  // "6 alertes concernant 4 étudiants" : une alerte n'est pas un étudiant.
+  // "6 alertes concernant 4 étudiants" / "6 absences concernant 4 étudiants"
   const concernant =
     etudiantsDistincts !== null && total > 0
       ? ` concernant ${pluriel(etudiantsDistincts, "étudiant")}`

@@ -29,13 +29,14 @@ const filtreSchema = {
     periode: { type: Type.STRING },
     niveauRisque: { type: Type.STRING, enum: ["moyen", "eleve"] },
     statutAlerte: { type: Type.STRING, enum: ["active", "traitee"] },
+    motifAbsence: { type: Type.STRING, enum: ["injustifiee", "justifiee"] },
   },
 };
 
 const reponseSchema = {
   type: Type.OBJECT,
   properties: {
-    type: { type: Type.STRING, enum: ["etudiants", "alertes", "inconnu"] },
+    type: { type: Type.STRING, enum: ["etudiants", "alertes", "absences", "inconnu"] },
     filtres: filtreSchema,
     regrouperPar: { type: Type.STRING, enum: ["etablissement", "niveau"] },
   },
@@ -44,7 +45,7 @@ const reponseSchema = {
 
 function creerConsigne(ref: Referentiel) {
   return `Tu traduis une question en français en filtre JSON pour une application scolaire. Tu ne produis jamais de SQL ni de code.
-Données interrogeables : les étudiants (type "etudiants") et les alertes de baisse de résultats (type "alertes"). Une question sur les étudiants "à risque" concerne les alertes.
+Données interrogeables : les étudiants (type "etudiants"), les alertes de baisse de résultats (type "alertes"), et les absences (type "absences"). Une question sur les étudiants "à risque" concerne les alertes.
 Filtres possibles (n'utilise que des valeurs EXACTES de ces listes, sinon omets le filtre) :
 - etablissement : ${ref.etablissements.join(" | ")}
 - departement : ${ref.departements.join(" | ")}
@@ -53,6 +54,7 @@ Filtres possibles (n'utilise que des valeurs EXACTES de ces listes, sinon omets 
 - periode : ${ref.periodes.join(" | ")}
 - niveauRisque (alertes seulement) : "moyen" ou "eleve"
 - statutAlerte (alertes seulement) : "active" ou "traitee"
+- motifAbsence (absences seulement) : "injustifiee" ou "justifiee"
 regrouperPar : "etablissement" ou "niveau" quand la question demande une répartition ou un nombre par établissement ou par niveau.
 Si la question ne concerne pas ces données, retourne type "inconnu" et filtres {}.
 Retourne exclusivement l'objet JSON demandé.`;

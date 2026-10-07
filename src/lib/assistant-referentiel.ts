@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-export type TypeRequete = "etudiants" | "alertes" | "inconnu";
+export type TypeRequete = "etudiants" | "alertes" | "absences" | "inconnu";
 export type Regroupement = "etablissement" | "niveau";
 
 export type Filtres = {
@@ -11,6 +11,7 @@ export type Filtres = {
   periode?: string;
   niveauRisque?: "moyen" | "eleve";
   statutAlerte?: "active" | "traitee";
+  motifAbsence?: "injustifiee" | "justifiee";
 };
 
 export type Requete = {
@@ -34,6 +35,7 @@ export const exemplesQuestions = [
   "Combien d'étudiants en Terminale D ?",
   "Liste les alertes actives à Cotonou",
   "Répartition des étudiants par établissement",
+  "Combien d'absences injustifiées ce trimestre ?",
 ];
 
 export async function chargerReferentiel(): Promise<Referentiel> {
@@ -86,7 +88,7 @@ export function validerRequete(brut: unknown, ref: Referentiel): Requete {
     filtres?: unknown;
     regrouperPar?: unknown;
   };
-  if (candidat.type !== "etudiants" && candidat.type !== "alertes") return vide;
+  if (candidat.type !== "etudiants" && candidat.type !== "alertes" && candidat.type !== "absences") return vide;
 
   const requete: Requete = {
     type: candidat.type,
@@ -125,6 +127,12 @@ export function validerRequete(brut: unknown, ref: Referentiel): Requete {
     }
     if (filtres.statutAlerte === "active" || filtres.statutAlerte === "traitee") {
       requete.filtres.statutAlerte = filtres.statutAlerte;
+    }
+  }
+  // Les filtres propres aux absences.
+  if (requete.type === "absences") {
+    if (filtres.motifAbsence === "injustifiee" || filtres.motifAbsence === "justifiee") {
+      requete.filtres.motifAbsence = filtres.motifAbsence;
     }
   }
 

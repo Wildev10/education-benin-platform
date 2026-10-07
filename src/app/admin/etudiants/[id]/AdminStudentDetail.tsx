@@ -32,6 +32,14 @@ type Alerte = {
   createdAt: string;
 };
 
+type Absence = {
+  id: string;
+  date: string;
+  motif: string;
+  periode: string;
+  anneeScolaire: string;
+};
+
 type Student = {
   nom: string;
   prenom: string;
@@ -41,6 +49,7 @@ type Student = {
   etablissement: { nom: string; departement: string; commune: string };
   notes: Note[];
   alertes: Alerte[];
+  absences: Absence[];
 };
 
 const periodes = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
@@ -171,6 +180,57 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
             </section>
           ))}
         </div>
+      </section>
+
+      <section aria-labelledby="absences-title" className="mt-10">
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">Présence</p>
+        <h2 id="absences-title" className="mt-1 text-2xl font-semibold text-ink">Absences par période</h2>
+        {student.absences.length > 0 ? (
+          <div className="mt-5 grid gap-5 lg:grid-cols-3">
+            {periodes.map((periode) => {
+              const absencesPeriode = student.absences.filter((a) => a.periode === periode);
+              const injustifiees = absencesPeriode.filter((a) => a.motif === "injustifiee").length;
+              const justifiees = absencesPeriode.filter((a) => a.motif === "justifiee").length;
+              return (
+                <section key={periode} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+                  <h3 className="border-b border-border bg-ink px-5 py-4 font-semibold text-surface">{periode}</h3>
+                  {absencesPeriode.length > 0 ? (
+                    <div className="p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-ink-secondary">Total</span>
+                        <span className="font-semibold text-ink">{absencesPeriode.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800">Injustifiées</span>
+                        <span className="font-semibold text-red-800">{injustifiees}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">Justifiées</span>
+                        <span className="font-semibold text-emerald-800">{justifiees}</span>
+                      </div>
+                      <ul className="mt-3 divide-y divide-border border-t border-border pt-3">
+                        {absencesPeriode.map((abs) => (
+                          <li key={abs.id} className="flex items-center justify-between py-2 text-sm">
+                            <span className="text-ink-secondary">{formatDate(abs.date)}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${abs.motif === "injustifiee" ? "bg-red-100 text-red-800" : "bg-emerald-100 text-emerald-800"}`}>
+                              {abs.motif === "injustifiee" ? "Injustifiée" : "Justifiée"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="px-5 py-5 text-ink-secondary">Aucune absence enregistrée.</p>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
+            <span aria-hidden="true">✓ </span>Aucune absence enregistrée pour cet étudiant.
+          </p>
+        )}
       </section>
 
       <section aria-labelledby="alerts-title" className="mt-10">
