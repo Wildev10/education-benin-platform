@@ -26,6 +26,7 @@ export default async function AdminLayout({
           <NavLink href="/admin" exact>Dashboard</NavLink>
           <NavLink href="/admin/etudiants">Étudiants</NavLink>
           <NavLink href="/admin/utilisateurs">Utilisateurs</NavLink>
+          <NavLink href="/admin/import">Importer</NavLink>
           <NavLink href="/admin/assistant">Assistant</NavLink>
         </div>
       </nav>

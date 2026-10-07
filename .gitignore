@@ -49,3 +49,6 @@ cookies.txt
 
 # sortie de secours du recalcul (ids locaux)
 prisma/alertes-creees.json
+
+# fichiers CSV de test locaux
+prisma/tests-csv/
