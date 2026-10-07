@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     const searchParams = new URL(request.url).searchParams;
     const etablissementId = searchParams.get("etablissementId");
     const niveau = searchParams.get("niveau");
+    const sansCompte = searchParams.get("sansCompte") === "1";
     const skip = parseNonNegativeInteger(searchParams.get("skip"), 0);
     const take = parsePositiveInteger(searchParams.get("take"), 50);
 
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
       where: {
         ...(etablissementId ? { etablissementId } : {}),
         ...(niveau ? { niveau } : {}),
+        ...(sansCompte ? { compte: null } : {}),
       },
       include: { etablissement: true },
       skip,

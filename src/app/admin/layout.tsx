@@ -25,6 +25,7 @@ export default async function AdminLayout({
         <div className="mx-auto flex max-w-7xl gap-6 px-5 sm:px-8">
           <NavLink href="/admin" exact>Dashboard</NavLink>
           <NavLink href="/admin/etudiants">Étudiants</NavLink>
+          <NavLink href="/admin/utilisateurs">Utilisateurs</NavLink>
           <NavLink href="/admin/assistant">Assistant</NavLink>
         </div>
       </nav>
