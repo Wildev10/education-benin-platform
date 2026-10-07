@@ -31,6 +31,7 @@ model Etablissement {
   departement String
   commune     String
   etudiants   Etudiant[]
+  directeurs  User[]
 }
 
 model Inscription {
@@ -80,13 +81,15 @@ model Absence {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  nom          String
-  prenom       String
-  role         String   // "etudiant" | "enseignant" | "admin"
-  etudiantId   String?  @unique
-  etudiant     Etudiant? @relation(fields: [etudiantId], references: [id])
-  createdAt    DateTime @default(now())
+  id               String         @id @default(cuid())
+  email            String         @unique
+  passwordHash     String
+  nom              String
+  prenom           String
+  role             String         // "etudiant" | "enseignant" | "admin" | "directeur"
+  etudiantId       String?        @unique
+  etudiant         Etudiant?      @relation(fields: [etudiantId], references: [id])
+  etablissementId  String?
+  etablissement    Etablissement? @relation(fields: [etablissementId], references: [id])
+  createdAt        DateTime       @default(now())
 }
