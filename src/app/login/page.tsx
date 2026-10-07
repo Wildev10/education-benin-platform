@@ -28,11 +28,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [erreur, setErreur] = useState("");
+  const [estBloque, setEstBloque] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErreur("");
+    setEstBloque(false);
     setLoading(true);
 
     try {
@@ -43,7 +45,11 @@ export default function LoginPage() {
       });
 
       if (res?.error) {
-        setErreur("Email ou mot de passe incorrect.");
+        if (res.code === "rate_limit") {
+          setEstBloque(true);
+        } else {
+          setErreur("Email ou mot de passe incorrect.");
+        }
         return;
       }
 
@@ -107,6 +113,12 @@ export default function LoginPage() {
               />
             </div>
 
+            {estBloque && (
+              <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-semibold">Accès temporairement bloqué</p>
+                <p className="mt-0.5">Trop de tentatives échouées. Réessayez dans 15 minutes.</p>
+              </div>
+            )}
             {erreur && (
               <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
                 {erreur}
@@ -115,7 +127,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || estBloque}
               className="w-full rounded-lg bg-brand px-4 py-3 font-semibold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Connexion…" : "Se connecter"}
