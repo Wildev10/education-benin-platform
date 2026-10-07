@@ -161,3 +161,88 @@ export async function analyserAlerte(
 
   return { issue: "creee", alerteId, ...detail };
 }
+
+// ── Détection alerte absences ────────────────────────────────────────────────
+
+const SEUIL_MOYEN = 5;
+const SEUIL_ELEVE = 10;
+
+export async function detecterAlerteAbsence(etudiantId: string): Promise<boolean> {
+  // Compte les absences injustifiées par (anneeScolaire, periode)
+  const absences = await prisma.absence.findMany({
+    where: { etudiantId, motif: "injustifiee" },
+    select: { periode: true, anneeScolaire: true },
+  });
+
+  if (absences.length === 0) return false;
+
+  // Groupe par (anneeScolaire::periode)
+  const compteurs = new Map<string, { periode: string; anneeScolaire: string; count: number }>();
+  for (const a of absences) {
+    const key = `${a.anneeScolaire}::${a.periode}`;
+    const entry = compteurs.get(key);
+    if (entry) entry.count++;
+    else compteurs.set(key, { periode: a.periode, anneeScolaire: a.anneeScolaire, count: 1 });
+  }
+
+  // Prend la période la plus récente avec le plus d'absences
+  const periodes = Array.from(compteurs.values()).sort((a, b) => {
+    const anneeA = Number.parseInt(a.anneeScolaire, 10);
+    const anneeB = Number.parseInt(b.anneeScolaire, 10);
+    if (anneeA !== anneeB) return anneeB - anneeA;
+    return (ordrePeriodes[b.periode] ?? 0) - (ordrePeriodes[a.periode] ?? 0);
+  });
+
+  const cible = periodes[0];
+  const { periode, anneeScolaire, count } = cible;
+
+  let niveauRisque: string;
+  if (count >= SEUIL_ELEVE) {
+    niveauRisque = "eleve";
+  } else if (count >= SEUIL_MOYEN) {
+    niveauRisque = "moyen";
+  } else {
+    return false;
+  }
+
+  // Anti-doublon : cherche une alerte absences existante pour cet étudiant/période
+  const alerteExistante = await prisma.alerte.findFirst({
+    where: {
+      etudiantId,
+      type: "absences",
+      periode,
+      OR: [{ anneeScolaire }, { anneeScolaire: null }],
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (alerteExistante) {
+    if (
+      alerteExistante.statut === "active" &&
+      alerteExistante.niveauRisque === "moyen" &&
+      niveauRisque === "eleve"
+    ) {
+      await prisma.alerte.update({
+        where: { id: alerteExistante.id },
+        data: { niveauRisque, moyenneApres: count, ecartPourcent: 0 },
+      });
+      return true;
+    }
+    return false;
+  }
+
+  await prisma.alerte.create({
+    data: {
+      etudiantId,
+      type: "absences",
+      niveauRisque,
+      moyenneAvant: 0,
+      moyenneApres: count,
+      ecartPourcent: 0,
+      periode,
+      anneeScolaire,
+      statut: "active",
+    },
+  });
+  return true;
+}

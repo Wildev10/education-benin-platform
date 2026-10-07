@@ -20,6 +20,7 @@ model Etudiant {
   inscriptions    Inscription[]
   notes           Note[]
   alertes         Alerte[]
+  absences        Absence[]
   compte          User?
   createdAt       DateTime @default(now())
 }
@@ -64,6 +65,17 @@ model Alerte {
   periode       String
   anneeScolaire String?
   statut        String   @default("active")
+  createdAt     DateTime @default(now())
+}
+
+model Absence {
+  id            String   @id @default(cuid())
+  etudiantId    String
+  etudiant      Etudiant @relation(fields: [etudiantId], references: [id])
+  date          DateTime
+  motif         String
+  periode       String
+  anneeScolaire String
   createdAt     DateTime @default(now())
 }
 
