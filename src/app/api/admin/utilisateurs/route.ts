@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 
-const ROLES_VALIDES = ["etudiant", "enseignant", "admin"] as const;
+const ROLES_VALIDES = ["etudiant", "enseignant", "admin", "directeur"] as const;
 
 export async function GET() {
   const access = await requireRole(["admin"]);
@@ -18,6 +18,8 @@ export async function GET() {
         email: true,
         role: true,
         etudiantId: true,
+        etablissementId: true,
+        etablissement: { select: { nom: true } },
         createdAt: true,
       },
       orderBy: { createdAt: "asc" },
@@ -35,13 +37,16 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { nom, prenom, email, role, motDePasse, etudiantId } = body ?? {};
+    const { nom, prenom, email, role, motDePasse, etudiantId, etablissementId } = body ?? {};
 
     if (!nom || !prenom || !email || !role || !motDePasse) {
       return NextResponse.json({ error: "Tous les champs obligatoires doivent être remplis." }, { status: 400 });
     }
     if (!ROLES_VALIDES.includes(role)) {
       return NextResponse.json({ error: "Rôle invalide." }, { status: 400 });
+    }
+    if (role === "directeur" && !etablissementId) {
+      return NextResponse.json({ error: "L'établissement est obligatoire pour un directeur." }, { status: 400 });
     }
     if (typeof motDePasse !== "string" || motDePasse.length < 8) {
       return NextResponse.json({ error: "Le mot de passe doit contenir au moins 8 caractères." }, { status: 400 });
@@ -63,6 +68,13 @@ export async function POST(request: Request) {
       }
     }
 
+    if (role === "directeur" && etablissementId) {
+      const etab = await prisma.etablissement.findUnique({ where: { id: etablissementId } });
+      if (!etab) {
+        return NextResponse.json({ error: "Établissement introuvable." }, { status: 400 });
+      }
+    }
+
     const passwordHash = await bcrypt.hash(motDePasse, 10);
     const utilisateur = await prisma.user.create({
       data: {
@@ -72,6 +84,7 @@ export async function POST(request: Request) {
         role,
         passwordHash,
         ...(role === "etudiant" && etudiantId ? { etudiantId } : {}),
+        ...(role === "directeur" && etablissementId ? { etablissementId } : {}),
       },
       select: {
         id: true,
@@ -80,6 +93,7 @@ export async function POST(request: Request) {
         email: true,
         role: true,
         etudiantId: true,
+        etablissementId: true,
         createdAt: true,
       },
     });

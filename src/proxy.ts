@@ -24,7 +24,7 @@ const authMiddleware: AuthMiddleware = (request) => {
   const requiredRoles = pathname.startsWith("/admin")
     ? ["admin"]
     : pathname.startsWith("/enseignant")
-      ? ["enseignant", "admin"]
+      ? ["enseignant", "admin", "directeur"]
       : pathname.startsWith("/etudiant")
         ? ["etudiant", "admin"]
         : null;

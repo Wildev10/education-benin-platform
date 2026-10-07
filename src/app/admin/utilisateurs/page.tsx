@@ -16,6 +16,8 @@ export default async function UtilisateursPage() {
       email: true,
       role: true,
       etudiantId: true,
+      etablissementId: true,
+      etablissement: { select: { nom: true } },
       createdAt: true,
     },
     orderBy: { createdAt: "asc" },
@@ -43,6 +45,7 @@ export default async function UtilisateursPage() {
           initialUtilisateurs={utilisateurs.map((u) => ({
             ...u,
             createdAt: u.createdAt.toISOString(),
+            etablissement: u.etablissement ?? null,
           }))}
           currentUserId={session.user.id ?? ""}
         />

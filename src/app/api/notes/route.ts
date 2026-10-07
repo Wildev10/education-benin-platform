@@ -4,7 +4,7 @@ import { detecterAlerte } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
-  const access = await requireRole(["admin", "enseignant", "etudiant"]);
+  const access = await requireRole(["admin", "enseignant", "directeur", "etudiant"]);
   if (access instanceof Response) return access;
 
   try {
@@ -28,6 +28,10 @@ export async function GET(request: Request) {
         ...(etudiantId ? { etudiantId } : {}),
         ...(matiere ? { matiere } : {}),
         ...(periode ? { periode } : {}),
+        // Le directeur ne voit que les notes des étudiants de son établissement.
+        ...(access.user.role === "directeur"
+          ? { etudiant: { etablissementId: access.user.etablissementId ?? undefined } }
+          : {}),
       },
       orderBy: { createdAt: "desc" },
     });
@@ -43,7 +47,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const access = await requireRole(["admin", "enseignant"]);
+  const access = await requireRole(["admin", "enseignant", "directeur"]);
   if (access instanceof Response) return access;
 
   try {
@@ -83,12 +87,22 @@ export async function POST(request: Request) {
 
     const etudiant = await prisma.etudiant.findUnique({
       where: { id: body.etudiantId.trim() },
-      select: { id: true },
+      select: { id: true, etablissementId: true },
     });
     if (!etudiant) {
       return NextResponse.json(
         { error: "Étudiant introuvable" },
         { status: 404 }
+      );
+    }
+
+    if (
+      access.user.role === "directeur" &&
+      etudiant.etablissementId !== access.user.etablissementId
+    ) {
+      return NextResponse.json(
+        { error: "Cet étudiant n'appartient pas à votre établissement." },
+        { status: 403 }
       );
     }
 

@@ -11,6 +11,8 @@ type Utilisateur = {
   email: string;
   role: string;
   etudiantId: string | null;
+  etablissementId: string | null;
+  etablissement: { nom: string } | null;
   createdAt: string;
 };
 
@@ -19,11 +21,13 @@ function RoleBadge({ role }: { role: string }) {
     admin: "border-red-300 bg-red-50 text-red-800",
     enseignant: "border-emerald-300 bg-emerald-50 text-emerald-800",
     etudiant: "border-blue-300 bg-blue-50 text-blue-800",
+    directeur: "border-purple-300 bg-purple-50 text-purple-800",
   };
   const labels: Record<string, string> = {
     admin: "Admin",
     enseignant: "Enseignant",
     etudiant: "Étudiant",
+    directeur: "Directeur",
   };
   return (
     <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${styles[role] ?? "border-border bg-page text-ink-secondary"}`}>
@@ -107,6 +111,9 @@ export default function UtilisateursList({
                       >
                         Fiche →
                       </Link>
+                    )}
+                    {u.role === "directeur" && u.etablissement && (
+                      <span className="text-xs text-ink-secondary">{u.etablissement.nom}</span>
                     )}
                   </div>
                 </td>

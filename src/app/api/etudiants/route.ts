@@ -3,16 +3,21 @@ import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
-  const access = await requireRole(["admin", "enseignant"]);
+  const access = await requireRole(["admin", "enseignant", "directeur"]);
   if (access instanceof Response) return access;
 
   try {
     const searchParams = new URL(request.url).searchParams;
-    const etablissementId = searchParams.get("etablissementId");
     const niveau = searchParams.get("niveau");
     const sansCompte = searchParams.get("sansCompte") === "1";
     const skip = parseNonNegativeInteger(searchParams.get("skip"), 0);
     const take = parsePositiveInteger(searchParams.get("take"), 50);
+
+    // Le directeur ne voit que les étudiants de son établissement.
+    const etablissementId =
+      access.user.role === "directeur"
+        ? access.user.etablissementId
+        : searchParams.get("etablissementId");
 
     const etudiants = await prisma.etudiant.findMany({
       where: {

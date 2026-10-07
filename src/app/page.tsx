@@ -13,6 +13,8 @@ export default async function Home() {
       redirect("/admin");
     case "enseignant":
       redirect("/enseignant");
+    case "directeur":
+      redirect("/enseignant");
     case "etudiant":
       redirect("/etudiant");
     default:

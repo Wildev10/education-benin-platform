@@ -8,7 +8,7 @@ const ordreNiveauxRisque: Record<string, number> = {
 };
 
 export async function GET(request: Request) {
-  const access = await requireRole(["admin", "enseignant"]);
+  const access = await requireRole(["admin", "enseignant", "directeur"]);
   if (access instanceof Response) return access;
 
   try {
@@ -21,6 +21,10 @@ export async function GET(request: Request) {
         ...(statut === "active" || statut === "traitee" ? { statut } : {}),
         ...(niveauRisque === "moyen" || niveauRisque === "eleve"
           ? { niveauRisque }
+          : {}),
+        // Le directeur ne voit que les alertes des étudiants de son établissement.
+        ...(access.user.role === "directeur"
+          ? { etudiant: { etablissementId: access.user.etablissementId ?? undefined } }
           : {}),
       },
       include: {

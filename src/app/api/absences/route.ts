@@ -7,7 +7,7 @@ const MOTIFS_VALIDES = new Set(["injustifiee", "justifiee"]);
 const PERIODES_VALIDES = new Set(["Trimestre 1", "Trimestre 2", "Trimestre 3"]);
 
 export async function GET(request: Request) {
-  const access = await requireRole(["admin", "enseignant"]);
+  const access = await requireRole(["admin", "enseignant", "directeur"]);
   if (access instanceof Response) return access;
 
   try {
@@ -23,6 +23,10 @@ export async function GET(request: Request) {
         ...(periode ? { periode } : {}),
         ...(anneeScolaire ? { anneeScolaire } : {}),
         ...(motif ? { motif } : {}),
+        // Le directeur ne voit que les absences des étudiants de son établissement.
+        ...(access.user.role === "directeur"
+          ? { etudiant: { etablissementId: access.user.etablissementId ?? undefined } }
+          : {}),
       },
       include: {
         etudiant: {
@@ -40,7 +44,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const access = await requireRole(["admin", "enseignant"]);
+  const access = await requireRole(["admin", "enseignant", "directeur"]);
   if (access instanceof Response) return access;
 
   try {
@@ -65,9 +69,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "La date ne peut pas être dans le futur." }, { status: 400 });
     }
 
-    const etudiant = await prisma.etudiant.findUnique({ where: { id: etudiantId }, select: { id: true } });
+    const etudiant = await prisma.etudiant.findUnique({ where: { id: etudiantId }, select: { id: true, etablissementId: true } });
     if (!etudiant) {
       return NextResponse.json({ error: "Étudiant introuvable." }, { status: 404 });
+    }
+
+    if (
+      access.user.role === "directeur" &&
+      etudiant.etablissementId !== access.user.etablissementId
+    ) {
+      return NextResponse.json(
+        { error: "Cet étudiant n'appartient pas à votre établissement." },
+        { status: 403 }
+      );
     }
 
     const absence = await prisma.absence.create({

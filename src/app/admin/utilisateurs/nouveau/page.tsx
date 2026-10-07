@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type EtudiantSansCompte = { id: string; nom: string; prenom: string; etablissement: { nom: string } };
+type Etablissement = { id: string; nom: string; departement: string; commune: string };
 
 const inputCls = "w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark";
 const labelCls = "mb-1.5 block text-sm font-semibold text-ink";
@@ -18,7 +19,9 @@ export default function NouvelUtilisateurPage() {
   const [role, setRole] = useState("enseignant");
   const [motDePasse, setMotDePasse] = useState("");
   const [etudiantId, setEtudiantId] = useState("");
+  const [etablissementId, setEtablissementId] = useState("");
   const [etudiants, setEtudiants] = useState<EtudiantSansCompte[]>([]);
+  const [etablissements, setEtablissements] = useState<Etablissement[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -34,6 +37,17 @@ export default function NouvelUtilisateurPage() {
       .catch(() => setEtudiants([]));
   }, [role]);
 
+  useEffect(() => {
+    if (role !== "directeur") return;
+    fetch("/api/etablissements")
+      .then((res) => res.json())
+      .then((data: Etablissement[]) => {
+        setEtablissements(data);
+        setEtablissementId(data[0]?.id ?? "");
+      })
+      .catch(() => setEtablissements([]));
+  }, [role]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -43,6 +57,7 @@ export default function NouvelUtilisateurPage() {
     try {
       const body: Record<string, string> = { prenom, nom, email, role, motDePasse };
       if (role === "etudiant" && etudiantId) body.etudiantId = etudiantId;
+      if (role === "directeur" && etablissementId) body.etablissementId = etablissementId;
 
       const res = await fetch("/api/admin/utilisateurs", {
         method: "POST",
@@ -100,8 +115,9 @@ export default function NouvelUtilisateurPage() {
 
         <div>
           <label htmlFor="role" className={labelCls}>Rôle</label>
-          <select id="role" value={role} onChange={(e) => { setRole(e.target.value); setEtudiantId(""); }} className={inputCls}>
+          <select id="role" value={role} onChange={(e) => { setRole(e.target.value); setEtudiantId(""); setEtablissementId(""); }} className={inputCls}>
             <option value="enseignant">Enseignant</option>
+            <option value="directeur">Directeur</option>
             <option value="etudiant">Étudiant</option>
             <option value="admin">Admin</option>
           </select>
@@ -129,6 +145,32 @@ export default function NouvelUtilisateurPage() {
             ) : (
               <p className="rounded-lg bg-page px-4 py-3 text-sm text-ink-secondary">
                 Tous les étudiants ont déjà un compte, ou aucun étudiant n'est enregistré.
+              </p>
+            )}
+          </div>
+        )}
+
+        {role === "directeur" && (
+          <div>
+            <label htmlFor="etablissementId" className={labelCls}>Établissement</label>
+            {etablissements.length > 0 ? (
+              <select
+                id="etablissementId"
+                required
+                value={etablissementId}
+                onChange={(e) => setEtablissementId(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">— Choisir un établissement —</option>
+                {etablissements.map((et) => (
+                  <option key={et.id} value={et.id}>
+                    {et.nom} ({et.commune}, {et.departement})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="rounded-lg bg-page px-4 py-3 text-sm text-ink-secondary">
+                Chargement des établissements…
               </p>
             )}
           </div>

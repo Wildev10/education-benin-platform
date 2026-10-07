@@ -7,7 +7,7 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const access = await requireRole(["admin", "enseignant", "etudiant"]);
+  const access = await requireRole(["admin", "enseignant", "directeur", "etudiant"]);
   if (access instanceof Response) return access;
 
   try {
@@ -38,6 +38,16 @@ export async function GET(_request: Request, context: RouteContext) {
       return NextResponse.json(
         { error: "Étudiant introuvable" },
         { status: 404 }
+      );
+    }
+
+    if (
+      access.user.role === "directeur" &&
+      etudiant.etablissementId !== access.user.etablissementId
+    ) {
+      return NextResponse.json(
+        { error: "Cet étudiant n'appartient pas à votre établissement." },
+        { status: 403 }
       );
     }
 
