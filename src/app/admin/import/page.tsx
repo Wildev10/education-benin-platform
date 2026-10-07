@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
+import ImportNotesPage from "@/app/enseignant/import/page";
 
-export default function AdminImportPage() {
-  redirect("/enseignant/import");
-}
+export default ImportNotesPage;
