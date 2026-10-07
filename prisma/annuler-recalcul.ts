@@ -1,13 +1,16 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
+import { verifierBaseNonProtegee } from "./garde-prod";
 
 // Sortie de secours : supprime UNIQUEMENT les alertes listées dans
 // prisma/alertes-creees.json (créées par recalculer-alertes.ts --execute).
 //   npx tsx prisma/annuler-recalcul.ts            -> simulation (n'écrit rien)
 //   npx tsx prisma/annuler-recalcul.ts --execute  -> supprime
-const prisma = new PrismaClient();
 const execute = process.argv.includes("--execute");
+if (execute) verifierBaseNonProtegee();
+
+const prisma = new PrismaClient();
 
 async function main() {
   const ids: string[] = JSON.parse(readFileSync("prisma/alertes-creees.json", "utf8"));

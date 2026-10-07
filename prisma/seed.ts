@@ -1,5 +1,9 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { faker } from "@faker-js/faker";
+import { verifierBaseNonProtegee } from "./garde-prod";
+
+verifierBaseNonProtegee();
 
 const prisma = new PrismaClient();
 

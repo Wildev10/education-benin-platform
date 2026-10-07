@@ -68,13 +68,13 @@ cd education-benin-platform
 npm install
 ```
 
-Créez un fichier `.env` à la racine avec ces trois variables :
+Copiez `.env.example` en `.env` et remplissez les valeurs :
 
-```dotenv
-DATABASE_URL="<url-de-connexion-postgresql>"
-AUTH_SECRET="<secret-authjs>"
-GEMINI_API_KEY="<cle-api-gemini>"
+```bash
+cp .env.example .env
 ```
+
+> **Important — deux bases distinctes :** utilisez toujours une branche Neon **"dev"** en local, jamais la base **"production"** utilisée par Vercel. La variable `PROTECTED_DB_HOSTS` liste les hôtes de production protégés ; tout script d'écriture est automatiquement bloqué s'il détecte que `DATABASE_URL` pointe vers l'un d'eux.
 
 Initialisez la base puis lancez l'application :
 

@@ -1,6 +1,9 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { verifierBaseNonProtegee } from "./garde-prod";
 import bcrypt from "bcryptjs";
+
+verifierBaseNonProtegee();
 
 const prisma = new PrismaClient();
 
