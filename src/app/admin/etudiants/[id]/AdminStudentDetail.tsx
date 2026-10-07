@@ -387,7 +387,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
                     </Button>
                   )}
                 </div>
-                <dl className="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-4">
+                <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-5 sm:grid-cols-4">
                   <div>
                     <dt className="text-sm font-semibold text-ink-secondary">Moyenne</dt>
                     <dd className="mt-1 flex items-center gap-2">

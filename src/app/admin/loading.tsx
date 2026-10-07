@@ -9,7 +9,7 @@ export default function AdminLoading() {
       </div>
 
       {/* Stat cards skeleton */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="rounded-[14px] border border-border bg-surface p-5 shadow-sm">
             <div className="h-4 w-28 animate-pulse rounded bg-border" />

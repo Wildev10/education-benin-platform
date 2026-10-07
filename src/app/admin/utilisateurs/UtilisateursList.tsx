@@ -66,7 +66,8 @@ export default function UtilisateursList({
       )}
 
       <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="bg-ink text-surface">
               <th scope="col" className="px-5 py-4 text-left font-semibold">Utilisateur</th>
@@ -126,6 +127,7 @@ export default function UtilisateursList({
         {utilisateurs.length === 0 && (
           <p className="px-5 py-8 text-center text-ink-secondary">Aucun utilisateur.</p>
         )}
+        </div>
       </div>
     </>
   );

@@ -82,9 +82,9 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col lg:flex-row">
-      {/* ── Panneau gauche — identité ─────────────────────────── */}
+      {/* ── Panneau gauche — identité (masqué sur mobile) ────── */}
       <aside
-        className="relative flex flex-col justify-between overflow-hidden bg-ink px-8 py-10 lg:w-[46%] lg:px-12 lg:py-14"
+        className="relative hidden flex-col justify-between overflow-hidden bg-ink px-8 py-10 lg:flex lg:w-[46%] lg:px-12 lg:py-14"
         aria-label="Présentation de la plateforme"
       >
         {/* Cercles décoratifs */}
@@ -137,16 +137,13 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        {/* Accessibilité sur mobile uniquement */}
-        <div className="relative mt-8 lg:hidden">
-          <AccessibilityControls variant="dark" />
-        </div>
+        {/* Accessibilité dans l'aside desktop uniquement (mobile : voir panneau form) */}
       </aside>
 
       {/* ── Panneau droit — formulaire ────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center bg-page px-6 py-12 lg:px-12">
-        {/* Accessibilité desktop en haut à droite */}
-        <div className="mb-8 w-full max-w-md self-end lg:block hidden">
+        {/* Accessibilité — visible sur tous les écrans (aside masqué sur mobile) */}
+        <div className="mb-8 w-full max-w-md self-end">
           <AccessibilityControls variant="light" />
         </div>
 

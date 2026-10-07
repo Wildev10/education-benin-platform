@@ -123,7 +123,7 @@ export default function AdminDashboard({
   return (
     <>
       {/* ── Stat cards ─────────────────────────────────────────── */}
-      <section aria-label="Chiffres clés" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Chiffres clés" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Étudiants suivis"
           value={stats.etudiants}

@@ -50,7 +50,8 @@ export default function AppHeader({
             <p className="mt-0.5 text-xs text-surface/60">{spaceLabel}</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex items-center gap-3">
+          {/* Carte utilisateur : avatar toujours visible, texte masqué sur mobile */}
           <div className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
             <div
               aria-hidden="true"
@@ -58,7 +59,7 @@ export default function AppHeader({
             >
               {initials || "U"}
             </div>
-            <div className="min-w-0 sm:text-right">
+            <div className="hidden min-w-0 sm:block sm:text-right">
               <p className="truncate text-sm font-semibold text-surface">{name}</p>
               <p className="max-w-48 truncate text-xs text-surface/60">{email}</p>
             </div>
@@ -68,9 +69,18 @@ export default function AppHeader({
             onClick={() => signOut({ callbackUrl: "/login" })}
             className="whitespace-nowrap rounded-lg border border-white/20 px-3 py-2.5 text-sm font-semibold text-surface transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 focus:ring-offset-ink"
           >
-            Se déconnecter
+            <span className="hidden sm:inline">Se déconnecter</span>
+            <span className="sm:hidden" aria-label="Se déconnecter">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <path d="M6.5 9h8M11 5.5L14.5 9 11 12.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M11 3H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </span>
           </button>
-          <AccessibilityControls />
+          {/* Contrôles accessibilité masqués sur mobile pour ne pas surcharger le header */}
+          <div className="hidden sm:block">
+            <AccessibilityControls />
+          </div>
         </div>
       </div>
     </header>
