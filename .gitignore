@@ -52,3 +52,6 @@ prisma/alertes-creees.json
 
 # fichiers CSV de test locaux
 prisma/tests-csv/
+
+# Sentry Config File
+.env.sentry-build-plugin
