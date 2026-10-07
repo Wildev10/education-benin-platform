@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Button } from "@/components/ui/Button";
 
 type LigneErreur = { ligne: number; contenu: string; raison: string };
 type Rapport = { total: number; importees: number; erreurs: LigneErreur[]; alertesCreees: number };
@@ -76,16 +77,12 @@ export default function ImportNotesPage() {
 
       {/* Bouton modèle */}
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={telechargerModele}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink-secondary transition hover:border-brand hover:bg-brand-light hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
-        >
+        <Button variant="outline" size="sm" onClick={telechargerModele}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M8 2v8M5 7l3 3 3-3M3 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           Télécharger le modèle CSV
-        </button>
+        </Button>
         <p className="text-sm text-ink-secondary">Format : <code className="rounded bg-page px-1 py-px text-xs">email_etudiant,matiere,valeur,periode,anneeScolaire</code></p>
       </div>
 
@@ -145,14 +142,14 @@ export default function ImportNotesPage() {
       )}
 
       {/* Bouton import */}
-      <button
+      <Button
         type="button"
         disabled={!fichier || loading}
         onClick={handleImport}
-        className="mt-5 w-full rounded-lg bg-brand px-4 py-3 font-semibold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-8"
+        className="mt-5 w-full justify-center py-3 sm:w-auto sm:px-8"
       >
         {loading ? "Import en cours…" : "Importer"}
-      </button>
+      </Button>
 
       {/* Rapport */}
       {rapport && (
@@ -160,14 +157,14 @@ export default function ImportNotesPage() {
           <h2 id="rapport-titre" className="text-xl font-semibold text-ink">Rapport d'import</h2>
 
           <dl className="mt-4 grid gap-4 sm:grid-cols-3">
-            <div className={`rounded-xl border p-4 ${toutOk ? "border-emerald-200 bg-emerald-50" : "border-border bg-surface"}`}>
+            <div className={`rounded-2xl border p-4 ${toutOk ? "border-emerald-200 bg-emerald-50" : "border-border bg-surface"}`}>
               <dt className="text-sm font-semibold text-ink-secondary">Notes importées</dt>
               <dd className="mt-1 text-3xl font-semibold text-ink">
                 {rapport.importees}
                 <span className="ml-1 text-base font-normal text-ink-secondary">/ {rapport.total}</span>
               </dd>
             </div>
-            <div className={`rounded-xl border p-4 ${rapport.alertesCreees > 0 ? "border-amber-300 bg-amber-50" : "border-border bg-surface"}`}>
+            <div className={`rounded-2xl border p-4 ${rapport.alertesCreees > 0 ? "border-amber-300 bg-amber-50" : "border-border bg-surface"}`}>
               <dt className="text-sm font-semibold text-ink-secondary">Alertes déclenchées</dt>
               <dd className="mt-1 flex items-center gap-2 text-3xl font-semibold text-ink">
                 {rapport.alertesCreees}
@@ -181,7 +178,7 @@ export default function ImportNotesPage() {
                 )}
               </dd>
             </div>
-            <div className={`rounded-xl border p-4 ${rapport.erreurs.length > 0 ? "border-red-200 bg-red-50" : "border-border bg-surface"}`}>
+            <div className={`rounded-2xl border p-4 ${rapport.erreurs.length > 0 ? "border-red-200 bg-red-50" : "border-border bg-surface"}`}>
               <dt className="text-sm font-semibold text-ink-secondary">Lignes en erreur</dt>
               <dd className="mt-1 text-3xl font-semibold text-ink">{rapport.erreurs.length}</dd>
             </div>
@@ -190,7 +187,7 @@ export default function ImportNotesPage() {
           {rapport.erreurs.length > 0 && (
             <div className="mt-6">
               <h3 className="text-base font-semibold text-ink">Détail des erreurs</h3>
-              <div className="mt-3 overflow-hidden rounded-xl border border-red-200 bg-surface">
+              <div className="mt-3 overflow-hidden rounded-2xl border border-red-200 bg-surface">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-red-50 text-left">

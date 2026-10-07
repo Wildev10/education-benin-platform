@@ -1,7 +1,13 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
-import { NavLink } from "@/components/NavLink";
+import { AppNav } from "@/components/AppNav";
+
+const navItems = [
+  { href: "/enseignant", label: "Étudiants", exact: true },
+  { href: "/enseignant/import", label: "Importer" },
+  { href: "/enseignant/assistant", label: "Assistant" },
+];
 
 export default async function EnseignantLayout({
   children,
@@ -20,13 +26,7 @@ export default async function EnseignantLayout({
         name={session.user.name ?? session.user.email ?? "Enseignant"}
         email={session.user.email ?? ""}
       />
-      <nav aria-label="Navigation enseignant" className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-7xl gap-6 px-5 sm:px-8">
-          <NavLink href="/enseignant" exact>Étudiants</NavLink>
-          <NavLink href="/enseignant/import">Importer</NavLink>
-          <NavLink href="/enseignant/assistant">Assistant</NavLink>
-        </div>
-      </nav>
+      <AppNav items={navItems} ariaLabel="Navigation enseignant" />
       {children}
     </div>
   );

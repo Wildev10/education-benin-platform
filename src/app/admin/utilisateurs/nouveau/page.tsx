@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
 
 type EtudiantSansCompte = { id: string; nom: string; prenom: string; etablissement: { nom: string } };
 type Etablissement = { id: string; nom: string; departement: string; commune: string };
@@ -96,7 +97,7 @@ export default function NouvelUtilisateurPage() {
         <p className="mt-2 text-ink-secondary">Le mot de passe est temporaire — l'utilisateur devra le changer à sa première connexion.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-xl border border-border bg-surface p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="prenom" className={labelCls}>Prénom</label>
@@ -202,13 +203,9 @@ export default function NouvelUtilisateurPage() {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-brand px-4 py-3 font-semibold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button type="submit" disabled={loading} className="w-full justify-center py-3">
           {loading ? "Création…" : "Créer le compte"}
-        </button>
+        </Button>
       </form>
     </main>
   );
