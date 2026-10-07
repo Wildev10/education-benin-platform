@@ -107,13 +107,13 @@ export default async function EtudiantPage() {
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
       <div className="max-w-3xl">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">Mon suivi scolaire</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
           Bonjour, {etudiant.prenom}
         </h1>
         <p className="mt-3 text-lg leading-8 text-ink-secondary">Voici tes résultats par période.</p>
       </div>
 
-      <section aria-labelledby="profile-title" className="mt-8 rounded-xl border border-border bg-surface p-6 shadow-sm">
+      <section aria-labelledby="profile-title" className="mt-8 rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <h2 id="profile-title" className="text-xl font-semibold text-ink">Mes informations</h2>
         <dl className="mt-5 grid gap-5 sm:grid-cols-3">
           <div>
@@ -132,7 +132,7 @@ export default async function EtudiantPage() {
       </section>
 
       {resume && (
-        <section aria-labelledby="trend-title" className={`mt-6 rounded-xl border p-6 shadow-sm ${resume.tone}`}>
+        <section aria-labelledby="trend-title" className={`mt-6 rounded-2xl border p-6 shadow-sm ${resume.tone}`}>
           <p className="text-sm font-semibold uppercase tracking-[0.14em]">Évolution</p>
           <h2 id="trend-title" className="mt-1 text-2xl font-semibold">{resume.titre}</h2>
           <p className="mt-2 text-lg">{resume.detail}</p>
@@ -153,10 +153,10 @@ export default async function EtudiantPage() {
             const injustifiees = absPeriode.filter((a) => a.motif === "injustifiee").length;
             const justifiees = absPeriode.filter((a) => a.motif === "justifiee").length;
             return (
-              <section key={periode} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+              <section key={periode} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
                 <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-4">
                   <h3 className="font-semibold text-surface">{periode}</h3>
-                  <span className="rounded-full bg-page px-3 py-1 text-sm font-semibold text-ink-secondary">
+                  <span className="rounded-full bg-white/15 px-3 py-1 text-sm font-semibold text-surface">
                     {absPeriode.length} absence{absPeriode.length > 1 ? "s" : ""}
                   </span>
                 </div>
@@ -190,12 +190,12 @@ export default async function EtudiantPage() {
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-3">
           {groupes.map((groupe) => (
-            <section key={groupe.periode} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+            <section key={groupe.periode} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
               <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-4">
                 <h3 className="font-semibold text-surface">{groupe.periode}</h3>
                 {groupe.moyenne !== null && (
-                  <span className="rounded-full bg-brand px-3 py-1 text-sm font-semibold text-ink">
-                    Moy. {groupe.moyenne.toFixed(1)}/20
+                  <span className="rounded-full bg-brand px-3 py-1 text-sm font-bold text-ink tabular-nums">
+                    {groupe.moyenne.toFixed(1)}/20
                   </span>
                 )}
               </div>

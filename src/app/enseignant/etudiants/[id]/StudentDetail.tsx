@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { Button } from "@/components/ui/Button";
 
 type Note = {
   id: string;
@@ -31,8 +32,18 @@ const matieres = [
 const periodes = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 }
+
+const selectCls =
+  "w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark";
+const inputCls =
+  "w-full rounded-lg border border-border px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark";
+const labelCls = "mb-1.5 block text-sm font-semibold text-ink";
 
 export default function StudentDetail({
   etudiantId,
@@ -43,7 +54,6 @@ export default function StudentDetail({
   initialNotes: Note[];
   initialAbsences: Absence[];
 }) {
-  // ── Notes state ──
   const [notes, setNotes] = useState(initialNotes);
   const [matiere, setMatiere] = useState(matieres[0]);
   const [valeur, setValeur] = useState("");
@@ -53,7 +63,6 @@ export default function StudentDetail({
   const [error, setError] = useState("");
   const [alerteCreee, setAlerteCreee] = useState(false);
 
-  // ── Absences state ──
   const [absences, setAbsences] = useState(initialAbsences);
   const [absDate, setAbsDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [absMotif, setAbsMotif] = useState("injustifiee");
@@ -63,19 +72,15 @@ export default function StudentDetail({
   const [absError, setAbsError] = useState("");
   const [absAlerteCreee, setAbsAlerteCreee] = useState(false);
 
-  const notesParPeriode = useMemo(() => {
-    return periodes.map((nom) => ({
-      nom,
-      notes: notes.filter((note) => note.periode === nom),
-    }));
-  }, [notes]);
+  const notesParPeriode = useMemo(
+    () => periodes.map((nom) => ({ nom, notes: notes.filter((n) => n.periode === nom) })),
+    [notes]
+  );
 
-  const absencesParPeriode = useMemo(() => {
-    return periodes.map((nom) => ({
-      nom,
-      absences: absences.filter((a) => a.periode === nom),
-    }));
-  }, [absences]);
+  const absencesParPeriode = useMemo(
+    () => periodes.map((nom) => ({ nom, absences: absences.filter((a) => a.periode === nom) })),
+    [absences]
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,21 +101,15 @@ export default function StudentDetail({
           anneeScolaire: "2025-2026",
         }),
       });
-      if (response.status === 401) {
-        window.location.assign("/login");
-        return;
-      }
+      if (response.status === 401) { window.location.assign("/login"); return; }
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "Impossible d'enregistrer la note.");
-      }
-
+      if (!response.ok) throw new Error(data.error ?? "Impossible d'enregistrer la note.");
       setNotes((current) => [data, ...current]);
       setMessage(`Note de ${data.valeur}/20 enregistrée en ${data.matiere}.`);
       setAlerteCreee(data.alerteCreee === true);
       setValeur("");
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Une erreur est survenue.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Une erreur est survenue.");
     } finally {
       setLoading(false);
     }
@@ -135,28 +134,18 @@ export default function StudentDetail({
           anneeScolaire: "2025-2026",
         }),
       });
-      if (response.status === 401) {
-        window.location.assign("/login");
-        return;
-      }
+      if (response.status === 401) { window.location.assign("/login"); return; }
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "Impossible d'enregistrer l'absence.");
-      }
-
-      const newAbsence: Absence = {
-        id: data.absence.id,
-        date: data.absence.date,
-        motif: data.absence.motif,
-        periode: data.absence.periode,
-        anneeScolaire: data.absence.anneeScolaire,
-      };
-      setAbsences((current) => [newAbsence, ...current]);
+      if (!response.ok) throw new Error(data.error ?? "Impossible d'enregistrer l'absence.");
+      setAbsences((current) => [
+        { id: data.absence.id, date: data.absence.date, motif: data.absence.motif, periode: data.absence.periode, anneeScolaire: data.absence.anneeScolaire },
+        ...current,
+      ]);
       setAbsMessage(`Absence du ${formatDate(absDate)} enregistrée.`);
       setAbsAlerteCreee(data.alerteCreee === true);
       setAbsDate(new Date().toISOString().slice(0, 10));
-    } catch (requestError) {
-      setAbsError(requestError instanceof Error ? requestError.message : "Une erreur est survenue.");
+    } catch (e) {
+      setAbsError(e instanceof Error ? e.message : "Une erreur est survenue.");
     } finally {
       setAbsLoading(false);
     }
@@ -164,32 +153,33 @@ export default function StudentDetail({
 
   async function handleDeleteAbsence(id: string) {
     if (!window.confirm("Supprimer cette absence ?")) return;
-
     try {
       const response = await fetch(`/api/absences/${id}`, { method: "DELETE" });
-      if (response.status === 401) {
-        window.location.assign("/login");
-        return;
-      }
+      if (response.status === 401) { window.location.assign("/login"); return; }
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error ?? "Impossible de supprimer l'absence.");
       }
       setAbsences((current) => current.filter((a) => a.id !== id));
-    } catch (requestError) {
-      alert(requestError instanceof Error ? requestError.message : "Une erreur est survenue.");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Une erreur est survenue.");
     }
   }
 
   return (
-    <div className="space-y-10">
-      {/* Notes section */}
-      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+    <div className="space-y-12">
+      {/* ── Notes ──────────────────────────────────────────────── */}
+      <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+        {/* Liste des notes */}
         <section aria-labelledby="notes-title">
           <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">Historique</p>
-              <h2 id="notes-title" className="mt-1 text-2xl font-semibold text-ink">Notes par période</h2>
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">
+                Historique
+              </p>
+              <h2 id="notes-title" className="mt-1 text-2xl font-bold text-ink">
+                Notes par période
+              </h2>
             </div>
             <span className="rounded-full border border-border bg-page px-3 py-1 text-sm font-semibold text-ink-secondary">
               {notes.length} note{notes.length > 1 ? "s" : ""}
@@ -197,67 +187,132 @@ export default function StudentDetail({
           </div>
           <div className="mt-5 space-y-4">
             {notesParPeriode.map((groupe) => (
-              <section key={groupe.nom} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-                <h3 className="border-b border-border bg-ink px-5 py-3 font-semibold text-surface">{groupe.nom}</h3>
+              <section
+                key={groupe.nom}
+                className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
+              >
+                <h3 className="border-b border-border bg-ink px-5 py-3.5 font-semibold text-surface">
+                  {groupe.nom}
+                </h3>
                 {groupe.notes.length > 0 ? (
                   <ul className="divide-y divide-border">
                     {groupe.notes.map((note) => (
-                      <li key={note.id} className="flex items-center justify-between gap-4 px-5 py-4">
+                      <li
+                        key={note.id}
+                        className="flex items-center justify-between gap-4 px-5 py-3.5"
+                      >
                         <span className="font-medium text-ink-secondary">{note.matiere}</span>
-                        <span className="rounded-md bg-brand-light px-3 py-1 font-semibold text-brand-dark">{note.valeur}/20</span>
+                        <span
+                          className={`rounded-lg px-3 py-1 text-sm font-bold tabular-nums ${
+                            note.valeur >= 10
+                              ? "bg-emerald-50 text-emerald-800"
+                              : "bg-red-50 text-red-800"
+                          }`}
+                        >
+                          {note.valeur}/20
+                        </span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="px-5 py-4 text-ink-secondary">Aucune note enregistrée.</p>
+                  <p className="px-5 py-5 text-sm text-ink-secondary">
+                    Aucune note enregistrée.
+                  </p>
                 )}
               </section>
             ))}
           </div>
         </section>
 
-        <section aria-labelledby="new-note-title" className="h-fit rounded-xl border border-border bg-surface p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">Évaluation</p>
-          <h2 id="new-note-title" className="mt-1 text-2xl font-semibold text-ink">Saisir une note</h2>
-          <p className="mt-2 text-ink-secondary">Année scolaire : <strong className="text-ink">2025-2026</strong></p>
+        {/* Formulaire note */}
+        <section
+          aria-labelledby="new-note-title"
+          className="h-fit rounded-2xl border border-border bg-surface p-6 shadow-sm"
+        >
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">
+            Évaluation
+          </p>
+          <h2 id="new-note-title" className="mt-1 text-2xl font-bold text-ink">
+            Saisir une note
+          </h2>
+          <p className="mt-1 text-sm text-ink-secondary">
+            Année scolaire :{" "}
+            <strong className="text-ink">2025-2026</strong>
+          </p>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
-              <label htmlFor="matiere" className="mb-2 block text-sm font-semibold text-ink">Matière</label>
-              <select id="matiere" value={matiere} onChange={(event) => setMatiere(event.target.value)} className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark">
-                {matieres.map((option) => <option key={option}>{option}</option>)}
+              <label htmlFor="matiere" className={labelCls}>Matière</label>
+              <select
+                id="matiere"
+                value={matiere}
+                onChange={(e) => setMatiere(e.target.value)}
+                className={selectCls}
+              >
+                {matieres.map((m) => <option key={m}>{m}</option>)}
               </select>
             </div>
             <div>
-              <label htmlFor="valeur" className="mb-2 block text-sm font-semibold text-ink">Note sur 20</label>
-              <input id="valeur" name="valeur" type="number" min="0" max="20" step="0.01" required value={valeur} onChange={(event) => setValeur(event.target.value)} className="w-full rounded-lg border border-border px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark" />
+              <label htmlFor="valeur" className={labelCls}>Note sur 20</label>
+              <input
+                id="valeur"
+                name="valeur"
+                type="number"
+                min="0"
+                max="20"
+                step="0.01"
+                required
+                value={valeur}
+                onChange={(e) => setValeur(e.target.value)}
+                className={inputCls}
+                placeholder="ex. 14.5"
+              />
             </div>
             <div>
-              <label htmlFor="periode" className="mb-2 block text-sm font-semibold text-ink">Période</label>
-              <select id="periode" value={periode} onChange={(event) => setPeriode(event.target.value)} className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark">
-                {periodes.map((option) => <option key={option}>{option}</option>)}
+              <label htmlFor="periode" className={labelCls}>Période</label>
+              <select
+                id="periode"
+                value={periode}
+                onChange={(e) => setPeriode(e.target.value)}
+                className={selectCls}
+              >
+                {periodes.map((p) => <option key={p}>{p}</option>)}
               </select>
             </div>
-            <button type="submit" disabled={loading} className="w-full rounded-lg bg-brand px-4 py-3 font-semibold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+            <Button type="submit" disabled={loading} className="w-full justify-center py-3">
               {loading ? "Enregistrement…" : "Enregistrer la note"}
-            </button>
+            </Button>
           </form>
 
-          <div aria-live="polite" className="mt-5 space-y-3">
-            {message && <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 font-medium text-emerald-800">{message}</p>}
+          <div aria-live="polite" className="mt-4 space-y-3">
+            {message && (
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                ✓ {message}
+              </p>
+            )}
             {alerteCreee && (
-              <div role="alert" className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950">
-                <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 font-semibold text-surface">!</span>
-                <p><strong>Alerte déclenchée.</strong> Une baisse de résultats a été détectée pour cet étudiant.</p>
+              <div
+                role="alert"
+                className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+              >
+                <span aria-hidden="true" className="text-amber-600 font-bold">⚠</span>
+                <p>
+                  <strong>Alerte déclenchée.</strong> Une baisse de résultats a été détectée.
+                </p>
               </div>
             )}
-            {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 font-medium text-red-800">{error}</p>}
+            {error && (
+              <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+                {error}
+              </p>
+            )}
           </div>
+
           <Link
             href="/enseignant"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-ink-secondary shadow-sm transition hover:border-brand hover:bg-brand-light hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
+            className="mt-5 inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-ink-secondary shadow-sm transition hover:border-brand hover:bg-brand-light hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Retour à la liste
@@ -265,13 +320,18 @@ export default function StudentDetail({
         </section>
       </div>
 
-      {/* Absences section */}
-      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      {/* ── Absences ───────────────────────────────────────────── */}
+      <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+        {/* Liste des absences */}
         <section aria-labelledby="absences-title">
           <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">Présence</p>
-              <h2 id="absences-title" className="mt-1 text-2xl font-semibold text-ink">Absences par période</h2>
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">
+                Présence
+              </p>
+              <h2 id="absences-title" className="mt-1 text-2xl font-bold text-ink">
+                Absences par période
+              </h2>
             </div>
             <span className="rounded-full border border-border bg-page px-3 py-1 text-sm font-semibold text-ink-secondary">
               {absences.length} absence{absences.length > 1 ? "s" : ""}
@@ -279,12 +339,25 @@ export default function StudentDetail({
           </div>
           <div className="mt-5 space-y-4">
             {absencesParPeriode.map((groupe) => (
-              <section key={groupe.nom} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-                <h3 className="border-b border-border bg-ink px-5 py-3 font-semibold text-surface">{groupe.nom}</h3>
+              <section
+                key={groupe.nom}
+                className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
+              >
+                <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-3.5">
+                  <h3 className="font-semibold text-surface">{groupe.nom}</h3>
+                  {groupe.absences.length > 0 && (
+                    <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-surface">
+                      {groupe.absences.length}
+                    </span>
+                  )}
+                </div>
                 {groupe.absences.length > 0 ? (
                   <ul className="divide-y divide-border">
                     {groupe.absences.map((abs) => (
-                      <li key={abs.id} className="flex items-center justify-between gap-4 px-5 py-3">
+                      <li
+                        key={abs.id}
+                        className="flex items-center justify-between gap-4 px-5 py-3"
+                      >
                         <div className="flex items-center gap-3">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
@@ -295,35 +368,49 @@ export default function StudentDetail({
                           >
                             {abs.motif === "injustifiee" ? "Injustifiée" : "Justifiée"}
                           </span>
-                          <span className="text-sm text-ink-secondary">{formatDate(abs.date)}</span>
+                          <span className="text-sm text-ink-secondary">
+                            {formatDate(abs.date)}
+                          </span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteAbsence(abs.id)}
-                          className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => void handleDeleteAbsence(abs.id)}
                           aria-label={`Supprimer l'absence du ${formatDate(abs.date)}`}
                         >
                           Supprimer
-                        </button>
+                        </Button>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="px-5 py-4 text-ink-secondary">Aucune absence enregistrée.</p>
+                  <p className="px-5 py-5 text-sm text-ink-secondary">
+                    Aucune absence enregistrée.
+                  </p>
                 )}
               </section>
             ))}
           </div>
         </section>
 
-        <section aria-labelledby="new-absence-title" className="h-fit rounded-xl border border-border bg-surface p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">Saisie rapide</p>
-          <h2 id="new-absence-title" className="mt-1 text-2xl font-semibold text-ink">Enregistrer une absence</h2>
-          <p className="mt-2 text-ink-secondary">Année scolaire : <strong className="text-ink">2025-2026</strong></p>
+        {/* Formulaire absence */}
+        <section
+          aria-labelledby="new-absence-title"
+          className="h-fit rounded-2xl border border-border bg-surface p-6 shadow-sm"
+        >
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">
+            Saisie rapide
+          </p>
+          <h2 id="new-absence-title" className="mt-1 text-2xl font-bold text-ink">
+            Enregistrer une absence
+          </h2>
+          <p className="mt-1 text-sm text-ink-secondary">
+            Année scolaire : <strong className="text-ink">2025-2026</strong>
+          </p>
 
-          <form onSubmit={handleAbsenceSubmit} className="mt-6 space-y-5">
+          <form onSubmit={handleAbsenceSubmit} className="mt-6 space-y-4">
             <div>
-              <label htmlFor="abs-date" className="mb-2 block text-sm font-semibold text-ink">Date</label>
+              <label htmlFor="abs-date" className={labelCls}>Date</label>
               <input
                 id="abs-date"
                 type="date"
@@ -331,50 +418,63 @@ export default function StudentDetail({
                 max={new Date().toISOString().slice(0, 10)}
                 value={absDate}
                 onChange={(e) => setAbsDate(e.target.value)}
-                className="w-full rounded-lg border border-border px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+                className={inputCls}
               />
             </div>
             <div>
-              <label htmlFor="abs-motif" className="mb-2 block text-sm font-semibold text-ink">Motif</label>
+              <label htmlFor="abs-motif" className={labelCls}>Motif</label>
               <select
                 id="abs-motif"
                 value={absMotif}
                 onChange={(e) => setAbsMotif(e.target.value)}
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+                className={selectCls}
               >
                 <option value="injustifiee">Injustifiée</option>
                 <option value="justifiee">Justifiée</option>
               </select>
             </div>
             <div>
-              <label htmlFor="abs-periode" className="mb-2 block text-sm font-semibold text-ink">Période</label>
+              <label htmlFor="abs-periode" className={labelCls}>Période</label>
               <select
                 id="abs-periode"
                 value={absPeriode}
                 onChange={(e) => setAbsPeriode(e.target.value)}
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+                className={selectCls}
               >
-                {periodes.map((option) => <option key={option}>{option}</option>)}
+                {periodes.map((p) => <option key={p}>{p}</option>)}
               </select>
             </div>
-            <button
+            <Button
               type="submit"
               disabled={absLoading}
-              className="w-full rounded-lg bg-brand px-4 py-3 font-semibold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full justify-center py-3"
             >
               {absLoading ? "Enregistrement…" : "Enregistrer l'absence"}
-            </button>
+            </Button>
           </form>
 
-          <div aria-live="polite" className="mt-5 space-y-3">
-            {absMessage && <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 font-medium text-emerald-800">{absMessage}</p>}
+          <div aria-live="polite" className="mt-4 space-y-3">
+            {absMessage && (
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                ✓ {absMessage}
+              </p>
+            )}
             {absAlerteCreee && (
-              <div role="alert" className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950">
-                <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 font-semibold text-surface">!</span>
-                <p><strong>Alerte déclenchée.</strong> Un nombre élevé d'absences injustifiées a été détecté.</p>
+              <div
+                role="alert"
+                className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+              >
+                <span aria-hidden="true" className="font-bold text-amber-600">⚠</span>
+                <p>
+                  <strong>Alerte déclenchée.</strong> Nombre élevé d'absences injustifiées.
+                </p>
               </div>
             )}
-            {absError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 font-medium text-red-800">{absError}</p>}
+            {absError && (
+              <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+                {absError}
+              </p>
+            )}
           </div>
         </section>
       </div>

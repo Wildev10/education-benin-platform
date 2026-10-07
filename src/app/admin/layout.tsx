@@ -1,7 +1,15 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
-import { NavLink } from "@/components/NavLink";
+import { AppNav } from "@/components/AppNav";
+
+const navItems = [
+  { href: "/admin", label: "Dashboard", exact: true },
+  { href: "/admin/etudiants", label: "Étudiants" },
+  { href: "/admin/utilisateurs", label: "Utilisateurs" },
+  { href: "/admin/import", label: "Importer" },
+  { href: "/admin/assistant", label: "Assistant" },
+];
 
 export default async function AdminLayout({
   children,
@@ -21,15 +29,7 @@ export default async function AdminLayout({
         email={session.user.email ?? ""}
         spaceLabel="Espace Ministère"
       />
-      <nav aria-label="Navigation administration" className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-7xl gap-6 px-5 sm:px-8">
-          <NavLink href="/admin" exact>Dashboard</NavLink>
-          <NavLink href="/admin/etudiants">Étudiants</NavLink>
-          <NavLink href="/admin/utilisateurs">Utilisateurs</NavLink>
-          <NavLink href="/admin/import">Importer</NavLink>
-          <NavLink href="/admin/assistant">Assistant</NavLink>
-        </div>
-      </nav>
+      <AppNav items={navItems} ariaLabel="Navigation administration" />
       {children}
     </div>
   );

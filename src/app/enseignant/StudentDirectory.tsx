@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/Badge";
 
-type Etablissement = {
-  id: string;
-  nom: string;
-};
+type Etablissement = { id: string; nom: string };
 
 type Etudiant = {
   id: string;
@@ -16,9 +14,7 @@ type Etudiant = {
   etablissement: Etablissement;
 };
 
-type ActiveAlert = {
-  etudiant: { id: string };
-};
+type ActiveAlert = { etudiant: { id: string } };
 
 const niveaux = ["Seconde C", "Première D", "Terminale D"];
 
@@ -58,7 +54,7 @@ export default function StudentDirectory({
         }
 
         const responses = await Promise.all(requests);
-        if (responses.some((response) => response.status === 401)) {
+        if (responses.some((r) => r.status === 401)) {
           window.location.assign("/login");
           return;
         }
@@ -69,12 +65,10 @@ export default function StudentDirectory({
         if (showActiveAlerts) {
           const alertData = await responses[1].json() as ActiveAlert[];
           if (!responses[1].ok) throw new Error("Impossible de charger les alertes actives.");
-          setActiveAlertStudentIds(new Set(alertData.map((alert) => alert.etudiant.id)));
+          setActiveAlertStudentIds(new Set(alertData.map((a) => a.etudiant.id)));
         }
-      } catch (requestError) {
-        if (requestError instanceof DOMException && requestError.name === "AbortError") {
-          return;
-        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setError("Impossible de charger la liste des étudiants.");
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -87,53 +81,57 @@ export default function StudentDirectory({
 
   return (
     <section aria-labelledby="liste-etudiants" className="mt-8">
+      {/* Section header */}
       <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">
             Suivi pédagogique
           </p>
-          <h2 id="liste-etudiants" className="mt-1 text-2xl font-semibold text-ink">
+          <h2 id="liste-etudiants" className="mt-1 text-2xl font-bold text-ink">
             Étudiants
           </h2>
         </div>
         <p className="text-sm text-ink-secondary" aria-live="polite">
-          {loading ? "Chargement…" : `${etudiants.length} étudiant${etudiants.length > 1 ? "s" : ""}`}
+          {loading
+            ? "Chargement…"
+            : `${etudiants.length} étudiant${etudiants.length > 1 ? "s" : ""}`}
         </p>
       </div>
 
+      {/* Filters */}
       <div className="grid gap-4 border-b border-border py-5 sm:grid-cols-2">
-        <div>
-          <label htmlFor="filter-etablissement" className="mb-2 block text-sm font-semibold text-ink">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="filter-etablissement" className="text-sm font-semibold text-ink">
             Établissement
           </label>
           <select
             id="filter-etablissement"
             value={etablissementId}
-            onChange={(event) => setEtablissementId(event.target.value)}
+            onChange={(e) => setEtablissementId(e.target.value)}
             className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
           >
             <option value="">Tous les établissements</option>
-            {etablissements.map((etablissement) => (
-              <option key={etablissement.id} value={etablissement.id}>
-                {etablissement.nom}
+            {etablissements.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.nom}
               </option>
             ))}
           </select>
         </div>
-        <div>
-          <label htmlFor="filter-niveau" className="mb-2 block text-sm font-semibold text-ink">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="filter-niveau" className="text-sm font-semibold text-ink">
             Niveau
           </label>
           <select
             id="filter-niveau"
             value={niveau}
-            onChange={(event) => setNiveau(event.target.value)}
+            onChange={(e) => setNiveau(e.target.value)}
             className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
           >
             <option value="">Tous les niveaux</option>
-            {niveaux.map((option) => (
-              <option key={option} value={option}>
-                {option}
+            {niveaux.map((n) => (
+              <option key={n} value={n}>
+                {n}
               </option>
             ))}
           </select>
@@ -146,24 +144,33 @@ export default function StudentDirectory({
         </p>
       )}
 
-      <div className="mt-5 overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+      {/* Table */}
+      <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-160 text-left">
             <caption className="sr-only">Liste filtrée des étudiants</caption>
-            <thead className="bg-ink text-sm text-surface">
-              <tr>
-                <th scope="col" className="px-5 py-3.5 font-semibold">Nom</th>
-                <th scope="col" className="px-5 py-3.5 font-semibold">Prénom</th>
-                <th scope="col" className="px-5 py-3.5 font-semibold">Établissement</th>
-                <th scope="col" className="px-5 py-3.5 font-semibold">Niveau</th>
-                {showActiveAlerts && <th scope="col" className="px-5 py-3.5 font-semibold">Suivi</th>}
+            <thead>
+              <tr className="bg-ink text-sm text-surface">
+                <th scope="col" className="px-5 py-4 font-semibold">Nom</th>
+                <th scope="col" className="px-5 py-4 font-semibold">Prénom</th>
+                <th scope="col" className="px-5 py-4 font-semibold">Établissement</th>
+                <th scope="col" className="px-5 py-4 font-semibold">Niveau</th>
+                {showActiveAlerts && (
+                  <th scope="col" className="px-5 py-4 font-semibold">Suivi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {etudiants.map((etudiant, i) => (
-                <tr key={etudiant.id} className={`transition hover:bg-brand-light ${i % 2 === 1 ? "bg-page" : "bg-surface"}`}>
-                  <td className="px-5 py-4 font-semibold text-ink">
-                    <Link href={`${detailBasePath}/${etudiant.id}`} className="hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2">
+                <tr
+                  key={etudiant.id}
+                  className={`transition hover:bg-brand-light ${i % 2 === 1 ? "bg-page" : "bg-surface"}`}
+                >
+                  <td className="px-5 py-4">
+                    <Link
+                      href={`${detailBasePath}/${etudiant.id}`}
+                      className="font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-brand-dark hover:decoration-brand/30 focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
+                    >
                       {etudiant.nom}
                     </Link>
                   </td>
@@ -173,9 +180,7 @@ export default function StudentDirectory({
                   {showActiveAlerts && (
                     <td className="px-5 py-4">
                       {activeAlertStudentIds.has(etudiant.id) ? (
-                        <span className="inline-flex rounded-full border border-red-300 bg-red-50 px-3 py-1 text-sm font-semibold text-red-900">
-                          <span aria-hidden="true">⚠ </span>Alerte active
-                        </span>
+                        <Badge variant="risk-eleve">Alerte active</Badge>
                       ) : (
                         <span className="text-sm text-ink-secondary">Aucune alerte</span>
                       )}
@@ -187,7 +192,21 @@ export default function StudentDirectory({
           </table>
         </div>
         {!loading && etudiants.length === 0 && (
-          <p className="p-8 text-center text-ink-secondary">Aucun étudiant ne correspond à ces filtres.</p>
+          <p className="p-8 text-center text-ink-secondary">
+            Aucun étudiant ne correspond à ces filtres.
+          </p>
+        )}
+        {loading && (
+          <div className="space-y-0" aria-hidden="true">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex gap-5 border-t border-border px-5 py-4">
+                <div className="h-4 w-28 animate-pulse rounded bg-border" />
+                <div className="h-4 w-20 animate-pulse rounded bg-border" />
+                <div className="h-4 w-40 animate-pulse rounded bg-border" />
+                <div className="h-4 w-24 animate-pulse rounded bg-border" />
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </section>
