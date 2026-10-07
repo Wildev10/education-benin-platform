@@ -26,6 +26,31 @@ export type DetailDetection = {
   ecartPourcent: number;
 };
 
+// ── Constantes absences (déclarées ici pour être accessibles aux fonctions pures) ──
+const SEUIL_MOYEN = 5;
+const SEUIL_ELEVE = 10;
+
+// ── Fonctions pures (testables sans Prisma) ──────────────────────────────────
+
+export function calculerNiveauAlerte(
+  moyenneAvant: number,
+  moyenneApres: number
+): "eleve" | "moyen" | null {
+  if (moyenneAvant <= 0) return null;
+  const ecartPourcent = ((moyenneAvant - moyenneApres) / moyenneAvant) * 100;
+  if (ecartPourcent >= 20 && moyenneApres < 10) return "eleve";
+  if (ecartPourcent >= 15) return "moyen";
+  return null;
+}
+
+export function calculerNiveauAlerteAbsence(
+  nbAbsencesInjustifiees: number
+): "eleve" | "moyen" | null {
+  if (nbAbsencesInjustifiees >= SEUIL_ELEVE) return "eleve";
+  if (nbAbsencesInjustifiees >= SEUIL_MOYEN) return "moyen";
+  return null;
+}
+
 export async function detecterAlerte(etudiantId: string): Promise<IssueDetection> {
   return (await analyserAlerte(etudiantId))?.issue ?? null;
 }
@@ -163,9 +188,6 @@ export async function analyserAlerte(
 }
 
 // ── Détection alerte absences ────────────────────────────────────────────────
-
-const SEUIL_MOYEN = 5;
-const SEUIL_ELEVE = 10;
 
 export async function detecterAlerteAbsence(etudiantId: string): Promise<boolean> {
   // Compte les absences injustifiées par (anneeScolaire, periode)
