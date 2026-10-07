@@ -21,7 +21,7 @@ function Logo() {
   );
 }
 
-export default function EnseignantHeader({
+export default function AppHeader({
   name,
   email,
   spaceLabel = "Espace enseignant",

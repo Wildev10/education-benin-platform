@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import EnseignantHeader from "../enseignant/EnseignantHeader";
+import AppHeader from "@/components/AppHeader";
 
 export default async function EtudiantLayout({
   children,
@@ -15,7 +15,7 @@ export default async function EtudiantLayout({
 
   return (
     <div className="min-h-screen bg-page text-ink">
-      <EnseignantHeader
+      <AppHeader
         name={session.user.name ?? session.user.email ?? "Étudiant"}
         email={session.user.email ?? ""}
         spaceLabel="Espace étudiant"

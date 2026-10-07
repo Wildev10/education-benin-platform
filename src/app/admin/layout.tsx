@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import EnseignantHeader from "../enseignant/EnseignantHeader";
+import AppHeader from "@/components/AppHeader";
 import { NavLink } from "@/components/NavLink";
 
 export default async function AdminLayout({
@@ -16,7 +16,7 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-page text-ink">
-      <EnseignantHeader
+      <AppHeader
         name={session.user.name ?? session.user.email ?? "Administrateur"}
         email={session.user.email ?? ""}
         spaceLabel="Espace Ministère"
