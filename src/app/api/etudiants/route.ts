@@ -13,11 +13,19 @@ export async function GET(request: Request) {
     const skip = parseNonNegativeInteger(searchParams.get("skip"), 0);
     const take = parsePositiveInteger(searchParams.get("take"), 50);
 
-    // Le directeur ne voit que les étudiants de son établissement.
-    const etablissementId =
-      access.user.role === "directeur"
-        ? access.user.etablissementId
-        : searchParams.get("etablissementId");
+    // Le directeur et l'enseignant ne voient que les étudiants de leur établissement.
+    const isRestricted =
+      access.user.role === "directeur" || access.user.role === "enseignant";
+    const etablissementId = isRestricted
+      ? access.user.etablissementId
+      : searchParams.get("etablissementId");
+
+    if (isRestricted && !etablissementId) {
+      return NextResponse.json(
+        { error: "Votre compte n'est pas rattaché à un établissement. Contactez l'administrateur." },
+        { status: 403 }
+      );
+    }
 
     const etudiants = await prisma.etudiant.findMany({
       where: {

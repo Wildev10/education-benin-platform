@@ -39,7 +39,7 @@ export default function NouvelUtilisateurPage() {
   }, [role]);
 
   useEffect(() => {
-    if (role !== "directeur") return;
+    if (role !== "directeur" && role !== "enseignant") return;
     fetch("/api/etablissements")
       .then((res) => res.json())
       .then((data: Etablissement[]) => {
@@ -151,7 +151,7 @@ export default function NouvelUtilisateurPage() {
           </div>
         )}
 
-        {role === "directeur" && (
+        {(role === "directeur" || role === "enseignant") && (
           <div>
             <label htmlFor="etablissementId" className={labelCls}>Établissement</label>
             {etablissements.length > 0 ? (

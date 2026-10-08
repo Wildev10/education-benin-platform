@@ -45,8 +45,8 @@ export async function POST(request: Request) {
     if (!ROLES_VALIDES.includes(role)) {
       return NextResponse.json({ error: "Rôle invalide." }, { status: 400 });
     }
-    if (role === "directeur" && !etablissementId) {
-      return NextResponse.json({ error: "L'établissement est obligatoire pour un directeur." }, { status: 400 });
+    if ((role === "directeur" || role === "enseignant") && !etablissementId) {
+      return NextResponse.json({ error: "L'établissement est obligatoire pour un directeur ou un enseignant." }, { status: 400 });
     }
     if (typeof motDePasse !== "string" || motDePasse.length < 8) {
       return NextResponse.json({ error: "Le mot de passe doit contenir au moins 8 caractères." }, { status: 400 });
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (role === "directeur" && etablissementId) {
+    if ((role === "directeur" || role === "enseignant") && etablissementId) {
       const etab = await prisma.etablissement.findUnique({ where: { id: etablissementId } });
       if (!etab) {
         return NextResponse.json({ error: "Établissement introuvable." }, { status: 400 });
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
         role,
         passwordHash,
         ...(role === "etudiant" && etudiantId ? { etudiantId } : {}),
-        ...(role === "directeur" && etablissementId ? { etablissementId } : {}),
+        ...((role === "directeur" || role === "enseignant") && etablissementId ? { etablissementId } : {}),
       },
       select: {
         id: true,

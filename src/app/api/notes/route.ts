@@ -28,8 +28,8 @@ export async function GET(request: Request) {
         ...(etudiantId ? { etudiantId } : {}),
         ...(matiere ? { matiere } : {}),
         ...(periode ? { periode } : {}),
-        // Le directeur ne voit que les notes des étudiants de son établissement.
-        ...(access.user.role === "directeur"
+        // Le directeur et l'enseignant ne voient que les notes de leur établissement.
+        ...(access.user.role === "directeur" || access.user.role === "enseignant"
           ? { etudiant: { etablissementId: access.user.etablissementId ?? undefined } }
           : {}),
       },
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     }
 
     if (
-      access.user.role === "directeur" &&
+      (access.user.role === "directeur" || access.user.role === "enseignant") &&
       etudiant.etablissementId !== access.user.etablissementId
     ) {
       return NextResponse.json(

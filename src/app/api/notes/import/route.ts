@@ -24,6 +24,13 @@ export async function POST(request: Request) {
   const access = await requireRole(["admin", "enseignant"]);
   if (access instanceof Response) return access;
 
+  if (access.user.role === "enseignant" && !access.user.etablissementId) {
+    return NextResponse.json(
+      { error: "Votre compte n'est pas rattaché à un établissement. Contactez l'administrateur." },
+      { status: 403 }
+    );
+  }
+
   let formData: FormData;
   try {
     formData = await request.formData();
@@ -52,6 +59,8 @@ export async function POST(request: Request) {
 
   // Cache email → etudiantId pour éviter les requêtes répétées
   const cacheEmail = new Map<string, string | null>();
+  // Cache etudiantId → etablissementId pour la vérification enseignant
+  const cacheEtablissement = new Map<string, string | null>();
 
   for (const ligneRaw of lignesData) {
     numeroLigne++;
@@ -109,6 +118,21 @@ export async function POST(request: Request) {
     if (!etudiantId) {
       erreurs.push({ ligne: numeroLigne, contenu: ligne, raison: `Email introuvable ou compte sans étudiant lié : "${emailEtudiant}".` });
       continue;
+    }
+
+    // Vérification établissement pour l'enseignant
+    if (access.user.role === "enseignant") {
+      if (!cacheEtablissement.has(etudiantId)) {
+        const etud = await prisma.etudiant.findUnique({
+          where: { id: etudiantId },
+          select: { etablissementId: true },
+        });
+        cacheEtablissement.set(etudiantId, etud?.etablissementId ?? null);
+      }
+      if (cacheEtablissement.get(etudiantId) !== access.user.etablissementId) {
+        erreurs.push({ ligne: numeroLigne, contenu: ligne, raison: `L'étudiant associé à "${emailEtudiant}" n'appartient pas à votre établissement.` });
+        continue;
+      }
     }
 
     // Création de la note

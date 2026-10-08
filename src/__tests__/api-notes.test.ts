@@ -8,7 +8,7 @@ vi.mock("@/lib/auth-guard", () => ({
       id: "user-test",
       role: "enseignant",
       etudiantId: null,
-      etablissementId: null,
+      etablissementId: "etab-test", // doit correspondre à l'établissement de l'étudiant mock
     },
   }),
 }));

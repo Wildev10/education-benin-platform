@@ -22,8 +22,8 @@ export async function GET(request: Request) {
         ...(niveauRisque === "moyen" || niveauRisque === "eleve"
           ? { niveauRisque }
           : {}),
-        // Le directeur ne voit que les alertes des étudiants de son établissement.
-        ...(access.user.role === "directeur"
+        // Le directeur et l'enseignant ne voient que les alertes de leur établissement.
+        ...(access.user.role === "directeur" || access.user.role === "enseignant"
           ? { etudiant: { etablissementId: access.user.etablissementId ?? undefined } }
           : {}),
       },

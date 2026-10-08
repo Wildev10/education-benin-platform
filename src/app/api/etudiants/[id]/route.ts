@@ -42,7 +42,7 @@ export async function GET(_request: Request, context: RouteContext) {
     }
 
     if (
-      access.user.role === "directeur" &&
+      (access.user.role === "directeur" || access.user.role === "enseignant") &&
       etudiant.etablissementId !== access.user.etablissementId
     ) {
       return NextResponse.json(
