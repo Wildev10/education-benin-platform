@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 type Mode = "ia" | "sans_ia";
 
 export async function POST(request: Request) {
-  const access = await requireRole(["admin", "enseignant"]);
+  const access = await requireRole(["admin", "enseignant", "directeur"]);
   if (access instanceof Response) return access;
 
   try {
