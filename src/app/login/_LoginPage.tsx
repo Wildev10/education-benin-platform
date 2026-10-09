@@ -83,17 +83,17 @@ export default function LoginPageClient() {
           className="pointer-events-none absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-brand/5"
         />
 
-        {/* Logo + nom — mix-blend-mode:multiply retire le fond blanc sur bg-ink */}
+        {/* Logo + nom */}
         <div className="relative flex items-center gap-3">
-          <Image
-            src="/armoiries-benin.png"
-            alt="Armoiries du Bénin"
-            height={40}
-            width={40}
-            className="shrink-0"
-            style={{ mixBlendMode: "multiply" }}
-            priority
-          />
+          <div className="shrink-0 rounded-xl bg-white p-1.5">
+            <Image
+              src="/armoiries-benin.png"
+              alt="Armoiries du Bénin"
+              height={36}
+              width={36}
+              priority
+            />
+          </div>
           <div>
             <p className="text-base font-bold uppercase tracking-[0.16em] text-surface">
               EduTech Bénin
@@ -106,14 +106,15 @@ export default function LoginPageClient() {
         <div className="relative mt-10 lg:mt-0">
           {/* Armoiries en grand au-dessus du titre */}
           <div className="mb-8 flex justify-center">
-            <Image
-              src="/armoiries-benin.png"
-              alt="Armoiries de la République du Bénin — Fraternité Justice Travail"
-              height={120}
-              width={120}
-              style={{ mixBlendMode: "multiply" }}
-              priority
-            />
+            <div className="rounded-2xl bg-white p-2">
+              <Image
+                src="/armoiries-benin.png"
+                alt="Armoiries de la République du Bénin — Fraternité Justice Travail"
+                height={100}
+                width={100}
+                priority
+              />
+            </div>
           </div>
           {/* FIX 1 — "nationale" avec un e */}
           <h1 className="text-3xl font-bold leading-tight text-surface lg:text-4xl">

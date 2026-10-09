@@ -53,14 +53,15 @@ export default function AppHeader({
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-3 sm:px-8">
         {/* Left: logo + label */}
         <div className="flex min-w-0 items-center gap-3">
-          <Image
-            src="/armoiries-benin.png"
-            alt="Armoiries du Bénin"
-            height={40}
-            width={40}
-            className="shrink-0"
-            priority
-          />
+          <div className="shrink-0 rounded-xl bg-white p-1">
+            <Image
+              src="/armoiries-benin.png"
+              alt="Armoiries du Bénin"
+              height={36}
+              width={36}
+              priority
+            />
+          </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-surface">
               EduTech Bénin
