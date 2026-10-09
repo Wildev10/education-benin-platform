@@ -104,18 +104,6 @@ export default function LoginPageClient() {
 
         {/* Pitch */}
         <div className="relative mt-10 lg:mt-0">
-          {/* Armoiries en grand au-dessus du titre */}
-          <div className="mb-8 flex justify-center">
-            <div className="rounded-2xl bg-white p-2">
-              <Image
-                src="/armoiries-benin.png"
-                alt="Armoiries de la République du Bénin — Fraternité Justice Travail"
-                height={100}
-                width={100}
-                priority
-              />
-            </div>
-          </div>
           {/* FIX 1 — "nationale" avec un e */}
           <h1 className="text-3xl font-bold leading-tight text-surface lg:text-4xl">
             La plateforme de suivi
