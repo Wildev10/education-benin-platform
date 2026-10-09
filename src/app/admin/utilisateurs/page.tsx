@@ -8,7 +8,8 @@ export default async function UtilisateursPage() {
   const session = await auth();
   if (!session?.user || session.user.role !== "admin") redirect("/login");
 
-  const utilisateurs = await prisma.user.findMany({
+  const [utilisateurs, etablissements] = await Promise.all([
+    prisma.user.findMany({
     select: {
       id: true,
       nom: true,
@@ -20,8 +21,13 @@ export default async function UtilisateursPage() {
       etablissement: { select: { nom: true } },
       createdAt: true,
     },
-    orderBy: { createdAt: "asc" },
-  });
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.etablissement.findMany({
+      select: { id: true, nom: true },
+      orderBy: { nom: "asc" },
+    }),
+  ]);
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
@@ -48,6 +54,7 @@ export default async function UtilisateursPage() {
             etablissement: u.etablissement ?? null,
           }))}
           currentUserId={session.user.id ?? ""}
+          etablissements={etablissements}
         />
       </div>
     </main>

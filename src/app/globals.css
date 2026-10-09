@@ -70,3 +70,34 @@ html[data-theme="high-contrast"] :focus-visible {
   background-color: #F97316 !important;
   color: #000 !important;
 }
+
+.swal-field {
+  margin-bottom: 0.875rem;
+  text-align: left;
+}
+.swal-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0A0A0A;
+  margin-bottom: 0.3rem;
+}
+.swal-input,
+.swal-select {
+  width: 100%;
+  padding: 0.55rem 0.875rem;
+  border: 1px solid #E5E5E5;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #0A0A0A;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.swal-input:focus,
+.swal-select:focus {
+  border-color: #C2410C;
+  box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.25);
+}
