@@ -2,18 +2,17 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Toast, Confirm } from "@/lib/swal";
+
+const MoyenneChart = dynamic(() => import("./MoyenneChart"), {
+  ssr: false,
+  loading: () => (
+    <div className="mt-6 h-72 w-full animate-pulse rounded-xl bg-page" aria-busy="true" />
+  ),
+});
 
 type Note = {
   id: string;
@@ -175,47 +174,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
           </p>
         </div>
         {chartData.length >= 2 ? (
-          <div
-            aria-label="Graphique de l'évolution de la moyenne par trimestre"
-            className="mt-6 h-72 w-full"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 16, right: 24, bottom: 12, left: 0 }}>
-                <CartesianGrid strokeDasharray="4 4" stroke="#E5E5E5" vertical={false} />
-                <XAxis
-                  dataKey="periode"
-                  tick={{ fill: "#404040", fontSize: 13 }}
-                  axisLine={{ stroke: "#E5E5E5" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  domain={[0, 20]}
-                  ticks={[0, 5, 10, 15, 20]}
-                  tick={{ fill: "#6B6B6B", fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={28}
-                />
-                <Tooltip
-                  formatter={(value) => [`${Number(value).toFixed(2)}/20`, "Moyenne"]}
-                  contentStyle={{
-                    borderRadius: "12px",
-                    border: "1px solid #E5E5E5",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="moyenne"
-                  name="Moyenne / 20"
-                  stroke="#F97316"
-                  strokeWidth={3}
-                  dot={{ r: 6, fill: "#fff", stroke: "#F97316", strokeWidth: 2.5 }}
-                  activeDot={{ r: 8, fill: "#C2410C", stroke: "#fff", strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <MoyenneChart data={chartData} />
         ) : (
           <p className="mt-6 rounded-xl bg-page px-5 py-5 text-sm text-ink-secondary">
             Le graphique s'affichera dès que l'étudiant aura des notes sur au moins deux périodes.

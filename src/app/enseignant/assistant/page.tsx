@@ -1,4 +1,13 @@
-import AssistantChat from "@/components/AssistantChat";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const AssistantChat = dynamic(() => import("@/components/AssistantChat"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-96 animate-pulse rounded-2xl bg-page" aria-busy="true" />
+  ),
+});
 
 export default function EnseignantAssistantPage() {
   return (

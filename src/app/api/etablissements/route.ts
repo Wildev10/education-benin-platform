@@ -8,7 +8,11 @@ export async function GET() {
 
   try {
     const etablissements = await prisma.etablissement.findMany();
-    return NextResponse.json(etablissements);
+    return NextResponse.json(etablissements, {
+      headers: {
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      },
+    });
   } catch (error) {
     console.error("Erreur lors de la récupération des établissements", error);
     return NextResponse.json(
