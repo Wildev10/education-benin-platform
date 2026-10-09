@@ -10,8 +10,17 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "EduTech Bénin",
-  description: "Plateforme de suivi scolaire — Ministère de l'Éducation du Bénin",
+  title: "EduTech Bénin — Plateforme de suivi scolaire",
+  description:
+    "Détectez automatiquement les risques de décrochage scolaire. Plateforme de suivi des élèves pour les établissements et le Ministère de l'Éducation du Bénin.",
+  robots: "noindex, nofollow",
+  openGraph: {
+    title: "EduTech Bénin — Plateforme de suivi scolaire",
+    description:
+      "Détectez automatiquement les risques de décrochage scolaire. Plateforme de suivi des élèves pour les établissements et le Ministère de l'Éducation du Bénin.",
+    type: "website",
+    url: "https://education-benin-platform.vercel.app",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

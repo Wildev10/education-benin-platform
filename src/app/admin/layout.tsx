@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import { AppNav } from "@/components/AppNav";
+
+export const metadata: Metadata = {
+  title: "Espace Ministère — EduTech Bénin",
+};
 
 const navItems = [
   { href: "/admin", label: "Dashboard", exact: true },
