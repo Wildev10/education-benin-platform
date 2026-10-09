@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -107,6 +108,7 @@ function formatDate(date: string | Date) {
 }
 
 export default function ProfilClient({ initialData }: { initialData: ProfilData }) {
+  const router = useRouter();
   const [profil, setProfil] = useState(initialData);
 
   // Section 2 — Modifier les infos
@@ -182,6 +184,17 @@ export default function ProfilClient({ initialData }: { initialData: ProfilData 
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        aria-label="Retour à la page précédente"
+        className="mb-6 flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2 rounded"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Retour
+      </button>
       <div className="mb-8">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">
           Compte
