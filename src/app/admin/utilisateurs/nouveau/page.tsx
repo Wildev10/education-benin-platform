@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/hooks/useToast";
+import { Toast } from "@/lib/swal";
 
 type EtudiantSansCompte = { id: string; nom: string; prenom: string; etablissement: { nom: string } };
 type Etablissement = { id: string; nom: string; departement: string; commune: string };
@@ -14,7 +14,6 @@ const labelCls = "mb-1.5 block text-sm font-semibold text-ink";
 
 export default function NouvelUtilisateurPage() {
   const router = useRouter();
-  const { showToast } = useToast();
 
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
@@ -70,15 +69,15 @@ export default function NouvelUtilisateurPage() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Impossible de créer le compte.");
-        showToast("Erreur lors de l'opération.", "error");
+        void Toast.fire({ icon: "error", title: "Erreur lors de l'opération." });
         return;
       }
       setSuccess(`Compte créé pour ${data.prenom} ${data.nom} (${data.email}).`);
-      showToast("Compte créé avec succès.", "success");
+      void Toast.fire({ icon: "success", title: "Compte créé avec succès." });
       setTimeout(() => router.push("/admin/utilisateurs"), 1500);
     } catch {
       setError("La requête a échoué. Vérifiez votre connexion.");
-      showToast("Erreur lors de l'opération.", "error");
+      void Toast.fire({ icon: "error", title: "Erreur lors de l'opération." });
     } finally {
       setLoading(false);
     }

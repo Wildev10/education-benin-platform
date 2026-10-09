@@ -62,3 +62,11 @@ html[data-theme="high-contrast"] button {
 html[data-theme="high-contrast"] :focus-visible {
   outline-color: #fff;
 }
+
+.swal-toast-custom {
+  font-family: inherit !important;
+}
+.swal2-confirm {
+  background-color: #F97316 !important;
+  color: #000 !important;
+}

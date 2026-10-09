@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/hooks/useToast";
+import { Toast, Confirm } from "@/lib/swal";
 
 type Note = {
   id: string;
@@ -62,7 +62,6 @@ function formatDate(value: string) {
 }
 
 export default function AdminStudentDetail({ student }: { student: Student }) {
-  const { showToast } = useToast();
   const [alerts, setAlerts] = useState(student.alertes);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -87,6 +86,13 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
     .filter((item): item is { periode: string; moyenne: number } => item.moyenne !== null);
 
   async function markAsHandled(alertId: string) {
+    const result = await Confirm.fire({
+      title: "Êtes-vous sûr ?",
+      text: "Cette action est irréversible.",
+      icon: "warning",
+      showCancelButton: true,
+    });
+    if (!result.isConfirmed) return;
     setProcessingId(alertId);
     setError("");
     try {
@@ -101,10 +107,10 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
       setAlerts((current) =>
         current.map((alert) => (alert.id === alertId ? { ...alert, statut: data.statut } : alert))
       );
-      showToast("Alerte marquée comme traitée.", "success");
+      void Toast.fire({ icon: "success", title: "Alerte marquée comme traitée." });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Une erreur est survenue.");
-      showToast("Erreur lors de la mise à jour.", "error");
+      void Toast.fire({ icon: "error", title: "Erreur lors de la mise à jour." });
     } finally {
       setProcessingId(null);
     }

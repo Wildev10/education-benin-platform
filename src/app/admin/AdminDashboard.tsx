@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, riskVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/hooks/useToast";
+import { Toast, Confirm } from "@/lib/swal";
 
 type Alert = {
   id: string;
@@ -71,7 +71,6 @@ export default function AdminDashboard({
   initialAlerts: Alert[];
   initialStats: Stats;
 }) {
-  const { showToast } = useToast();
   const [alerts, setAlerts] = useState(initialAlerts);
   const [stats, setStats] = useState(initialStats);
   const [filter, setFilter] = useState("toutes");
@@ -87,6 +86,13 @@ export default function AdminDashboard({
   );
 
   async function markAsHandled(alertId: string) {
+    const result = await Confirm.fire({
+      title: "Êtes-vous sûr ?",
+      text: "Cette action est irréversible.",
+      icon: "warning",
+      showCancelButton: true,
+    });
+    if (!result.isConfirmed) return;
     setProcessingId(alertId);
     setError("");
 
@@ -113,12 +119,12 @@ export default function AdminDashboard({
             ? Math.max(0, current.alertesEleve - 1)
             : current.alertesEleve,
       }));
-      showToast("Alerte marquée comme traitée.", "success");
+      void Toast.fire({ icon: "success", title: "Alerte marquée comme traitée." });
     } catch (requestError) {
       setError(
         requestError instanceof Error ? requestError.message : "Une erreur est survenue."
       );
-      showToast("Erreur lors de la mise à jour.", "error");
+      void Toast.fire({ icon: "error", title: "Erreur lors de la mise à jour." });
     } finally {
       setProcessingId(null);
     }

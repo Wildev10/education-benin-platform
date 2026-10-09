@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge, roleVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/hooks/useToast";
+import { Toast, Confirm } from "@/lib/swal";
 
 type Utilisateur = {
   id: string;
@@ -27,16 +27,18 @@ export default function UtilisateursList({
   currentUserId: string;
 }) {
   const router = useRouter();
-  const { showToast } = useToast();
   const [utilisateurs, setUtilisateurs] = useState(initialUtilisateurs);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   async function handleDelete(id: string, nom: string, prenom: string) {
-    const confirme = window.confirm(
-      `Supprimer le compte de ${prenom} ${nom} ?\n\nCette action est irréversible.`
-    );
-    if (!confirme) return;
+    const result = await Confirm.fire({
+      title: "Êtes-vous sûr ?",
+      text: `Supprimer le compte de ${prenom} ${nom} ? Cette action est irréversible.`,
+      icon: "warning",
+      showCancelButton: true,
+    });
+    if (!result.isConfirmed) return;
 
     setProcessingId(id);
     setError("");
@@ -45,7 +47,7 @@ export default function UtilisateursList({
       if (res.status === 403) {
         const data = await res.json();
         setError(data.error ?? "Action interdite.");
-        showToast("Erreur lors de l'opération.", "error");
+        void Toast.fire({ icon: "error", title: "Erreur lors de l'opération." });
         return;
       }
       if (!res.ok) {
@@ -53,10 +55,10 @@ export default function UtilisateursList({
         throw new Error(data.error ?? "Impossible de supprimer.");
       }
       setUtilisateurs((current) => current.filter((u) => u.id !== id));
-      showToast("Compte supprimé.", "success");
+      void Toast.fire({ icon: "success", title: "Compte supprimé." });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
-      showToast("Erreur lors de l'opération.", "error");
+      void Toast.fire({ icon: "error", title: "Erreur lors de l'opération." });
     } finally {
       setProcessingId(null);
     }

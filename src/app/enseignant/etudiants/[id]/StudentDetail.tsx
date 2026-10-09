@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { useToast } from "@/hooks/useToast";
+import { Toast, Confirm } from "@/lib/swal";
 
 type Note = {
   id: string;
@@ -55,7 +55,6 @@ export default function StudentDetail({
   initialNotes: Note[];
   initialAbsences: Absence[];
 }) {
-  const { showToast } = useToast();
   const [notes, setNotes] = useState(initialNotes);
   const [matiere, setMatiere] = useState(matieres[0]);
   const [valeur, setValeur] = useState("");
@@ -110,13 +109,13 @@ export default function StudentDetail({
       setMessage(`Note de ${data.valeur}/20 enregistrée en ${data.matiere}.`);
       setAlerteCreee(data.alerteCreee === true);
       setValeur("");
-      showToast("Note enregistrée avec succès.", "success");
+      void Toast.fire({ icon: "success", title: "Note enregistrée avec succès." });
       if (data.alerteCreee === true) {
-        showToast("⚠ Alerte déclenchée pour cet étudiant.", "info", 6000);
+        void Toast.fire({ icon: "warning", title: "⚠ Alerte déclenchée pour cet étudiant.", timer: 6000 });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Une erreur est survenue.");
-      showToast("Erreur lors de l'enregistrement de la note.", "error");
+      void Toast.fire({ icon: "error", title: "Erreur lors de l'enregistrement de la note." });
     } finally {
       setLoading(false);
     }
@@ -151,17 +150,23 @@ export default function StudentDetail({
       setAbsMessage(`Absence du ${formatDate(absDate)} enregistrée.`);
       setAbsAlerteCreee(data.alerteCreee === true);
       setAbsDate(new Date().toISOString().slice(0, 10));
-      showToast("Absence enregistrée.", "success");
+      void Toast.fire({ icon: "success", title: "Absence enregistrée." });
     } catch (e) {
       setAbsError(e instanceof Error ? e.message : "Une erreur est survenue.");
-      showToast("Erreur lors de l'enregistrement.", "error");
+      void Toast.fire({ icon: "error", title: "Erreur lors de l'enregistrement." });
     } finally {
       setAbsLoading(false);
     }
   }
 
   async function handleDeleteAbsence(id: string) {
-    if (!window.confirm("Supprimer cette absence ?")) return;
+    const result = await Confirm.fire({
+      title: "Êtes-vous sûr ?",
+      text: "Cette action est irréversible.",
+      icon: "warning",
+      showCancelButton: true,
+    });
+    if (!result.isConfirmed) return;
     try {
       const response = await fetch(`/api/absences/${id}`, { method: "DELETE" });
       if (response.status === 401) { window.location.assign("/login"); return; }
@@ -170,9 +175,9 @@ export default function StudentDetail({
         throw new Error(data.error ?? "Impossible de supprimer l'absence.");
       }
       setAbsences((current) => current.filter((a) => a.id !== id));
-      showToast("Absence supprimée.", "success");
+      void Toast.fire({ icon: "success", title: "Absence supprimée." });
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "Erreur lors de l'enregistrement.", "error");
+      void Toast.fire({ icon: "error", title: e instanceof Error ? e.message : "Erreur lors de l'enregistrement." });
     }
   }
 
