@@ -1,28 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AccessibilityControls from "@/components/AccessibilityControls";
 import { useToast } from "@/hooks/useToast";
-
-function Logo({ size = 40 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 32 32"
-      fill="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <rect width="32" height="32" rx="8" fill="#F97316" />
-      <rect x="8" y="10" width="16" height="2.5" rx="1.25" fill="#0A0A0A" />
-      <rect x="8" y="14.75" width="11" height="2.5" rx="1.25" fill="#0A0A0A" />
-      <rect x="8" y="19.5" width="16" height="2.5" rx="1.25" fill="#0A0A0A" />
-    </svg>
-  );
-}
 
 const features = [
   {
@@ -102,7 +85,14 @@ export default function LoginPageClient() {
 
         {/* Logo + nom */}
         <div className="relative flex items-center gap-3">
-          <Logo size={44} />
+          <Image
+            src="/armoiries-benin.png"
+            alt="Armoiries du Bénin"
+            height={40}
+            width={40}
+            className="shrink-0"
+            priority
+          />
           <div>
             <p className="text-base font-bold uppercase tracking-[0.16em] text-surface">
               EduTech Bénin
@@ -113,6 +103,16 @@ export default function LoginPageClient() {
 
         {/* Pitch */}
         <div className="relative mt-10 lg:mt-0">
+          {/* Armoiries en grand au-dessus du titre */}
+          <div className="mb-8 flex justify-center">
+            <Image
+              src="/armoiries-benin.png"
+              alt="Armoiries de la République du Bénin — Fraternité Justice Travail"
+              height={120}
+              width={120}
+              priority
+            />
+          </div>
           <h1 className="text-3xl font-bold leading-tight text-surface lg:text-4xl">
             La plateforme de suivi
             <br />
@@ -153,7 +153,13 @@ export default function LoginPageClient() {
         <div className="w-full max-w-md">
           {/* Logo mobile (répété dans la zone formulaire) */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <Logo size={36} />
+            <Image
+              src="/armoiries-benin.png"
+              alt="Armoiries du Bénin"
+              height={36}
+              width={36}
+              className="shrink-0"
+            />
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.16em] text-ink">
                 EduTech Bénin

@@ -1,25 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { signOut } from "next-auth/react";
 import AccessibilityControls from "@/components/AccessibilityControls";
-
-function Logo() {
-  return (
-    <svg
-      width="32"
-      height="32"
-      viewBox="0 0 32 32"
-      fill="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <rect width="32" height="32" rx="8" fill="#F97316" />
-      <rect x="8" y="10" width="16" height="2.5" rx="1.25" fill="#0A0A0A" />
-      <rect x="8" y="14.75" width="11" height="2.5" rx="1.25" fill="#0A0A0A" />
-      <rect x="8" y="19.5" width="16" height="2.5" rx="1.25" fill="#0A0A0A" />
-    </svg>
-  );
-}
 
 export default function AppHeader({
   name,
@@ -42,7 +25,14 @@ export default function AppHeader({
     <header className="bg-ink border-b border-white/10">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-3 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
-          <Logo />
+          <Image
+            src="/armoiries-benin.png"
+            alt="Armoiries du Bénin"
+            height={40}
+            width={40}
+            className="shrink-0"
+            priority
+          />
           <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-surface">
               EduTech Bénin
