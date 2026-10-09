@@ -79,10 +79,10 @@ export default function UtilisateursList({
 
     const { value: formValues } = await Swal.fire({
       title: "Modifier le compte",
-      width: 520,
+      width: "min(520px, 94vw)",
       html: `
         <div style="text-align:left">
-          <div class="swal-field" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+          <div class="swal-field swal-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
             <div>
               <label class="swal-label" for="swal-prenom">Prénom</label>
               <input id="swal-prenom" class="swal-input" type="text" value="${utilisateur.prenom}" />

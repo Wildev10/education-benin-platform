@@ -101,3 +101,9 @@ html[data-theme="high-contrast"] :focus-visible {
   border-color: #C2410C;
   box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.25);
 }
+
+@media (max-width: 420px) {
+  .swal-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
