@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/hooks/useToast";
 
 type Note = {
   id: string;
@@ -61,6 +62,7 @@ function formatDate(value: string) {
 }
 
 export default function AdminStudentDetail({ student }: { student: Student }) {
+  const { showToast } = useToast();
   const [alerts, setAlerts] = useState(student.alertes);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -99,8 +101,10 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
       setAlerts((current) =>
         current.map((alert) => (alert.id === alertId ? { ...alert, statut: data.statut } : alert))
       );
+      showToast("Alerte marquée comme traitée.", "success");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Une erreur est survenue.");
+      showToast("Erreur lors de la mise à jour.", "error");
     } finally {
       setProcessingId(null);
     }

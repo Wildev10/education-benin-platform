@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/hooks/useToast";
 
 type LigneErreur = { ligne: number; contenu: string; raison: string };
 type Rapport = { total: number; importees: number; erreurs: LigneErreur[]; alertesCreees: number };
@@ -23,6 +24,7 @@ function telechargerModele() {
 }
 
 export default function ImportNotesPage() {
+  const { showToast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const [fichier, setFichier] = useState<File | null>(null);
@@ -57,11 +59,15 @@ export default function ImportNotesPage() {
       const data = await res.json();
       if (!res.ok) {
         setErreurGlobale(data.error ?? "L'import a échoué.");
+        showToast("Erreur lors de l'import.", "error");
         return;
       }
-      setRapport(data as Rapport);
+      const r = data as Rapport;
+      setRapport(r);
+      showToast(`Import terminé : ${r.importees} notes importées.`, "success");
     } catch {
       setErreurGlobale("La requête a échoué. Vérifiez votre connexion.");
+      showToast("Erreur lors de l'import.", "error");
     } finally {
       setLoading(false);
     }

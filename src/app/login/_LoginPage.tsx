@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AccessibilityControls from "@/components/AccessibilityControls";
+import { useToast } from "@/hooks/useToast";
 
 function Logo({ size = 40 }: { size?: number }) {
   return (
@@ -43,6 +44,7 @@ const features = [
 
 export default function LoginPageClient() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [erreur, setErreur] = useState("");
@@ -71,6 +73,7 @@ export default function LoginPageClient() {
         return;
       }
 
+      showToast("Connexion réussie. Bienvenue !", "success");
       router.push("/");
       router.refresh();
     } catch {

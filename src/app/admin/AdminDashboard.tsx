@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, riskVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/hooks/useToast";
 
 type Alert = {
   id: string;
@@ -70,6 +71,7 @@ export default function AdminDashboard({
   initialAlerts: Alert[];
   initialStats: Stats;
 }) {
+  const { showToast } = useToast();
   const [alerts, setAlerts] = useState(initialAlerts);
   const [stats, setStats] = useState(initialStats);
   const [filter, setFilter] = useState("toutes");
@@ -111,10 +113,12 @@ export default function AdminDashboard({
             ? Math.max(0, current.alertesEleve - 1)
             : current.alertesEleve,
       }));
+      showToast("Alerte marquée comme traitée.", "success");
     } catch (requestError) {
       setError(
         requestError instanceof Error ? requestError.message : "Une erreur est survenue."
       );
+      showToast("Erreur lors de la mise à jour.", "error");
     } finally {
       setProcessingId(null);
     }

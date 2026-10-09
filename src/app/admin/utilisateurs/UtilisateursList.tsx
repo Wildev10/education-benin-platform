@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge, roleVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/hooks/useToast";
 
 type Utilisateur = {
   id: string;
@@ -26,6 +27,7 @@ export default function UtilisateursList({
   currentUserId: string;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [utilisateurs, setUtilisateurs] = useState(initialUtilisateurs);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -43,6 +45,7 @@ export default function UtilisateursList({
       if (res.status === 403) {
         const data = await res.json();
         setError(data.error ?? "Action interdite.");
+        showToast("Erreur lors de l'opération.", "error");
         return;
       }
       if (!res.ok) {
@@ -50,8 +53,10 @@ export default function UtilisateursList({
         throw new Error(data.error ?? "Impossible de supprimer.");
       }
       setUtilisateurs((current) => current.filter((u) => u.id !== id));
+      showToast("Compte supprimé.", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
+      showToast("Erreur lors de l'opération.", "error");
     } finally {
       setProcessingId(null);
     }

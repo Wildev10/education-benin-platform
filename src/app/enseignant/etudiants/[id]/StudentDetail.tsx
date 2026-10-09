@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/hooks/useToast";
 
 type Note = {
   id: string;
@@ -54,6 +55,7 @@ export default function StudentDetail({
   initialNotes: Note[];
   initialAbsences: Absence[];
 }) {
+  const { showToast } = useToast();
   const [notes, setNotes] = useState(initialNotes);
   const [matiere, setMatiere] = useState(matieres[0]);
   const [valeur, setValeur] = useState("");
@@ -108,8 +110,13 @@ export default function StudentDetail({
       setMessage(`Note de ${data.valeur}/20 enregistrée en ${data.matiere}.`);
       setAlerteCreee(data.alerteCreee === true);
       setValeur("");
+      showToast("Note enregistrée avec succès.", "success");
+      if (data.alerteCreee === true) {
+        showToast("⚠ Alerte déclenchée pour cet étudiant.", "info", 6000);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Une erreur est survenue.");
+      showToast("Erreur lors de l'enregistrement de la note.", "error");
     } finally {
       setLoading(false);
     }
@@ -144,8 +151,10 @@ export default function StudentDetail({
       setAbsMessage(`Absence du ${formatDate(absDate)} enregistrée.`);
       setAbsAlerteCreee(data.alerteCreee === true);
       setAbsDate(new Date().toISOString().slice(0, 10));
+      showToast("Absence enregistrée.", "success");
     } catch (e) {
       setAbsError(e instanceof Error ? e.message : "Une erreur est survenue.");
+      showToast("Erreur lors de l'enregistrement.", "error");
     } finally {
       setAbsLoading(false);
     }
@@ -161,8 +170,9 @@ export default function StudentDetail({
         throw new Error(data.error ?? "Impossible de supprimer l'absence.");
       }
       setAbsences((current) => current.filter((a) => a.id !== id));
+      showToast("Absence supprimée.", "success");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Une erreur est survenue.");
+      showToast(e instanceof Error ? e.message : "Erreur lors de l'enregistrement.", "error");
     }
   }
 
