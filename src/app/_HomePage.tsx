@@ -295,10 +295,10 @@ export default function HomePage() {
               Une plateforme pour chaque acteur
             </h2>
           </Reveal>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {spaces.map((space) => (
               <Reveal key={space.title}>
-                <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm transition hover:border-brand/40 hover:shadow-md">
+                <div className="h-full rounded-2xl border border-border bg-surface p-6 shadow-sm transition hover:border-brand/40 hover:shadow-md">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand/10 text-brand">
                     {space.icon}
                   </div>
