@@ -12,7 +12,7 @@ const authMiddleware: AuthMiddleware = (request) => {
   const { pathname } = request.nextUrl;
   const session = request.auth;
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || pathname === "/") {
     return NextResponse.next();
   }
 
