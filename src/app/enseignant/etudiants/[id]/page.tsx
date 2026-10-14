@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import StudentDetail from "./StudentDetail";
 
 export default async function EtudiantPage({
@@ -21,15 +22,22 @@ export default async function EtudiantPage({
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
-      <div className="mb-8 border-b border-border pb-7">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">Fiche étudiant</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-          {etudiant.prenom} {etudiant.nom}
-        </h1>
-        <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium text-ink-secondary">
-          <span className="rounded-full border border-border bg-surface px-3 py-1.5 shadow-sm">{etudiant.etablissement.nom}</span>
-          <span className="rounded-full bg-brand-light px-3 py-1.5 text-brand-dark ring-1 ring-brand/30">{etudiant.niveau}</span>
+      <div className="mb-8 flex flex-col gap-5 border-b border-border pb-7 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">Fiche étudiant</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+            {etudiant.prenom} {etudiant.nom}
+          </h1>
+          <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium text-ink-secondary">
+            <span className="rounded-full border border-border bg-surface px-3 py-1.5 shadow-sm">{etudiant.etablissement.nom}</span>
+            <span className="rounded-full bg-brand-light px-3 py-1.5 text-brand-dark ring-1 ring-brand/30">{etudiant.niveau}</span>
+          </div>
         </div>
+        <ExportPdfButton
+          href={`/api/etudiants/${etudiant.id}/pdf`}
+          label="Exporter en PDF"
+          fichierParDefaut="fiche-etudiant.pdf"
+        />
       </div>
       <StudentDetail
         etudiantId={etudiant.id}

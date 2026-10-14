@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Toast, Confirm } from "@/lib/swal";
 
 const MoyenneChart = dynamic(() => import("./MoyenneChart"), {
@@ -43,6 +44,7 @@ type Absence = {
 };
 
 type Student = {
+  id: string;
   nom: string;
   prenom: string;
   dateNaissance: string;
@@ -128,12 +130,21 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
       </Link>
 
       <header className="mt-6 border-b border-border pb-7">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">
-          Fiche étudiant
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-          {student.prenom} {student.nom}
-        </h1>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">
+              Fiche étudiant
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+              {student.prenom} {student.nom}
+            </h1>
+          </div>
+          <ExportPdfButton
+            href={`/api/etudiants/${student.id}/pdf`}
+            label="Exporter en PDF"
+            fichierParDefaut="fiche-etudiant.pdf"
+          />
+        </div>
         <dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <dt className="text-sm font-semibold text-ink-secondary">Établissement</dt>
