@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     const sansCompte = searchParams.get("sansCompte") === "1";
     const skip = parseNonNegativeInteger(searchParams.get("skip"), 0);
     const take = parsePositiveInteger(searchParams.get("take"), 50);
+    const search = searchParams.get("search")?.trim() || undefined;
 
     // Le directeur et l'enseignant ne voient que les étudiants de leur établissement.
     const isRestricted =
@@ -32,6 +33,14 @@ export async function GET(request: Request) {
         ...(etablissementId ? { etablissementId } : {}),
         ...(niveau ? { niveau } : {}),
         ...(sansCompte ? { compte: null } : {}),
+        ...(search
+          ? {
+              OR: [
+                { nom: { contains: search, mode: "insensitive" } },
+                { prenom: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
       },
       include: { etablissement: true },
       skip,

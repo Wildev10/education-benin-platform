@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 
 type Etablissement = { id: string; nom: string };
@@ -31,8 +31,21 @@ export default function StudentDirectory({
   const [activeAlertStudentIds, setActiveAlertStudentIds] = useState<Set<string>>(new Set());
   const [etablissementId, setEtablissementId] = useState("");
   const [niveau, setNiveau] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearch(searchInput.trim());
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchInput]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -44,6 +57,7 @@ export default function StudentDirectory({
       const params = new URLSearchParams();
       if (etablissementId) params.set("etablissementId", etablissementId);
       if (niveau) params.set("niveau", niveau);
+      if (search) params.set("search", search);
 
       try {
         const requests = [
@@ -77,7 +91,7 @@ export default function StudentDirectory({
 
     void loadStudents();
     return () => controller.abort();
-  }, [etablissementId, niveau, showActiveAlerts]);
+  }, [etablissementId, niveau, search, showActiveAlerts]);
 
   return (
     <section aria-labelledby="liste-etudiants" className="mt-8">
@@ -91,11 +105,57 @@ export default function StudentDirectory({
             Étudiants
           </h2>
         </div>
-        <p className="text-sm text-ink-secondary" aria-live="polite">
-          {loading
-            ? "Chargement…"
-            : `${etudiants.length} étudiant${etudiants.length > 1 ? "s" : ""}`}
-        </p>
+        {!search && (
+          <p className="text-sm text-ink-secondary" aria-live="polite">
+            {loading
+              ? "Chargement…"
+              : `${etudiants.length} étudiant${etudiants.length > 1 ? "s" : ""}`}
+          </p>
+        )}
+      </div>
+
+      {/* Search */}
+      <div className="border-b border-border py-5">
+        <div className="relative w-full max-w-md">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`h-4 w-4 transition ${searchInput ? "text-brand-dark" : "text-ink-secondary"} peer-focus:text-brand-dark`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+          </span>
+          <input
+            id="search-etudiants"
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Rechercher par nom ou prénom..."
+            className="peer w-full rounded-lg border border-border bg-surface py-2.5 pl-9 pr-9 text-sm text-ink transition placeholder:text-ink-secondary focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+          />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => setSearchInput("")}
+              aria-label="Effacer la recherche"
+              className="absolute inset-y-0 right-3 flex items-center text-ink-secondary hover:text-ink"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {search && (
+          <p className="mt-2 text-sm text-ink-secondary" aria-live="polite">
+            {loading ? "Recherche…" : `${etudiants.length} élève${etudiants.length > 1 ? "s" : ""} trouvé${etudiants.length > 1 ? "s" : ""}`}
+          </p>
+        )}
       </div>
 
       {/* Filters */}
