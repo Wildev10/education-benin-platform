@@ -1,11 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, riskVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Toast, Confirm } from "@/lib/swal";
+import type { StatsEtablissement } from "@/lib/stats-etablissements";
+
+const AlertesEtablissementChart = dynamic(() => import("./AlertesEtablissementChart"), {
+  ssr: false,
+  loading: () => <div className="h-64 w-full animate-pulse rounded-xl bg-page" aria-busy="true" />,
+});
+
+function moyenneCls(moyenne: number) {
+  if (moyenne >= 12) return "text-emerald-700";
+  if (moyenne >= 10) return "text-orange-700";
+  return "text-red-700";
+}
+
+function tauxBarCls(taux: number) {
+  if (taux >= 25) return "bg-red-600";
+  if (taux >= 10) return "bg-brand";
+  return "bg-emerald-500";
+}
 
 type Alert = {
   id: string;
@@ -67,12 +86,15 @@ const iconElevé = (
 export default function AdminDashboard({
   initialAlerts,
   initialStats,
+  initialStatsEtablissements,
 }: {
   initialAlerts: Alert[];
   initialStats: Stats;
+  initialStatsEtablissements: StatsEtablissement[];
 }) {
   const [alerts, setAlerts] = useState(initialAlerts);
   const [stats, setStats] = useState(initialStats);
+  const [statsEtablissements, setStatsEtablissements] = useState(initialStatsEtablissements);
   const [filter, setFilter] = useState("toutes");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -120,6 +142,10 @@ export default function AdminDashboard({
             : current.alertesEleve,
       }));
       void Toast.fire({ icon: "success", title: "Alerte marquée comme traitée." });
+      void fetch("/api/admin/stats/etablissements")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: StatsEtablissement[] | null) => data && setStatsEtablissements(data))
+        .catch(() => {});
     } catch (requestError) {
       setError(
         requestError instanceof Error ? requestError.message : "Une erreur est survenue."
@@ -289,6 +315,105 @@ export default function AdminDashboard({
             ))}
           </div>
         )}
+      </section>
+
+      {/* ── Établissements ─────────────────────────────────────── */}
+      <section aria-labelledby="etablissements-title" className="mt-14 border-t-2 border-border pt-10">
+        <div className="border-b border-border pb-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">Analyse</p>
+          <h2 id="etablissements-title" className="mt-1 text-2xl font-bold text-ink">
+            Établissements
+          </h2>
+          <p className="mt-2 max-w-2xl text-ink-secondary">
+            Les établissements les plus exposés apparaissent en premier, classés par taux d&apos;alerte.
+          </p>
+        </div>
+
+        <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-180 text-left text-sm">
+              <caption className="sr-only">Statistiques par établissement</caption>
+              <thead>
+                <tr className="bg-ink text-surface">
+                  <th scope="col" className="px-5 py-4 font-semibold">Établissement</th>
+                  <th scope="col" className="px-5 py-4 text-right font-semibold">Élèves</th>
+                  <th scope="col" className="px-5 py-4 text-right font-semibold">Alertes actives</th>
+                  <th scope="col" className="px-5 py-4 text-right font-semibold">Risque élevé</th>
+                  <th scope="col" className="px-5 py-4 text-right font-semibold">Moyenne générale</th>
+                  <th scope="col" className="px-5 py-4 font-semibold">Taux d&apos;alerte</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {statsEtablissements.map((e, i) => (
+                  <tr key={e.id} className={i % 2 === 1 ? "bg-page" : "bg-surface"}>
+                    <td className="px-5 py-4">
+                      <p className="font-semibold text-ink">{e.nom}</p>
+                      <p className="text-xs text-ink-secondary">{e.departement}</p>
+                    </td>
+                    <td className="px-5 py-4 text-right tabular-nums text-ink">{e.nbEtudiants}</td>
+                    <td className="px-5 py-4 text-right">
+                      {e.nbAlertesActives > 0 ? (
+                        <span className="inline-flex rounded-full border border-orange-300 bg-orange-50 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-orange-800">
+                          {e.nbAlertesActives}
+                        </span>
+                      ) : (
+                        <span className="tabular-nums text-ink-secondary">0</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      {e.nbAlertesElevees > 0 ? (
+                        <span className="inline-flex rounded-full border border-red-300 bg-red-50 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-red-800">
+                          {e.nbAlertesElevees}
+                        </span>
+                      ) : (
+                        <span className="tabular-nums text-ink-secondary">0</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      {e.moyenneGenerale === null ? (
+                        <span className="text-ink-secondary">—</span>
+                      ) : (
+                        <span className={`font-bold tabular-nums ${moyenneCls(e.moyenneGenerale)}`}>
+                          {e.moyenneGenerale.toFixed(2)}
+                          <span className="font-normal text-ink-secondary">/20</span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          role="progressbar"
+                          aria-valuenow={e.tauxAlerte}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-label={`Taux d'alerte ${e.nom}`}
+                          className="h-2 w-28 shrink-0 overflow-hidden rounded-full bg-border"
+                        >
+                          <div
+                            className={`h-full rounded-full ${tauxBarCls(e.tauxAlerte)}`}
+                            style={{ width: `${Math.min(e.tauxAlerte, 100)}%` }}
+                          />
+                        </div>
+                        <span className="tabular-nums font-semibold text-ink">
+                          {e.tauxAlerte.toLocaleString("fr-FR")} %
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-6">
+          <h3 className="text-lg font-bold text-ink">Alertes actives par établissement</h3>
+          <div className="mt-4">
+            <AlertesEtablissementChart
+              data={[...statsEtablissements].sort((a, b) => b.nbAlertesActives - a.nbAlertesActives)}
+            />
+          </div>
+        </div>
       </section>
     </>
   );

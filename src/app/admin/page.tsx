@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { getStatsEtablissements } from "@/lib/stats-etablissements";
 import AdminDashboard from "./AdminDashboard";
 
 export default async function AdminPage() {
-  const [etudiants, etablissements, alertes] = await Promise.all([
+  const [etudiants, etablissements, alertes, statsEtablissements] = await Promise.all([
     prisma.etudiant.count(),
     prisma.etablissement.count(),
     prisma.alerte.findMany({
@@ -19,6 +20,7 @@ export default async function AdminPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
+    getStatsEtablissements(),
   ]);
 
   const alertesTriees = alertes.sort((a, b) => {
@@ -52,6 +54,7 @@ export default async function AdminPage() {
             ecartPourcent: alerte.ecartPourcent,
             etudiant: alerte.etudiant,
           }))}
+          initialStatsEtablissements={statsEtablissements}
         />
       </div>
     </main>
