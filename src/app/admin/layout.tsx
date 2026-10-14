@@ -14,6 +14,7 @@ const navItems = [
   { href: "/admin/utilisateurs", label: "Utilisateurs" },
   { href: "/admin/import", label: "Importer" },
   { href: "/admin/assistant", label: "Assistant" },
+  { href: "/admin/historique", label: "Historique" },
 ];
 
 export default async function AdminLayout({
