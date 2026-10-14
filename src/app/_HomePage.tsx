@@ -216,7 +216,7 @@ export default function HomePage() {
             alt=""
             height={500}
             width={500}
-            className="opacity-[0.06] select-none"
+            className="select-none opacity-[0.06] invert"
           />
         </div>
 
