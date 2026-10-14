@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { detecterAlerte } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
@@ -152,6 +153,15 @@ export async function POST(request: Request) {
   }
 
   const total = lignesData.filter((l) => l.trim() !== "").length;
+
+  if (importees > 0) {
+    await logAction({
+      userId: access.user.id,
+      action: "NOTES_IMPORTEES",
+      description: `${importees} note${importees > 1 ? "s" : ""} importée${importees > 1 ? "s" : ""} depuis un fichier CSV`,
+      entityType: "note",
+    });
+  }
 
   return NextResponse.json({ total, importees, erreurs, alertesCreees }, { status: 200 });
 }

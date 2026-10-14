@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 
@@ -81,6 +82,14 @@ export async function PATCH(request: Request, context: RouteContext) {
       select: utilisateurSelect,
     });
 
+    await logAction({
+      userId: access.user.id,
+      action: "UTILISATEUR_MODIFIE",
+      description: `Compte modifié : ${updated.prenom} ${updated.nom}`,
+      entityType: "utilisateur",
+      entityId: updated.id,
+    });
+
     return NextResponse.json({
       ...updated,
       createdAt: updated.createdAt.toISOString(),
@@ -111,6 +120,14 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
 
     await prisma.user.delete({ where: { id } });
+
+    await logAction({
+      userId: access.user.id,
+      action: "UTILISATEUR_SUPPRIME",
+      description: `Compte supprimé : ${utilisateur.prenom} ${utilisateur.nom} (${utilisateur.role})`,
+      entityType: "utilisateur",
+      entityId: id,
+    });
     return new Response(null, { status: 204 });
   } catch (error) {
     console.error("Erreur DELETE utilisateur", error);

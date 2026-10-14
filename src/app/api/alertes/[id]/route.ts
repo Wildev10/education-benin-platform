@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 
@@ -20,7 +21,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const { id } = await context.params;
-    const alerteExistante = await prisma.alerte.findUnique({ where: { id } });
+    const alerteExistante = await prisma.alerte.findUnique({
+      where: { id },
+      include: { etudiant: { select: { nom: true, prenom: true } } },
+    });
     if (!alerteExistante) {
       return NextResponse.json(
         { error: "Alerte introuvable" },
@@ -31,6 +35,14 @@ export async function PATCH(request: Request, context: RouteContext) {
     const alerte = await prisma.alerte.update({
       where: { id },
       data: { statut: "traitee" },
+    });
+
+    await logAction({
+      userId: access.user.id,
+      action: "ALERTE_TRAITEE",
+      description: `Alerte traitée pour ${alerteExistante.etudiant.prenom} ${alerteExistante.etudiant.nom}`,
+      entityType: "alerte",
+      entityId: alerte.id,
     });
 
     return NextResponse.json(alerte);

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { logAction } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
@@ -53,6 +54,14 @@ export async function POST(request: Request) {
     await prisma.user.update({
       where: { id: session.user.id },
       data: { passwordHash },
+    });
+
+    await logAction({
+      userId: session.user.id,
+      action: "MOT_DE_PASSE_CHANGE",
+      description: "Mot de passe modifié",
+      entityType: "utilisateur",
+      entityId: session.user.id,
     });
 
     return NextResponse.json({ success: true });

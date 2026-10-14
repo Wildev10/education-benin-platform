@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { detecterAlerte } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
 
     const etudiant = await prisma.etudiant.findUnique({
       where: { id: body.etudiantId.trim() },
-      select: { id: true, etablissementId: true },
+      select: { id: true, etablissementId: true, nom: true, prenom: true },
     });
     if (!etudiant) {
       return NextResponse.json(
@@ -117,6 +118,14 @@ export async function POST(request: Request) {
     });
 
     const issue = await detecterAlerte(note.etudiantId);
+
+    await logAction({
+      userId: access.user.id,
+      action: "NOTE_CREEE",
+      description: `Note ${note.valeur}/20 en ${note.matiere} pour ${etudiant.prenom} ${etudiant.nom}`,
+      entityType: "note",
+      entityId: note.id,
+    });
 
     return NextResponse.json(
       {

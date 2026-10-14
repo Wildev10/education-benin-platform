@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { logAction } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 
 const profilSelect = {
@@ -74,6 +75,14 @@ export async function PATCH(request: Request) {
       where: { id: session.user.id },
       data,
       select: profilSelect,
+    });
+
+    await logAction({
+      userId: session.user.id,
+      action: "PROFIL_MODIFIE",
+      description: "Profil mis à jour",
+      entityType: "utilisateur",
+      entityId: session.user.id,
     });
 
     return NextResponse.json(updated);

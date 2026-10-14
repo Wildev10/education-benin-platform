@@ -92,4 +92,20 @@ model User {
   etablissementId  String?
   etablissement    Etablissement? @relation(fields: [etablissementId], references: [id])
   createdAt        DateTime       @default(now())
+  actionLogs       ActionLog[]
+}
+
+model ActionLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      String   // "NOTE_CREEE", "ALERTE_TRAITEE", ...
+  description String
+  entityType  String?  // "note", "absence", "alerte", "utilisateur"
+  entityId    String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([userId])
 }

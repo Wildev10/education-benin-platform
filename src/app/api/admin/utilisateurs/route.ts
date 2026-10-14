@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 
@@ -96,6 +97,14 @@ export async function POST(request: Request) {
         etablissementId: true,
         createdAt: true,
       },
+    });
+
+    await logAction({
+      userId: access.user.id,
+      action: "UTILISATEUR_CREE",
+      description: `Compte créé : ${utilisateur.prenom} ${utilisateur.nom} (${utilisateur.role})`,
+      entityType: "utilisateur",
+      entityId: utilisateur.id,
     });
 
     return NextResponse.json(utilisateur, { status: 201 });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { detecterAlerteAbsence } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
@@ -69,7 +70,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "La date ne peut pas être dans le futur." }, { status: 400 });
     }
 
-    const etudiant = await prisma.etudiant.findUnique({ where: { id: etudiantId }, select: { id: true, etablissementId: true } });
+    const etudiant = await prisma.etudiant.findUnique({
+      where: { id: etudiantId },
+      select: { id: true, etablissementId: true, nom: true, prenom: true },
+    });
     if (!etudiant) {
       return NextResponse.json({ error: "Étudiant introuvable." }, { status: 404 });
     }
@@ -89,6 +93,14 @@ export async function POST(request: Request) {
     });
 
     const alerteCreee = await detecterAlerteAbsence(etudiantId);
+
+    await logAction({
+      userId: access.user.id,
+      action: "ABSENCE_CREEE",
+      description: `Absence ${motif === "justifiee" ? "justifiée" : "injustifiée"} le ${date.toLocaleDateString("fr-FR")} pour ${etudiant.prenom} ${etudiant.nom}`,
+      entityType: "absence",
+      entityId: absence.id,
+    });
 
     return NextResponse.json({ absence, alerteCreee }, { status: 201 });
   } catch (error) {

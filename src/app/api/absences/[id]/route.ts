@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { detecterAlerteAbsence } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +13,10 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const absence = await prisma.absence.findUnique({ where: { id }, select: { etudiantId: true } });
+    const absence = await prisma.absence.findUnique({
+      where: { id },
+      select: { etudiantId: true, etudiant: { select: { nom: true, prenom: true } } },
+    });
     if (!absence) {
       return NextResponse.json({ error: "Absence introuvable." }, { status: 404 });
     }
@@ -21,6 +25,14 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
     // Recalcule l'alerte après suppression
     await detecterAlerteAbsence(absence.etudiantId);
+
+    await logAction({
+      userId: access.user.id,
+      action: "ABSENCE_SUPPRIMEE",
+      description: `Absence supprimée pour ${absence.etudiant.prenom} ${absence.etudiant.nom}`,
+      entityType: "absence",
+      entityId: id,
+    });
 
     return new Response(null, { status: 204 });
   } catch (error) {
