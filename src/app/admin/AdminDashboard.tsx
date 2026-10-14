@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, riskVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Toast, Confirm } from "@/lib/swal";
 import type { StatsEtablissement } from "@/lib/stats-etablissements";
 
@@ -192,17 +193,24 @@ export default function AdminDashboard({
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-red-700">
               Détection précoce
             </p>
-            <h2 id="alerts-title" className="mt-1 flex items-center gap-3 text-2xl font-bold text-ink">
-              Alertes à examiner
-              {alerts.length > 0 && (
-                <span
-                  aria-label={`${alerts.length} alerte${alerts.length > 1 ? "s" : ""}`}
-                  className="inline-flex items-center justify-center rounded-full bg-red-600 px-2.5 py-0.5 text-sm font-bold text-white"
-                >
-                  {alerts.length}
-                </span>
-              )}
-            </h2>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-3">
+              <h2 id="alerts-title" className="flex items-center gap-3 text-2xl font-bold text-ink">
+                Alertes à examiner
+                {alerts.length > 0 && (
+                  <span
+                    aria-label={`${alerts.length} alerte${alerts.length > 1 ? "s" : ""}`}
+                    className="inline-flex items-center justify-center rounded-full bg-red-600 px-2.5 py-0.5 text-sm font-bold text-white"
+                  >
+                    {alerts.length}
+                  </span>
+                )}
+              </h2>
+              <ExportPdfButton
+                href="/api/admin/alertes/pdf"
+                label="Exporter les alertes"
+                fichierParDefaut="alertes-actives.pdf"
+              />
+            </div>
             <p className="mt-2 max-w-2xl text-ink-secondary">
               Les baisses de résultats qui méritent une attention avant qu'elles ne deviennent un décrochage.
             </p>
