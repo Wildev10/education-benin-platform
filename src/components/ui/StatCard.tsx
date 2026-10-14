@@ -1,12 +1,17 @@
 import { type ReactNode } from "react";
 
-type Tone = "default" | "danger" | "warning" | "success";
+type Tone = "default" | "brand" | "danger" | "warning" | "success";
 
 const toneCls: Record<Tone, { card: string; value: string; label: string }> = {
   default: {
     card: "border-border bg-surface",
     value: "text-ink",
     label: "text-ink-secondary",
+  },
+  brand: {
+    card: "border-brand/30 bg-brand-light",
+    value: "text-ink",
+    label: "text-brand-dark",
   },
   danger: {
     card: "border-red-200 bg-red-50",
