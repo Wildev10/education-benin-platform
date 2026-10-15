@@ -1,126 +1,172 @@
-# EduTech Bénin
+# EduTech Bénin — Plateforme de suivi scolaire national
 
-> **Personne ne voit un décrochage venir avant qu'il soit acté. Notre plateforme le détecte automatiquement.**
+> « Personne ne voit un décrochage venir avant qu'il soit acté.
+> Notre plateforme le détecte automatiquement. »
 
-EduTech Bénin est une plateforme de suivi scolaire pensée pour aider les établissements à agir plus tôt, avec des informations lisibles par les personnes qui accompagnent réellement l'élève.
+🔗 **En ligne :** [https://education-benin-platform.vercel.app](https://education-benin-platform.vercel.app)
+
+---
 
 ## Le problème
 
-Les enseignants et les établissements disposent rarement d'un outil simple pour repérer une baisse de résultats avant qu'elle ne devienne un décrochage scolaire acté. Une note isolée ne suffit pas toujours à alerter, mais l'évolution des moyennes sur plusieurs périodes — combinée au suivi des absences — peut révéler un signal important bien en amont.
+Les enseignants et les directeurs n'ont pas d'outil simple pour repérer les élèves en difficulté avant qu'il soit trop tard. Aujourd'hui, l'alerte arrive après le décrochage, pas avant.
 
 ## La solution
 
-La plateforme relie les informations scolaires, les notes, les absences et les alertes autour de quatre espaces avec des permissions strictes par rôle :
+EduTech Bénin détecte automatiquement les baisses de résultats et les absences excessives. Les alertes remontent en temps réel jusqu'au niveau national, pour que l'établissement et le ministère puissent agir pendant qu'il en est encore temps.
 
-- **Étudiant** : consulte sa fiche personnelle, ses notes par période et l'évolution de ses moyennes, dans un langage simple et sans jargon.
-- **Enseignant** : limité à son établissement — consulte les étudiants, saisit les notes et les absences, voit les alertes déclenchées.
-- **Directeur** : limité à son établissement, mêmes droits qu'un enseignant.
-- **Admin / Ministère** : vue nationale complète — indicateurs agrégés, alertes actives, gestion de tous les comptes utilisateurs.
+---
 
-À chaque saisie, la plateforme applique deux règles de détection :
+## Fonctionnalités
 
-**Alerte sur les notes :**
-- Risque élevé : baisse ≥ 20 % et moyenne après la baisse < 10/20.
-- Risque moyen : baisse ≥ 15 %.
+### Espaces et permissions
 
-**Alerte sur les absences :**
-- Risque élevé : 10 absences injustifiées ou plus.
-- Risque moyen : 5 absences injustifiées ou plus.
+Quatre espaces, avec des permissions strictes par rôle :
 
-Ces règles sont délibérément simples et explicables : on peut justifier chaque alerte devant un établissement ou un ministère.
+| Rôle | Périmètre | Ce qu'il peut faire |
+|---|---|---|
+| **Étudiant** | Sa propre fiche | Consulter ses notes, ses moyennes et leur évolution |
+| **Enseignant** | Son établissement | Consulter les élèves, saisir notes et absences, importer des notes (CSV), traiter les alertes |
+| **Directeur** | Son établissement | Consulter les élèves, saisir notes et absences |
+| **Admin / Ministère** | National | Vue complète, gestion des comptes, historique, statistiques, exports |
 
-## Fonctionnalités clés
+### Détection automatique du décrochage
 
-- Détection automatique d'alerte de décrochage (notes ET absences)
-- 4 espaces avec permissions strictes par rôle (étudiant, enseignant, directeur, admin)
-- Enseignant et directeur limités à leur établissement — aucune visibilité inter-établissements
-- Gestion des absences avec seuils d'alerte (5 injustifiées → risque moyen, 10 → risque élevé)
-- Import de notes par fichier CSV avec rapport d'erreurs
-- Assistant IA en langage naturel (Gemini API) avec mode de secours sans IA en cas de dépassement de quota
-- Gestion complète des comptes utilisateurs depuis l'interface admin (création, modification, suppression)
-- Page profil pour chaque utilisateur : modification du nom/prénom et changement de mot de passe sécurisé
-- Accessibilité intégrée : contraste élevé, taille de police ajustable (3 niveaux), lecture vocale, langage simplifié
-- Notifications SweetAlert2 (toasts en bas à droite + dialogues de confirmation avant actions destructives)
+Les règles s'appliquent à chaque saisie de note ou d'absence :
+
+| Signal | Condition | Niveau |
+|---|---|---|
+| Notes | Baisse de la moyenne ≥ 20 % **et** nouvelle moyenne < 10/20 | Élevé |
+| Notes | Baisse de la moyenne ≥ 15 % | Moyen |
+| Absences | 10 absences injustifiées ou plus | Élevé |
+| Absences | 5 absences injustifiées ou plus | Moyen |
+
+### Liste complète
+
+- Page d'accueil publique institutionnelle
+- Détection automatique des alertes de décrochage (notes et absences)
+- Gestion des absences par période (justifiées / injustifiées)
+- Import de notes par fichier CSV, avec rapport d'erreurs
+- Recherche d'élève par nom ou prénom
+- Mini-dashboard enseignant : statistiques de son établissement
+- Dashboard admin : chiffres clés, alertes à examiner, statistiques par établissement (tableau et graphique)
+- Export PDF : fiche de suivi d'un élève, rapport des alertes actives groupé par établissement
+- Assistant IA en langage naturel (Google Gemini), avec mode de secours sans IA
+- Gestion des utilisateurs : création, modification, suppression
+- Page profil : modification des informations et changement de mot de passe
+- Mot de passe oublié : demande transmise à l'admin, qui réinitialise le compte
+- Historique des actions (journal d'audit)
+- Notifications SweetAlert2 : toasts et confirmations avant les actions irréversibles
+- Accessibilité WCAG AA : contraste élevé, taille de police ajustable, lecture vocale
+- Responsive sur tous les appareils (de 375 px à 1440 px)
 - Surveillance des erreurs en production avec Sentry
-- 21 tests automatiques sur la logique de détection d'alertes
-- Déployé et testable en ligne
+- 21 tests automatisés (logique de détection et route API des notes)
+- Armoiries du Bénin intégrées
 
-## Plateforme en ligne
-
-[Ouvrir EduTech Bénin](https://education-benin-platform.vercel.app)
+---
 
 ## Stack technique
 
-| Couche | Technologie |
-| --- | --- |
-| Framework | Next.js 16 (App Router, Turbopack) + TypeScript |
-| Base de données | Prisma + PostgreSQL (Neon) |
-| Authentification | Auth.js v5 (JWT, sessions 7 jours, rate limiting) |
-| Style | Tailwind CSS v4 (tokens CSS `@theme`) |
-| IA | Gemini API (mode de secours intégré) |
-| Graphiques | Recharts (chargement lazy) |
-| Notifications | SweetAlert2 v11 |
+| Catégorie | Technologie |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Langage | TypeScript |
+| Base de données | PostgreSQL (Neon) |
+| ORM | Prisma 6 |
+| Authentification | Auth.js v5 (sessions JWT) |
+| Style | Tailwind CSS 4 |
+| IA | Google Gemini API |
+| Graphiques | Recharts |
+| PDF | @react-pdf/renderer |
+| Alertes UI | SweetAlert2 |
 | Monitoring | Sentry |
-| Tests | Vitest (21 tests) |
+| Tests | Vitest |
 | Déploiement | Vercel |
+
+---
 
 ## Comptes de démonstration
 
 | Rôle | Email | Mot de passe |
-| --- | --- | --- |
+|---|---|---|
 | Admin / Ministère | `admin@edutech.bj` | `password123` |
 | Enseignant | `enseignant@edutech.bj` | `password123` |
 | Étudiant | `etudiant@edutech.bj` | `password123` |
-| Directeur | Créer depuis `/admin/utilisateurs` | — |
+| Directeur | À créer depuis `/admin/utilisateurs` | — |
 
-## Lancer le projet en local
+---
+
+## Lancer en local
 
 ### Prérequis
 
-- Node.js 20 ou plus récent
-- Une base PostgreSQL accessible
+- Node.js 20.9 ou plus récent (exigé par Next.js 16)
+- Un compte [Neon](https://neon.tech) avec une branche **dev**
+- Une clé API Google Gemini
+- Un compte Sentry (facultatif en local)
 
 ### Installation
 
 ```bash
-git clone <url-du-depot>
+git clone https://github.com/Wildev10/education-benin-platform
 cd education-benin-platform
 npm install
 ```
 
-Copiez `.env.example` en `.env` et remplissez les quatre variables nécessaires :
+Créez un fichier `.env` à partir de `.env.example` :
 
-```env
-DATABASE_URL=          # Chaîne de connexion PostgreSQL (branche dev Neon)
-AUTH_SECRET=           # Secret Auth.js (générer avec : openssl rand -base64 32)
-GEMINI_API_KEY=        # Clé API Google Gemini
-NEXT_PUBLIC_SENTRY_DSN= # DSN Sentry (optionnel en local)
-```
+| Variable | Valeur |
+|---|---|
+| `DATABASE_URL` | Connexion à la branche **dev** sur Neon (jamais la production) |
+| `AUTH_SECRET` | À générer avec `openssl rand -base64 32` |
+| `GEMINI_API_KEY` | Depuis [aistudio.google.com](https://aistudio.google.com) |
+| `PROTECTED_DB_HOSTS` | Hôte(s) de la base de production, séparés par des virgules (garde-fou) |
+| `NEXT_PUBLIC_SENTRY_DSN` | Depuis sentry.io (facultatif en local) |
 
-> **Important — deux bases distinctes :** utilisez toujours une branche Neon **"dev"** en local, jamais la base **"production"** utilisée par Vercel. La variable `PROTECTED_DB_HOSTS` liste les hôtes protégés ; tout script d'écriture est automatiquement bloqué si `DATABASE_URL` pointe vers l'un d'eux.
-
-Initialisez la base puis lancez l'application :
+### Base de données et démarrage
 
 ```bash
 npx prisma generate
-npx prisma db push
+npx prisma db push                 # crée les tables
+npx prisma db seed                 # établissements, élèves, notes de démonstration
+npx tsx prisma/seed-users.ts       # comptes de démonstration (admin, enseignant, étudiant)
 npm run dev
 ```
 
-Ouvrez ensuite [http://localhost:3000](http://localhost:3000).
+L'application est disponible sur [http://localhost:3000](http://localhost:3000).
+
+> ⚠️ **Utilisez toujours une branche Neon « dev », jamais la production.**
+> Le garde-fou `prisma/garde-prod.ts` bloque les scripts d'écriture (seed, recalcul des alertes) si `DATABASE_URL` pointe vers un hôte listé dans `PROTECTED_DB_HOSTS`.
+
+---
 
 ## Lancer les tests
 
 ```bash
-npm test
+npm test          # 21 tests automatisés
+npm run build     # vérification TypeScript et build complet
 ```
 
-21 tests automatiques couvrent la logique de détection d'alertes (seuils notes et absences, cas limites, combinaisons de périodes).
+---
 
 ## Choix assumés et limites
 
-- **Pas de vrai ML** : une règle simple et explicable a été privilégiée — elle est défendable à l'oral et compréhensible par un directeur d'établissement.
-- **Pas de notifications SMS ou email réelles** : les alertes apparaissent dans les dashboards Admin, Enseignant et Directeur.
-- **Pas d'inscription libre** : les comptes sont créés par l'administration (modèle réaliste pour une plateforme institutionnelle), évitant qu'un utilisateur s'auto-attribue un rôle sensible.
-- **Assistant IA avec mode de secours** : si le quota Gemini gratuit est dépassé, l'assistant bascule automatiquement sur une réponse structurée sans IA.
-- **Données de démonstration fictives** : les noms des étudiants sont générés — aucune donnée réelle n'est utilisée.
+- **Règle d'alerte simple et explicable, sans machine learning.** Chaque alerte peut être justifiée devant un directeur ou un inspecteur.
+- **Pas de notifications SMS ni email automatiques.** Les alertes s'affichent dans les dashboards.
+- **Pas d'inscription libre.** Les comptes sont créés par l'administration, ce qui empêche un utilisateur de s'attribuer un rôle sensible.
+- **Assistant IA avec mode de secours.** Le quota gratuit de Gemini est limité. Une fois dépassé, l'assistant répond sans IA, à partir de requêtes structurées.
+- **Données de démonstration fictives.** Les noms sont générés avec Faker, aucune donnée réelle n'est utilisée.
+- **Mot de passe oublié géré manuellement par l'admin.** Aucun serveur email n'est configuré : l'admin génère un mot de passe temporaire et le communique à l'utilisateur.
+
+---
+
+## Architecture de sécurité
+
+- **Permissions vérifiées à deux niveaux.** Le proxy redirige selon le rôle, et chaque route API contrôle elle-même les droits. Cette seconde vérification est la vraie protection côté serveur.
+- **Cloisonnement par établissement.** L'enseignant et le directeur n'accèdent qu'aux élèves de leur établissement : listes, fiches, exports PDF.
+- **L'étudiant ne voit que ses propres données.**
+- **Garde-fou de production.** Les scripts d'écriture refusent de s'exécuter sur une base protégée.
+- **Limitation des tentatives de connexion.** Après 5 échecs en 10 minutes, l'adresse IP est bloquée 15 minutes. Le compteur est conservé en mémoire, par instance de serveur.
+- **Mots de passe hachés avec bcrypt.** Les mots de passe temporaires sont générés avec un générateur aléatoire cryptographique.
+- **Mot de passe oublié sans fuite d'information.** La réponse est identique, que le compte existe ou non.
+- **Journal d'audit.** Les actions sensibles sont historisées : notes, absences, alertes, comptes, mots de passe.
