@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import StudentDetail from "./StudentDetail";
 
@@ -19,6 +20,15 @@ export default async function EtudiantPage({
   });
 
   if (!etudiant) notFound();
+
+  const session = await auth();
+  const role = session?.user.role;
+  if (
+    (role === "enseignant" || role === "directeur") &&
+    etudiant.etablissementId !== session?.user.etablissementId
+  ) {
+    redirect("/enseignant?erreur=acces-refuse");
+  }
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
