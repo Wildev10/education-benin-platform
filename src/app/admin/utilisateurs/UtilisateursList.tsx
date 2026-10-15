@@ -1,10 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge, roleVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { generateTempPassword } from "@/lib/generate-password";
+import type { DemandeReinitialisation } from "@/lib/reset-requests";
 import { Toast, Confirm, Swal } from "@/lib/swal";
+
+const dateDemandeFmt = new Intl.DateTimeFormat("fr-FR", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Africa/Porto-Novo",
+});
+
+function echapperHtml(texte: string) {
+  return texte.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
 
 type Utilisateur = {
   id: string;
@@ -24,12 +37,16 @@ export default function UtilisateursList({
   initialUtilisateurs,
   currentUserId,
   etablissements,
+  initialDemandes,
 }: {
   initialUtilisateurs: Utilisateur[];
   currentUserId: string;
   etablissements: Etablissement[];
+  initialDemandes: DemandeReinitialisation[];
 }) {
+  const router = useRouter();
   const [utilisateurs, setUtilisateurs] = useState(initialUtilisateurs);
+  const [demandes, setDemandes] = useState(initialDemandes);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -66,7 +83,40 @@ export default function UtilisateursList({
     }
   }
 
-  async function handleEdit(utilisateur: Utilisateur) {
+  async function handleResetDemande(demande: DemandeReinitialisation) {
+    const utilisateur = utilisateurs.find((u) => u.id === demande.user.id);
+    if (!utilisateur) {
+      void Toast.fire({ icon: "error", title: "Compte introuvable dans la liste." });
+      return;
+    }
+
+    const motDePasse = await handleEdit(utilisateur, generateTempPassword());
+    if (!motDePasse) return;
+
+    const res = await fetch(`/api/admin/reset-requests/${demande.id}`, { method: "PATCH" }).catch(() => null);
+    if (res?.ok) {
+      setDemandes((current) => current.filter((d) => d.id !== demande.id));
+      router.refresh();
+    } else {
+      void Toast.fire({ icon: "warning", title: "Mot de passe changé, mais la demande n'a pas pu être clôturée." });
+    }
+
+    await Swal.fire({
+      title: "Mot de passe temporaire",
+      html: `Communiquez ce mot de passe à l'utilisateur :<br>
+        <strong style="font-size:1.5rem;letter-spacing:0.1em">${echapperHtml(motDePasse)}</strong>`,
+      icon: "success",
+      confirmButtonText: "Copié !",
+      confirmButtonColor: "#F97316",
+    });
+    void Toast.fire({
+      icon: "success",
+      title: "Mot de passe réinitialisé. Communiquez le mot de passe temporaire à l'utilisateur.",
+    });
+  }
+
+  async function handleEdit(utilisateur: Utilisateur, motDePasseTemporaire?: string): Promise<string | null> {
+    const modeReinitialisation = motDePasseTemporaire !== undefined;
     const etabOptions = etablissements
       .map(
         (e) =>
@@ -78,7 +128,7 @@ export default function UtilisateursList({
     const initialShowEtab = rolesWithEtab.includes(utilisateur.role);
 
     const { value: formValues } = await Swal.fire({
-      title: "Modifier le compte",
+      title: modeReinitialisation ? "Réinitialiser le mot de passe" : "Modifier le compte",
       width: "min(520px, 94vw)",
       html: `
         <div style="text-align:left">
@@ -116,15 +166,31 @@ export default function UtilisateursList({
               ${etabOptions}
             </select>
           </div>
+          ${
+            modeReinitialisation
+              ? `<div class="swal-field">
+            <label class="swal-label" for="swal-password">Mot de passe temporaire</label>
+            <input id="swal-password" class="swal-input" type="text" autocomplete="off" spellcheck="false"
+              style="font-family:monospace;letter-spacing:0.08em" value="${echapperHtml(motDePasseTemporaire)}" />
+          </div>`
+              : ""
+          }
         </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: "Enregistrer",
+      confirmButtonText: modeReinitialisation ? "Réinitialiser" : "Enregistrer",
       cancelButtonText: "Annuler",
       confirmButtonColor: "#F97316",
       cancelButtonColor: "#0A0A0A",
       preConfirm: () => {
+        const password = modeReinitialisation
+          ? (document.getElementById("swal-password") as HTMLInputElement).value
+          : undefined;
+        if (password !== undefined && password.length < 8) {
+          Swal.showValidationMessage("Le mot de passe doit contenir au moins 8 caractères.");
+          return false;
+        }
         const prenom = (document.getElementById("swal-prenom") as HTMLInputElement).value.trim();
         const nom = (document.getElementById("swal-nom") as HTMLInputElement).value.trim();
         const email = (document.getElementById("swal-email") as HTMLInputElement).value.trim();
@@ -139,11 +205,11 @@ export default function UtilisateursList({
           Swal.showValidationMessage("L'établissement est obligatoire pour un enseignant ou un directeur.");
           return false;
         }
-        return { prenom, nom, email, role, etablissementId };
+        return { prenom, nom, email, role, etablissementId, password };
       },
     });
 
-    if (!formValues) return;
+    if (!formValues) return null;
 
     setProcessingId(utilisateur.id);
     try {
@@ -157,19 +223,21 @@ export default function UtilisateursList({
 
       if (res.status === 403) {
         void Toast.fire({ icon: "warning", title: data.error ?? "Action interdite." });
-        return;
+        return null;
       }
       if (!res.ok) {
         void Toast.fire({ icon: "error", title: data.error ?? "Impossible de modifier le compte." });
-        return;
+        return null;
       }
 
       setUtilisateurs((current) =>
         current.map((u) => (u.id === utilisateur.id ? { ...data } : u))
       );
-      void Toast.fire({ icon: "success", title: "Compte modifié." });
+      if (!modeReinitialisation) void Toast.fire({ icon: "success", title: "Compte modifié." });
+      return formValues.password ?? "";
     } catch {
       void Toast.fire({ icon: "error", title: "Erreur réseau. Veuillez réessayer." });
+      return null;
     } finally {
       setProcessingId(null);
     }
@@ -177,6 +245,50 @@ export default function UtilisateursList({
 
   return (
     <>
+      {demandes.length > 0 && (
+        <section
+          aria-labelledby="demandes-title"
+          className="mb-10 overflow-hidden rounded-2xl border border-red-200 bg-surface shadow-sm"
+        >
+          <h2 id="demandes-title" className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-5 py-4 text-lg font-bold text-red-900">
+            <span aria-hidden="true">🔔</span>
+            {demandes.length} demande{demandes.length > 1 ? "s" : ""} de réinitialisation en attente
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-160 text-sm">
+              <thead>
+                <tr className="bg-ink text-surface">
+                  <th scope="col" className="px-5 py-3 text-left font-semibold">Email</th>
+                  <th scope="col" className="px-5 py-3 text-left font-semibold">Nom</th>
+                  <th scope="col" className="px-5 py-3 text-left font-semibold">Date de la demande</th>
+                  <th scope="col" className="px-5 py-3 text-right font-semibold">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {demandes.map((d, i) => (
+                  <tr key={d.id} className={i % 2 === 1 ? "bg-page" : "bg-surface"}>
+                    <td className="px-5 py-3 font-medium text-ink">{d.user.email}</td>
+                    <td className="px-5 py-3 text-ink-secondary">{d.user.prenom} {d.user.nom}</td>
+                    <td className="whitespace-nowrap px-5 py-3 text-ink-secondary">
+                      {dateDemandeFmt.format(new Date(d.createdAt))}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <Button
+                        size="sm"
+                        disabled={processingId === d.user.id}
+                        onClick={() => void handleResetDemande(d)}
+                      >
+                        Réinitialiser le mot de passe
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {error && (
         <p role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 font-medium text-red-800">
           {error}

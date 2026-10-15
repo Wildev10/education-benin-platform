@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
@@ -32,8 +33,16 @@ export async function PATCH(request: Request, context: RouteContext) {
       email?: string;
       role?: string;
       etablissementId?: string | null;
+      password?: string;
     };
-    const { nom, prenom, email, role, etablissementId } = body ?? {};
+    const { nom, prenom, email, role, etablissementId, password } = body ?? {};
+
+    if (password !== undefined && (typeof password !== "string" || password.length < 8)) {
+      return NextResponse.json(
+        { error: "Le mot de passe doit contenir au moins 8 caractères." },
+        { status: 400 }
+      );
+    }
 
     // Prevent admin from changing their own role
     if (access.user.id === id && role !== undefined) {
@@ -75,6 +84,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (email?.trim()) data.email = email.trim();
     if (role) data.role = role;
     if (etablissementId !== undefined) data.etablissementId = etablissementId || null;
+    if (password !== undefined) data.passwordHash = await bcrypt.hash(password, 10);
 
     const updated = await prisma.user.update({
       where: { id },
@@ -85,7 +95,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     await logAction({
       userId: access.user.id,
       action: "UTILISATEUR_MODIFIE",
-      description: `Compte modifié : ${updated.prenom} ${updated.nom}`,
+      description: `Compte modifié : ${updated.prenom} ${updated.nom}${password !== undefined ? " (mot de passe réinitialisé)" : ""}`,
       entityType: "utilisateur",
       entityId: updated.id,
     });

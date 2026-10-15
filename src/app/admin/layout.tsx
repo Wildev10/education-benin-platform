@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import { AppNav } from "@/components/AppNav";
+import { countDemandesEnAttente } from "@/lib/reset-requests";
 
 export const metadata: Metadata = {
   title: "Espace Ministère — EduTech Bénin",
@@ -28,6 +29,11 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
+  const demandesEnAttente = session.user.role === "admin" ? await countDemandesEnAttente() : 0;
+  const items = navItems.map((item) =>
+    item.href === "/admin/utilisateurs" ? { ...item, badge: demandesEnAttente } : item
+  );
+
   return (
     <div className="min-h-screen bg-page text-ink">
       <AppHeader
@@ -35,7 +41,7 @@ export default async function AdminLayout({
         email={session.user.email ?? ""}
         spaceLabel="Espace Ministère"
       />
-      <AppNav items={navItems} ariaLabel="Navigation administration" />
+      <AppNav items={items} ariaLabel="Navigation administration" />
       {children}
     </div>
   );

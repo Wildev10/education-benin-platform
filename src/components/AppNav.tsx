@@ -4,14 +4,24 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
-type NavItem = { href: string; label: string; exact?: boolean };
+type NavItem = { href: string; label: string; exact?: boolean; badge?: number };
+
+function NavBadge({ count }: { count?: number }) {
+  if (!count) return null;
+  return (
+    <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-xs font-bold leading-none text-white">
+      {count}
+      <span className="sr-only"> en attente</span>
+    </span>
+  );
+}
 
 function useIsActive(href: string, exact = false) {
   const pathname = usePathname();
   return exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 }
 
-function NavItemLink({ href, label, exact = false, onClick }: NavItem & { onClick?: () => void }) {
+function NavItemLink({ href, label, exact = false, badge, onClick }: NavItem & { onClick?: () => void }) {
   const active = useIsActive(href, exact);
   return (
     <Link
@@ -27,11 +37,12 @@ function NavItemLink({ href, label, exact = false, onClick }: NavItem & { onClic
       ].join(" ")}
     >
       {label}
+      <NavBadge count={badge} />
     </Link>
   );
 }
 
-function MobileNavItem({ href, label, exact = false, onClick }: NavItem & { onClick?: () => void }) {
+function MobileNavItem({ href, label, exact = false, badge, onClick }: NavItem & { onClick?: () => void }) {
   const active = useIsActive(href, exact);
   return (
     <Link
@@ -47,6 +58,7 @@ function MobileNavItem({ href, label, exact = false, onClick }: NavItem & { onCl
       ].join(" ")}
     >
       {label}
+      <NavBadge count={badge} />
     </Link>
   );
 }

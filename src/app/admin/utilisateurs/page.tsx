@@ -2,13 +2,14 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getDemandesEnAttente } from "@/lib/reset-requests";
 import UtilisateursList from "./UtilisateursList";
 
 export default async function UtilisateursPage() {
   const session = await auth();
   if (!session?.user || session.user.role !== "admin") redirect("/login");
 
-  const [utilisateurs, etablissements] = await Promise.all([
+  const [utilisateurs, etablissements, demandes] = await Promise.all([
     prisma.user.findMany({
     select: {
       id: true,
@@ -27,6 +28,7 @@ export default async function UtilisateursPage() {
       select: { id: true, nom: true },
       orderBy: { nom: "asc" },
     }),
+    getDemandesEnAttente(),
   ]);
 
   return (
@@ -55,6 +57,7 @@ export default async function UtilisateursPage() {
           }))}
           currentUserId={session.user.id ?? ""}
           etablissements={etablissements}
+          initialDemandes={demandes}
         />
       </div>
     </main>
