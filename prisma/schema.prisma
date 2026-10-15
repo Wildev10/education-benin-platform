@@ -93,6 +93,18 @@ model User {
   etablissement    Etablissement? @relation(fields: [etablissementId], references: [id])
   createdAt        DateTime       @default(now())
   actionLogs       ActionLog[]
+  resetRequests    ResetRequest[]
+}
+
+model ResetRequest {
+  id        String   @id @default(cuid())
+  email     String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  traitee   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([traitee, createdAt])
 }
 
 model ActionLog {

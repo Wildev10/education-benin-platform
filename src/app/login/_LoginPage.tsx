@@ -5,7 +5,49 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AccessibilityControls from "@/components/AccessibilityControls";
-import { Toast } from "@/lib/swal";
+import { Swal, Toast } from "@/lib/swal";
+
+async function demanderReinitialisation() {
+  const { value: email } = await Swal.fire<string>({
+    title: "Mot de passe oublié ?",
+    html: `
+      <p>Saisissez votre adresse email. Un administrateur réinitialisera votre mot de passe et vous contactera.</p>
+      <input id="swal-email" type="email" placeholder="votre@email.bj" class="swal2-input" autocomplete="email">
+    `,
+    confirmButtonText: "Envoyer la demande",
+    cancelButtonText: "Annuler",
+    showCancelButton: true,
+    confirmButtonColor: "#F97316",
+    cancelButtonColor: "#0A0A0A",
+    focusConfirm: false,
+    didOpen: () => document.getElementById("swal-email")?.focus(),
+    preConfirm: () => {
+      const saisie = (document.getElementById("swal-email") as HTMLInputElement).value.trim();
+      if (!saisie) {
+        Swal.showValidationMessage("Email requis");
+        return false;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(saisie)) {
+        Swal.showValidationMessage("Adresse email invalide");
+        return false;
+      }
+      return saisie;
+    },
+  });
+  if (!email) return;
+
+  try {
+    const res = await fetch("/api/auth/reset-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) throw new Error();
+    void Toast.fire({ icon: "success", title: "Demande envoyée. Un administrateur vous contactera." });
+  } catch {
+    void Toast.fire({ icon: "error", title: "Impossible d'envoyer la demande. Réessayez." });
+  }
+}
 
 const features = [
   {
@@ -260,12 +302,13 @@ export default function LoginPageClient() {
 
             <p className="mt-6 text-center text-sm text-ink-secondary">
               Problème de connexion ?{" "}
-              <a
-                href="mailto:support@edutechbenin.bj"
+              <button
+                type="button"
+                onClick={() => void demanderReinitialisation()}
                 className="font-semibold text-brand-dark underline decoration-brand/30 underline-offset-2 hover:decoration-brand focus:outline-none focus:ring-2 focus:ring-brand-dark"
               >
                 Contactez l'administration
-              </a>
+              </button>
             </p>
           </div>
         </div>
