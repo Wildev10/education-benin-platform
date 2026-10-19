@@ -23,11 +23,13 @@ const authMiddleware: AuthMiddleware = (request) => {
   const role = session.user.role;
   const requiredRoles = pathname.startsWith("/admin")
     ? ["admin"]
-    : pathname.startsWith("/enseignant")
-      ? ["enseignant", "admin", "directeur"]
-      : pathname.startsWith("/etudiant")
-        ? ["etudiant", "admin"]
-        : null;
+    : pathname.startsWith("/directeur")
+      ? ["directeur"]
+      : pathname.startsWith("/enseignant")
+        ? ["enseignant", "admin", "directeur"]
+        : pathname.startsWith("/etudiant")
+          ? ["etudiant", "admin"]
+          : null;
 
   if (requiredRoles && !requiredRoles.includes(role)) {
     return NextResponse.redirect(new URL("/", request.url));
