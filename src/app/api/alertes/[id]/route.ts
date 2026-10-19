@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { introuvable, peutAccederEtudiant } from "@/lib/perimetre";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+// Le directeur ne traite pas les alertes (cf. README) : seuls l'admin et l'enseignant de l'établissement.
 export async function PATCH(request: Request, context: RouteContext) {
   const access = await requireRole(["admin", "enseignant"]);
   if (access instanceof Response) return access;
@@ -23,13 +25,11 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const alerteExistante = await prisma.alerte.findUnique({
       where: { id },
-      include: { etudiant: { select: { nom: true, prenom: true } } },
+      include: { etudiant: { select: { id: true, nom: true, prenom: true, etablissementId: true } } },
     });
-    if (!alerteExistante) {
-      return NextResponse.json(
-        { error: "Alerte introuvable" },
-        { status: 404 }
-      );
+    // Hors périmètre = introuvable : on ne révèle pas l'existence de l'alerte
+    if (!alerteExistante || !peutAccederEtudiant(access.user, alerteExistante.etudiant)) {
+      return introuvable("Alerte introuvable");
     }
 
     const alerte = await prisma.alerte.update({

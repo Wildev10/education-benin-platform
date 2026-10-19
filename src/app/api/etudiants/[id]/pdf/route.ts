@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { introuvable, peutAccederEtudiant } from "@/lib/perimetre";
 import { slugFichier } from "@/lib/pdf/commun";
 import { FicheEtudiantPdf } from "@/lib/pdf/fiche-etudiant";
 
@@ -24,18 +25,8 @@ export async function GET(_request: Request, context: RouteContext) {
       },
     });
 
-    if (!etudiant) {
-      return NextResponse.json({ error: "Étudiant introuvable" }, { status: 404 });
-    }
-
-    if (
-      (access.user.role === "directeur" || access.user.role === "enseignant") &&
-      etudiant.etablissementId !== access.user.etablissementId
-    ) {
-      return NextResponse.json(
-        { error: "Cet étudiant n'appartient pas à votre établissement." },
-        { status: 403 }
-      );
+    if (!etudiant || !peutAccederEtudiant(access.user, etudiant)) {
+      return introuvable("Étudiant introuvable");
     }
 
     const annees = [

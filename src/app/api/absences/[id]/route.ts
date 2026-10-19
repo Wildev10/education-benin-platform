@@ -3,6 +3,7 @@ import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { detecterAlerteAbsence } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
+import { introuvable, peutAccederEtudiant } from "@/lib/perimetre";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -15,10 +16,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
   try {
     const absence = await prisma.absence.findUnique({
       where: { id },
-      select: { etudiantId: true, etudiant: { select: { nom: true, prenom: true } } },
+      select: {
+        etudiantId: true,
+        etudiant: { select: { id: true, nom: true, prenom: true, etablissementId: true } },
+      },
     });
-    if (!absence) {
-      return NextResponse.json({ error: "Absence introuvable." }, { status: 404 });
+    if (!absence || !peutAccederEtudiant(access.user, absence.etudiant)) {
+      return introuvable("Absence introuvable.");
     }
 
     await prisma.absence.delete({ where: { id } });

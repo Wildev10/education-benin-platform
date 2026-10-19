@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { filtreEtudiantsAccessibles } from "@/lib/perimetre";
 
 export async function GET(request: Request) {
   const access = await requireRole(["admin", "enseignant"]);
   if (access instanceof Response) return access;
+
+  // L'enseignant ne voit que les inscriptions de son établissement (aucune sans établissement)
+  const perimetre = filtreEtudiantsAccessibles(access.user);
+  if (!perimetre) return NextResponse.json([]);
 
   try {
     const searchParams = new URL(request.url).searchParams;
@@ -15,6 +20,7 @@ export async function GET(request: Request) {
       where: {
         ...(etudiantId ? { etudiantId } : {}),
         ...(anneeScolaire ? { anneeScolaire } : {}),
+        etudiant: perimetre,
       },
     });
 

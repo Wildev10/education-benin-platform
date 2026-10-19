@@ -3,6 +3,7 @@ import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { detecterAlerteAbsence } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
+import { filtreEtudiantsAccessibles, introuvable, peutAccederEtudiant } from "@/lib/perimetre";
 
 const MOTIFS_VALIDES = new Set(["injustifiee", "justifiee"]);
 const PERIODES_VALIDES = new Set(["Trimestre 1", "Trimestre 2", "Trimestre 3"]);
@@ -10,6 +11,10 @@ const PERIODES_VALIDES = new Set(["Trimestre 1", "Trimestre 2", "Trimestre 3"]);
 export async function GET(request: Request) {
   const access = await requireRole(["admin", "enseignant", "directeur"]);
   if (access instanceof Response) return access;
+
+  // Un compte sans établissement ne voit aucune absence (auparavant : toutes)
+  const perimetre = filtreEtudiantsAccessibles(access.user);
+  if (!perimetre) return NextResponse.json([]);
 
   try {
     const sp = new URL(request.url).searchParams;
@@ -25,9 +30,7 @@ export async function GET(request: Request) {
         ...(anneeScolaire ? { anneeScolaire } : {}),
         ...(motif ? { motif } : {}),
         // Le directeur et l'enseignant ne voient que les absences de leur établissement.
-        ...(access.user.role === "directeur" || access.user.role === "enseignant"
-          ? { etudiant: { etablissementId: access.user.etablissementId ?? undefined } }
-          : {}),
+        etudiant: perimetre,
       },
       include: {
         etudiant: {
@@ -74,18 +77,8 @@ export async function POST(request: Request) {
       where: { id: etudiantId },
       select: { id: true, etablissementId: true, nom: true, prenom: true },
     });
-    if (!etudiant) {
-      return NextResponse.json({ error: "Étudiant introuvable." }, { status: 404 });
-    }
-
-    if (
-      (access.user.role === "directeur" || access.user.role === "enseignant") &&
-      etudiant.etablissementId !== access.user.etablissementId
-    ) {
-      return NextResponse.json(
-        { error: "Cet étudiant n'appartient pas à votre établissement." },
-        { status: 403 }
-      );
+    if (!etudiant || !peutAccederEtudiant(access.user, etudiant)) {
+      return introuvable("Étudiant introuvable.");
     }
 
     const absence = await prisma.absence.create({

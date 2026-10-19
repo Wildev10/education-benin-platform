@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { introuvable, peutAccederEtudiant } from "@/lib/perimetre";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -13,16 +14,6 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
 
-    if (
-      access.user.role === "etudiant" &&
-      access.user.etudiantId !== id
-    ) {
-      return NextResponse.json(
-        { error: "Vous ne pouvez consulter que votre propre fiche" },
-        { status: 403 }
-      );
-    }
-
     const etudiant = await prisma.etudiant.findUnique({
       where: { id },
       include: {
@@ -34,21 +25,9 @@ export async function GET(_request: Request, context: RouteContext) {
       },
     });
 
-    if (!etudiant) {
-      return NextResponse.json(
-        { error: "Étudiant introuvable" },
-        { status: 404 }
-      );
-    }
-
-    if (
-      (access.user.role === "directeur" || access.user.role === "enseignant") &&
-      etudiant.etablissementId !== access.user.etablissementId
-    ) {
-      return NextResponse.json(
-        { error: "Cet étudiant n'appartient pas à votre établissement." },
-        { status: 403 }
-      );
+    // Hors périmètre (autre établissement, ou fiche d'un autre étudiant) = introuvable
+    if (!etudiant || !peutAccederEtudiant(access.user, etudiant)) {
+      return introuvable("Étudiant introuvable");
     }
 
     return NextResponse.json(etudiant);

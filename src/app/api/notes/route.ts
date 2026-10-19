@@ -3,6 +3,7 @@ import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { detecterAlerte } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
+import { filtreEtudiantsAccessibles, introuvable, peutAccederEtudiant } from "@/lib/perimetre";
 
 export async function GET(request: Request) {
   const access = await requireRole(["admin", "enseignant", "directeur", "etudiant"]);
@@ -24,15 +25,18 @@ export async function GET(request: Request) {
       );
     }
 
+    // Un compte sans établissement ne voit aucune note (auparavant : toutes)
+    const perimetre = filtreEtudiantsAccessibles(access.user);
+    if (!perimetre) return NextResponse.json([]);
+
     const notes = await prisma.note.findMany({
       where: {
         ...(etudiantId ? { etudiantId } : {}),
         ...(matiere ? { matiere } : {}),
         ...(periode ? { periode } : {}),
-        // Le directeur et l'enseignant ne voient que les notes de leur établissement.
-        ...(access.user.role === "directeur" || access.user.role === "enseignant"
-          ? { etudiant: { etablissementId: access.user.etablissementId ?? undefined } }
-          : {}),
+        // Le directeur et l'enseignant ne voient que les notes de leur établissement,
+        // l'étudiant uniquement les siennes.
+        etudiant: perimetre,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -90,21 +94,8 @@ export async function POST(request: Request) {
       where: { id: body.etudiantId.trim() },
       select: { id: true, etablissementId: true, nom: true, prenom: true },
     });
-    if (!etudiant) {
-      return NextResponse.json(
-        { error: "Étudiant introuvable" },
-        { status: 404 }
-      );
-    }
-
-    if (
-      (access.user.role === "directeur" || access.user.role === "enseignant") &&
-      etudiant.etablissementId !== access.user.etablissementId
-    ) {
-      return NextResponse.json(
-        { error: "Cet étudiant n'appartient pas à votre établissement." },
-        { status: 403 }
-      );
+    if (!etudiant || !peutAccederEtudiant(access.user, etudiant)) {
+      return introuvable("Étudiant introuvable");
     }
 
     const note = await prisma.note.create({
