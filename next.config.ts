@@ -1,9 +1,31 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
+// Identifiant de version de l'application : change à chaque déploiement, ce qui
+// fait détecter au navigateur un nouveau service worker (/sw.js?v=…).
+const versionApp =
+  process.env.NEXT_PUBLIC_VERSION_APP ??
+  process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ??
+  String(Date.now());
+
+const enTetesServiceWorker = [
+  { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+  { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+  { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+];
+
 const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
+  },
+  env: {
+    NEXT_PUBLIC_VERSION_APP: versionApp,
+  },
+  async headers() {
+    return [
+      { source: "/sw.js", headers: enTetesServiceWorker },
+      { source: "/sw-strategie.js", headers: enTetesServiceWorker },
+    ];
   },
 };
 

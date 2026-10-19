@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AccessibilityControls from "@/components/AccessibilityControls";
 import { Swal, Toast } from "@/lib/swal";
+import { viderCachesPwa } from "@/lib/pwa";
 
 async function demanderReinitialisation() {
   const { value: email } = await Swal.fire<string>({
@@ -98,6 +99,8 @@ export default function LoginPageClient() {
         return;
       }
 
+      // Nouveau compte sur cet appareil : on repart d'un cache vide
+      await viderCachesPwa();
       void Toast.fire({ icon: "success", title: "Connexion réussie. Bienvenue !" });
       router.push("/");
       router.refresh();

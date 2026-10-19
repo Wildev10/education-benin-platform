@@ -8,6 +8,8 @@ import { Badge, riskVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Toast, Confirm } from "@/lib/swal";
+import { useHorsLigne } from "@/components/pwa/PwaProvider";
+import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import type { StatsEtablissement } from "@/lib/stats-etablissements";
 
 const AlertesEtablissementChart = dynamic(() => import("./AlertesEtablissementChart"), {
@@ -98,6 +100,7 @@ export default function AdminDashboard({
   const [statsEtablissements, setStatsEtablissements] = useState(initialStatsEtablissements);
   const [filter, setFilter] = useState("toutes");
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const horsLigne = useHorsLigne();
   const [error, setError] = useState("");
 
   const visibleAlerts = useMemo(
@@ -286,7 +289,8 @@ export default function AdminDashboard({
 
                   <Button
                     variant="outline"
-                    disabled={processingId === alert.id}
+                    disabled={processingId === alert.id || horsLigne}
+                    title={horsLigne ? TITRE_HORS_LIGNE : undefined}
                     onClick={() => void markAsHandled(alert.id)}
                   >
                     {processingId === alert.id ? "Mise à jour…" : "Marquer comme traitée"}

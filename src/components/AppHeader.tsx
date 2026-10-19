@@ -3,9 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import AccessibilityControls from "@/components/AccessibilityControls";
 import NotificationBell from "@/components/NotificationBell";
+import { usePwa } from "@/components/pwa/PwaProvider";
+import { SynchroUtilisateurPwa } from "@/components/pwa/SynchroUtilisateurPwa";
+import { viderCachesPwa } from "@/lib/pwa";
 
 export default function AppHeader({
   name,
@@ -21,6 +24,7 @@ export default function AppHeader({
   const afficherNotifications = role === "admin" || role === "directeur";
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { installationDisponible, installer } = usePwa();
 
   const initials = name
     .split(" ")
@@ -54,6 +58,9 @@ export default function AppHeader({
 
   return (
     <header className="bg-ink border-b border-white/10">
+      <Suspense fallback={null}>
+        <SynchroUtilisateurPwa identifiant={email || name} role={role} />
+      </Suspense>
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-3 sm:px-8">
         {/* Left: logo + label */}
         <div className="flex min-w-0 items-center gap-3">
@@ -132,12 +139,30 @@ export default function AppHeader({
                   </svg>
                   Mon profil
                 </Link>
+                {installationDisponible && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setOpen(false);
+                      void installer();
+                    }}
+                    className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-medium text-surface transition hover:bg-white/10 focus:bg-white/10 focus:outline-none"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Installer l&apos;application
+                  </button>
+                )}
                 <div className="border-t border-white/10" />
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => {
+                  onClick={async () => {
                     setOpen(false);
+                    // Rien de ce compte ne doit rester lisible hors ligne par le suivant
+                    await viderCachesPwa();
                     void signOut({ callbackUrl: "/login" });
                   }}
                   className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-medium text-surface/80 transition hover:bg-white/10 focus:bg-white/10 focus:outline-none"

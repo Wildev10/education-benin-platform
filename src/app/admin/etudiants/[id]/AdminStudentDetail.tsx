@@ -7,6 +7,8 @@ import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { Toast, Confirm } from "@/lib/swal";
+import { useHorsLigne } from "@/components/pwa/PwaProvider";
+import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 
 const MoyenneChart = dynamic(() => import("./MoyenneChart"), {
   ssr: false,
@@ -65,6 +67,7 @@ function formatDate(value: string) {
 export default function AdminStudentDetail({ student }: { student: Student }) {
   const [alerts, setAlerts] = useState(student.alertes);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const horsLigne = useHorsLigne();
   const [error, setError] = useState("");
 
   const groupedNotes = useMemo(
@@ -360,7 +363,8 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={processingId === alert.id}
+                      disabled={processingId === alert.id || horsLigne}
+                    title={horsLigne ? TITRE_HORS_LIGNE : undefined}
                       onClick={() => void markAsHandled(alert.id)}
                     >
                       {processingId === alert.id ? "Mise à jour…" : "Marquer comme traitée"}

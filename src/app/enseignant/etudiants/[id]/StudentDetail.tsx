@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Toast, Confirm } from "@/lib/swal";
+import { useHorsLigne } from "@/components/pwa/PwaProvider";
+import { MessageEcritureHorsLigne, TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 
 type Note = {
   id: string;
@@ -55,6 +57,7 @@ export default function StudentDetail({
   initialNotes: Note[];
   initialAbsences: Absence[];
 }) {
+  const horsLigne = useHorsLigne();
   const [notes, setNotes] = useState(initialNotes);
   const [matiere, setMatiere] = useState(matieres[0]);
   const [valeur, setValeur] = useState("");
@@ -294,7 +297,13 @@ export default function StudentDetail({
                 {periodes.map((p) => <option key={p}>{p}</option>)}
               </select>
             </div>
-            <Button type="submit" disabled={loading} className="w-full justify-center py-3">
+            <MessageEcritureHorsLigne />
+            <Button
+              type="submit"
+              disabled={loading || horsLigne}
+              title={horsLigne ? TITRE_HORS_LIGNE : undefined}
+              className="w-full justify-center py-3"
+            >
               {loading ? "Enregistrement…" : "Enregistrer la note"}
             </Button>
           </form>
@@ -391,6 +400,8 @@ export default function StudentDetail({
                           variant="danger"
                           size="sm"
                           onClick={() => void handleDeleteAbsence(abs.id)}
+                          disabled={horsLigne}
+                          title={horsLigne ? TITRE_HORS_LIGNE : undefined}
                           aria-label={`Supprimer l'absence du ${formatDate(abs.date)}`}
                         >
                           Supprimer
@@ -459,9 +470,11 @@ export default function StudentDetail({
                 {periodes.map((p) => <option key={p}>{p}</option>)}
               </select>
             </div>
+            <MessageEcritureHorsLigne />
             <Button
               type="submit"
-              disabled={absLoading}
+              disabled={absLoading || horsLigne}
+              title={horsLigne ? TITRE_HORS_LIGNE : undefined}
               className="w-full justify-center py-3"
             >
               {absLoading ? "Enregistrement…" : "Enregistrer l'absence"}

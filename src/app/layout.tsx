@@ -1,5 +1,6 @@
 import Providers from "./providers";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { BandeauHorsLigne } from "@/components/pwa/BandeauHorsLigne";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -21,6 +22,13 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://education-benin-platform.vercel.app",
   },
+  applicationName: "EduTech Bénin",
+  appleWebApp: { capable: true, title: "EduTech", statusBarStyle: "black" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0A0A0A",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -30,7 +38,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${jakarta.variable} h-full antialiased`}
     >
       <Providers>
-        <body className="min-h-full flex flex-col">{children}</body>
+        <body className="min-h-full flex flex-col">
+          <BandeauHorsLigne />
+          {children}
+        </body>
       </Providers>
     </html>
   );
