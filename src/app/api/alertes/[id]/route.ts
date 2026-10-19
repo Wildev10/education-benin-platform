@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
-import { introuvable, peutAccederEtudiant } from "@/lib/perimetre";
+import { introuvable, peutAccederEtudiant, ROLES_TRAITEMENT_ALERTES } from "@/lib/perimetre";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -10,7 +10,7 @@ type RouteContext = {
 
 // Le directeur ne traite pas les alertes (cf. README) : seuls l'admin et l'enseignant de l'établissement.
 export async function PATCH(request: Request, context: RouteContext) {
-  const access = await requireRole(["admin", "enseignant"]);
+  const access = await requireRole(ROLES_TRAITEMENT_ALERTES);
   if (access instanceof Response) return access;
 
   try {

@@ -16,6 +16,13 @@ type Utilisateur = {
 
 const ROLES_ETABLISSEMENT = new Set(["enseignant", "directeur"]);
 
+/** Rôles autorisés à marquer une alerte comme traitée (le directeur consulte seulement). */
+export const ROLES_TRAITEMENT_ALERTES = ["admin", "enseignant"];
+
+export function peutTraiterAlertes(role: string | undefined): boolean {
+  return !!role && ROLES_TRAITEMENT_ALERTES.includes(role);
+}
+
 /** L'utilisateur peut-il lire ou modifier les données de cet élève ? */
 export function peutAccederEtudiant(
   user: Utilisateur,

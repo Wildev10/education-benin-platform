@@ -10,6 +10,8 @@ import {
   porteeAlertes,
   type FiltresAlertes,
 } from "@/lib/filtres-alertes";
+import { peutTraiterAlertes } from "@/lib/perimetre";
+import { BoutonTraiterAlerte } from "./BoutonTraiterAlerte";
 import { ZoneFiltresAlertes } from "./ZoneFiltresAlertes";
 
 /** Au-delà, on invite à affiner plutôt que d'afficher une page interminable. */
@@ -38,28 +40,41 @@ function libelleAucunResultat(filtres: FiltresAlertes) {
   return "Aucune alerte active.";
 }
 
-function CarteAlerte({ alerte, ficheBase }: { alerte: AlerteFiltree; ficheBase: string }) {
+function CarteAlerte({
+  alerte,
+  ficheBase,
+  peutTraiter,
+}: {
+  alerte: AlerteFiltree;
+  ficheBase: string;
+  peutTraiter: boolean;
+}) {
   const { etudiant } = alerte;
   const absences = alerte.type === "absences";
 
   return (
     <article className="rounded-2xl border border-border bg-surface p-5 shadow-sm transition hover:border-brand/30 hover:shadow-md sm:p-6">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Link
-          href={`${ficheBase}/${etudiant.id}`}
-          className="min-w-0 text-lg font-bold text-ink underline decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
-        >
-          {etudiant.prenom} {etudiant.nom}
-        </Link>
-        <Badge variant={riskVariant(alerte.niveauRisque)}>
-          Niveau {alerte.niveauRisque === "eleve" ? "Élevé" : "Moyen"}
-        </Badge>
-        {alerte.statut === "traitee" && <Badge variant="status-traitee" />}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Link
+              href={`${ficheBase}/${etudiant.id}`}
+              className="min-w-0 text-lg font-bold text-ink underline decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+            >
+              {etudiant.prenom} {etudiant.nom}
+            </Link>
+            <Badge variant={riskVariant(alerte.niveauRisque)}>
+              Niveau {alerte.niveauRisque === "eleve" ? "Élevé" : "Moyen"}
+            </Badge>
+            {alerte.statut === "traitee" && <Badge variant="status-traitee" />}
+          </div>
+          <p className="mt-1.5 text-ink-secondary">
+            {etudiant.etablissement.nom} <span className="text-border" aria-hidden="true">·</span>{" "}
+            {etudiant.niveau}
+          </p>
+        </div>
+        {peutTraiter && alerte.statut === "active" && <BoutonTraiterAlerte alerteId={alerte.id} />}
       </div>
-      <p className="mt-1.5 text-ink-secondary">
-        {etudiant.etablissement.nom} <span className="text-border" aria-hidden="true">·</span>{" "}
-        {etudiant.niveau}
-      </p>
 
       <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-5 sm:grid-cols-4">
         <div>
@@ -107,6 +122,7 @@ export async function PageAlertes({ searchParams }: { searchParams: SearchParams
   const portee = porteeAlertes(session.user);
   const estAdmin = portee.type === "toutes";
   const ficheBase = session.user.role === "admin" ? "/admin/etudiants" : "/enseignant/etudiants";
+  const peutTraiter = peutTraiterAlertes(session.user.role);
 
   const entete = (
     <div className="max-w-3xl">
@@ -167,7 +183,7 @@ export async function PageAlertes({ searchParams }: { searchParams: SearchParams
           ) : (
             <div className="mt-4 grid gap-4">
               {alertes.map((alerte) => (
-                <CarteAlerte key={alerte.id} alerte={alerte} ficheBase={ficheBase} />
+                <CarteAlerte key={alerte.id} alerte={alerte} ficheBase={ficheBase} peutTraiter={peutTraiter} />
               ))}
             </div>
           )}

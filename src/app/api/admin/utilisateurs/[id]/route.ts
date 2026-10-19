@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
@@ -7,6 +8,15 @@ import { prisma } from "@/lib/prisma";
 type RouteContext = { params: Promise<{ id: string }> };
 
 const ROLES_VALIDES = ["etudiant", "enseignant", "admin", "directeur"] as const;
+
+/** Enregistrement absent au moment de l'écriture (supprimé entre-temps). */
+function estIntrouvable(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
+}
+
+function utilisateurIntrouvable() {
+  return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
+}
 
 const utilisateurSelect = {
   id: true,
@@ -44,10 +54,12 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
+    const current = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+    if (!current) return utilisateurIntrouvable();
+
     // Prevent admin from changing their own role
     if (access.user.id === id && role !== undefined) {
-      const current = await prisma.user.findUnique({ where: { id }, select: { role: true } });
-      if (current && role !== current.role) {
+      if (role !== current.role) {
         return NextResponse.json(
           { error: "Vous ne pouvez pas modifier votre propre rôle." },
           { status: 403 }
@@ -105,6 +117,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       createdAt: updated.createdAt.toISOString(),
     });
   } catch (error) {
+    if (estIntrouvable(error)) return utilisateurIntrouvable();
     console.error("Erreur PATCH utilisateur", error);
     return NextResponse.json({ error: "Impossible de modifier l'utilisateur." }, { status: 500 });
   }
@@ -125,9 +138,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   try {
     const utilisateur = await prisma.user.findUnique({ where: { id } });
-    if (!utilisateur) {
-      return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
-    }
+    if (!utilisateur) return utilisateurIntrouvable();
 
     await prisma.user.delete({ where: { id } });
 
@@ -140,6 +151,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     });
     return new Response(null, { status: 204 });
   } catch (error) {
+    if (estIntrouvable(error)) return utilisateurIntrouvable();
     console.error("Erreur DELETE utilisateur", error);
     return NextResponse.json({ error: "Impossible de supprimer l'utilisateur." }, { status: 500 });
   }

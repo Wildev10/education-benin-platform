@@ -2,7 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
+import { peutAccederEtudiant, peutTraiterAlertes } from "@/lib/perimetre";
 import StudentDetail from "./StudentDetail";
+import AlertesEleve from "./AlertesEleve";
 
 export default async function EtudiantPage({
   params,
@@ -10,25 +12,21 @@ export default async function EtudiantPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
   const etudiant = await prisma.etudiant.findUnique({
     where: { id },
     include: {
       etablissement: true,
       notes: { orderBy: { createdAt: "desc" } },
       absences: { orderBy: { date: "desc" } },
+      alertes: { orderBy: { createdAt: "desc" } },
     },
   });
 
-  if (!etudiant) notFound();
-
-  const session = await auth();
-  const role = session?.user.role;
-  if (
-    (role === "enseignant" || role === "directeur") &&
-    etudiant.etablissementId !== session?.user.etablissementId
-  ) {
-    redirect("/enseignant?erreur=acces-refuse");
-  }
+  // Élève d'un autre établissement : même page que s'il n'existait pas
+  if (!etudiant || !peutAccederEtudiant(session.user, etudiant)) notFound();
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
@@ -64,6 +62,20 @@ export default async function EtudiantPage({
           motif: a.motif,
           periode: a.periode,
           anneeScolaire: a.anneeScolaire,
+        }))}
+      />
+      <AlertesEleve
+        peutTraiter={peutTraiterAlertes(session.user.role)}
+        initialAlertes={etudiant.alertes.map((a) => ({
+          id: a.id,
+          type: a.type,
+          niveauRisque: a.niveauRisque,
+          statut: a.statut,
+          periode: a.periode,
+          moyenneAvant: a.moyenneAvant,
+          moyenneApres: a.moyenneApres,
+          ecartPourcent: a.ecartPourcent,
+          createdAt: a.createdAt.toISOString(),
         }))}
       />
     </main>

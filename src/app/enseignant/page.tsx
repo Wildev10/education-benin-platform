@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/StatCard";
 import StudentDirectory from "./StudentDirectory";
-import AccesRefuseToast from "./AccesRefuseToast";
 
 const TRIMESTRE_PAR_DEFAUT = "Trimestre 3";
 
@@ -50,13 +49,8 @@ async function getStatsEcole(etablissementId: string | null | undefined) {
   };
 }
 
-export default async function EnseignantPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ erreur?: string }>;
-}) {
+export default async function EnseignantPage() {
   const session = await auth();
-  const { erreur } = await searchParams;
 
   const [etablissements, stats] = await Promise.all([
     prisma.etablissement.findMany({
@@ -68,7 +62,6 @@ export default async function EnseignantPage({
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
-      {erreur === "acces-refuse" && <AccesRefuseToast />}
       <div className="max-w-2xl">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">
           Tableau de bord

@@ -21,6 +21,12 @@ const authMiddleware: AuthMiddleware = (request) => {
   }
 
   const role = session.user.role;
+
+  // Un étudiant n'a accès qu'à sa propre fiche, dans /etudiant : toute URL de fiche
+  // élève lui affiche la page introuvable, sans révéler si l'élève existe.
+  if (role === "etudiant" && /^\/(enseignant|admin)\/etudiants\/[^/]+/.test(pathname)) {
+    return NextResponse.rewrite(new URL("/_introuvable", request.url));
+  }
   const requiredRoles = pathname.startsWith("/admin")
     ? ["admin"]
     : pathname.startsWith("/directeur")
