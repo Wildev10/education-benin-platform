@@ -1,47 +1,20 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth-guard";
-import { prisma } from "@/lib/prisma";
+import { rechercherAlertes } from "@/lib/alertes-server";
+import { lireFiltres, porteeAlertes } from "@/lib/filtres-alertes";
 
-const ordreNiveauxRisque: Record<string, number> = {
-  moyen: 1,
-  eleve: 2,
-};
-
+/**
+ * Filtres (query params) : niveau, type, statut (active par défaut), du, au,
+ * etablissement (admin uniquement), q. Directeur et enseignant restent
+ * limités à leur établissement quoi que contienne l'URL.
+ */
 export async function GET(request: Request) {
   const access = await requireRole(["admin", "enseignant", "directeur"]);
   if (access instanceof Response) return access;
 
   try {
-    const searchParams = new URL(request.url).searchParams;
-    const statut = searchParams.get("statut");
-    const niveauRisque = searchParams.get("niveauRisque");
-
-    const alertes = await prisma.alerte.findMany({
-      where: {
-        ...(statut === "active" || statut === "traitee" ? { statut } : {}),
-        ...(niveauRisque === "moyen" || niveauRisque === "eleve"
-          ? { niveauRisque }
-          : {}),
-        // Le directeur et l'enseignant ne voient que les alertes de leur établissement.
-        ...(access.user.role === "directeur" || access.user.role === "enseignant"
-          ? { etudiant: { etablissementId: access.user.etablissementId ?? undefined } }
-          : {}),
-      },
-      include: {
-        etudiant: {
-          include: { etablissement: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    alertes.sort(
-      (a, b) =>
-        (ordreNiveauxRisque[a.niveauRisque] ?? Number.MAX_SAFE_INTEGER) -
-          (ordreNiveauxRisque[b.niveauRisque] ?? Number.MAX_SAFE_INTEGER) ||
-        b.createdAt.getTime() - a.createdAt.getTime()
-    );
-
+    const filtres = lireFiltres(new URL(request.url).searchParams);
+    const { alertes } = await rechercherAlertes(filtres, porteeAlertes(access.user));
     return NextResponse.json(alertes);
   } catch (error) {
     console.error("Erreur lors de la récupération des alertes", error);

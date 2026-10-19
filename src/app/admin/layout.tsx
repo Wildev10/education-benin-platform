@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 
 const navItems = [
   { href: "/admin", label: "Dashboard", exact: true },
+  { href: "/admin/alertes", label: "Alertes" },
   { href: "/admin/etudiants", label: "Étudiants" },
   { href: "/admin/utilisateurs", label: "Utilisateurs" },
   { href: "/admin/import", label: "Importer" },

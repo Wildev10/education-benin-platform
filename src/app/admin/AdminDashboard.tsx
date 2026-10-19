@@ -206,10 +206,16 @@ export default function AdminDashboard({
                 )}
               </h2>
               <ExportPdfButton
-                href="/api/admin/alertes/pdf"
+                href="/api/alertes/pdf"
                 label="Exporter les alertes"
                 fichierParDefaut="alertes-actives.pdf"
               />
+              <Link
+                href="/admin/alertes"
+                className="text-sm font-semibold text-brand-dark underline underline-offset-4 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark"
+              >
+                Filtres avancés →
+              </Link>
             </div>
             <p className="mt-2 max-w-2xl text-ink-secondary">
               Les baisses de résultats qui méritent une attention avant qu'elles ne deviennent un décrochage.

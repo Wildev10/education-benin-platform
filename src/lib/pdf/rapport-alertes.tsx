@@ -2,6 +2,7 @@ import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { EntetePdf, PiedPagePdf, couleurs, formatNote, ligneStyle, styles } from "@/lib/pdf/commun";
 
 export type AlerteRapport = {
+  type: string;
   niveauRisque: string;
   periode: string;
   moyenneApres: number;
@@ -27,7 +28,26 @@ function pluriel(n: number, mot: string) {
   return `${n} ${mot}${n > 1 ? "s" : ""}`;
 }
 
-export function RapportAlertesPdf({ alertes, genereLe }: { alertes: AlerteRapport[]; genereLe: Date }) {
+const titres: Record<string, string> = {
+  active: "Rapport des alertes actives",
+  traitee: "Rapport des alertes traitées",
+  toutes: "Rapport des alertes",
+};
+
+export function RapportAlertesPdf({
+  alertes,
+  genereLe,
+  statut = "active",
+  filtres = [],
+}: {
+  alertes: AlerteRapport[];
+  genereLe: Date;
+  /** Statut filtré : détermine le titre du rapport */
+  statut?: string;
+  /** Résumé des filtres appliqués, affiché sous le titre */
+  filtres?: string[];
+}) {
+  const titre = titres[statut] ?? titres.toutes;
   const parEtablissement = new Map<string, AlerteRapport[]>();
   for (const a of alertes) {
     const id = a.etudiant.etablissement.id;
@@ -46,17 +66,20 @@ export function RapportAlertesPdf({ alertes, genereLe }: { alertes: AlerteRappor
   const nbEleve = alertes.filter((a) => a.niveauRisque === "eleve").length;
 
   return (
-    <Document title="Rapport des alertes actives" author="EduTech Bénin" language="fr">
+    <Document title={titre} author="EduTech Bénin" language="fr">
       <Page size="A4" style={styles.page}>
         <EntetePdf genereLe={genereLe} />
-        <Text style={styles.titre}>Rapport des alertes actives</Text>
+        <Text style={styles.titre}>{titre}</Text>
+        {filtres.length > 0 && (
+          <Text style={[styles.gris, { fontSize: 9, marginTop: 2 }]}>Filtres : {filtres.join(" · ")}</Text>
+        )}
         <Text style={styles.sousTitre}>
-          {pluriel(alertes.length, "alerte")} active{alertes.length > 1 ? "s" : ""} dans{" "}
-          {pluriel(groupes.length, "établissement")}, dont {nbEleve} à risque élevé.
+          {pluriel(alertes.length, "alerte")} dans {pluriel(groupes.length, "établissement")}, dont{" "}
+          {nbEleve} à risque élevé.
         </Text>
 
         {groupes.length === 0 && (
-          <Text style={[styles.vide, { marginTop: 20 }]}>Aucune alerte active à ce jour.</Text>
+          <Text style={[styles.vide, { marginTop: 20 }]}>Aucune alerte ne correspond à ces critères.</Text>
         )}
 
         {groupes.map(({ etablissement, alertes: liste }) => (
@@ -96,19 +119,30 @@ export function RapportAlertesPdf({ alertes, genereLe }: { alertes: AlerteRappor
                     {a.niveauRisque === "eleve" ? "Élevé" : "Moyen"}
                   </Text>
                   <Text style={[styles.cellule, { width: COLONNES[3].width }]}>{a.periode}</Text>
-                  <Text style={[styles.cellule, styles.rouge, { width: COLONNES[4].width, textAlign: "right" }]}>
-                    -{a.ecartPourcent.toFixed(1).replace(".", ",")} %
-                  </Text>
-                  <Text
-                    style={[
-                      styles.cellule,
-                      styles.gras,
-                      { width: COLONNES[5].width, textAlign: "right" },
-                      ...(a.moyenneApres < 10 ? [styles.rouge] : []),
-                    ]}
-                  >
-                    {formatNote(a.moyenneApres)}/20
-                  </Text>
+                  {a.type === "absences" ? (
+                    <>
+                      <Text style={[styles.cellule, styles.gris, { width: COLONNES[4].width, textAlign: "right" }]}>—</Text>
+                      <Text style={[styles.cellule, styles.gras, styles.rouge, { width: COLONNES[5].width, textAlign: "right" }]}>
+                        {pluriel(a.moyenneApres, "absence")}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={[styles.cellule, styles.rouge, { width: COLONNES[4].width, textAlign: "right" }]}>
+                        -{a.ecartPourcent.toFixed(1).replace(".", ",")} %
+                      </Text>
+                      <Text
+                        style={[
+                          styles.cellule,
+                          styles.gras,
+                          { width: COLONNES[5].width, textAlign: "right" },
+                          ...(a.moyenneApres < 10 ? [styles.rouge] : []),
+                        ]}
+                      >
+                        {formatNote(a.moyenneApres)}/20
+                      </Text>
+                    </>
+                  )}
                 </View>
               ))}
             </View>
