@@ -19,6 +19,8 @@ vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new RedirectError(url);
   },
+  // Utilisé par les boutons d'export rendus dans la page
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
 vi.mock("@/app/directeur/DirecteurCharts", () => ({
@@ -204,6 +206,7 @@ describe("Page /directeur", () => {
     expect(html).toContain("Prenom-e2 Nom-e2");
     expect(html).toContain('href="/enseignant/etudiants/e2"');
     expect(html).toContain("Katlyn Hane");
+    expect(html).toContain("Exporter la liste des élèves (Excel)");
     expect(prismaMock.etablissement.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: ETAB } })
     );

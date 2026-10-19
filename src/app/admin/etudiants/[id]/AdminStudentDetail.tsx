@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ExportPdfButton } from "@/components/ExportPdfButton";
+import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
 import { Toast, Confirm } from "@/lib/swal";
 import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
@@ -142,11 +142,14 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
               {student.prenom} {student.nom}
             </h1>
           </div>
-          <ExportPdfButton
-            href={`/api/etudiants/${student.id}/pdf`}
-            label="Exporter en PDF"
-            fichierParDefaut="fiche-etudiant.pdf"
-          />
+          <div className="flex flex-wrap gap-2">
+            <ExportPdfButton
+              href={`/api/etudiants/${student.id}/pdf`}
+              label="Exporter en PDF"
+              fichierParDefaut="fiche-etudiant.pdf"
+            />
+            <ExportExcelButton href={`/api/etudiants/${student.id}/xlsx`} fichierParDefaut="fiche-etudiant.xlsx" />
+          </div>
         </div>
         <dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div>

@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, riskVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ExportPdfButton } from "@/components/ExportPdfButton";
+import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
 import { Toast, Confirm } from "@/lib/swal";
 import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
@@ -213,6 +213,7 @@ export default function AdminDashboard({
                 label="Exporter les alertes"
                 fichierParDefaut="alertes-actives.pdf"
               />
+              <ExportExcelButton href="/api/alertes/xlsx" fichierParDefaut="alertes-actives.xlsx" />
               <Link
                 href="/admin/alertes"
                 className="text-sm font-semibold text-brand-dark underline underline-offset-4 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark"
@@ -359,6 +360,7 @@ export default function AdminDashboard({
                   <th scope="col" className="px-5 py-4 text-right font-semibold">Risque élevé</th>
                   <th scope="col" className="px-5 py-4 text-right font-semibold">Moyenne générale</th>
                   <th scope="col" className="px-5 py-4 font-semibold">Taux d&apos;alerte</th>
+                  <th scope="col" className="px-5 py-4 font-semibold">Liste des élèves</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -416,6 +418,13 @@ export default function AdminDashboard({
                           {e.tauxAlerte.toLocaleString("fr-FR")} %
                         </span>
                       </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <ExportExcelButton
+                        href={`/api/etablissements/${e.id}/eleves/xlsx`}
+                        fichierParDefaut="eleves.xlsx"
+                        ariaLabel={`Exporter la liste des élèves de ${e.nom} en Excel`}
+                      />
                     </td>
                   </tr>
                 ))}

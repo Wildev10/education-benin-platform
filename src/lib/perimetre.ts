@@ -36,6 +36,15 @@ export function peutAccederEtudiant(
   return false;
 }
 
+/** L'utilisateur peut-il consulter les données de tout cet établissement ? */
+export function peutAccederEtablissement(user: Utilisateur, etablissementId: string): boolean {
+  if (user.role === "admin") return true;
+  if (ROLES_ETABLISSEMENT.has(user.role)) {
+    return !!user.etablissementId && user.etablissementId === etablissementId;
+  }
+  return false;
+}
+
 /**
  * Restriction à ajouter sur `etudiant` dans une requête de liste.
  * {} = aucune restriction, null = aucun résultat possible.

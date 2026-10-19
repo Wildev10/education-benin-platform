@@ -23,12 +23,13 @@
     /^\/api\/admin\/stats\/etablissements$/,
   ];
 
-  // Jamais en cache, quelle que soit la méthode : authentification, exports PDF,
+  // Jamais en cache, quelle que soit la méthode : authentification, exports PDF et Excel,
   // le service worker lui-même
   var JAMAIS = [
     /^\/api\/auth(\/|$)/,
     /^\/login(\/|$)/,
     /\/pdf$/,
+    /\/xlsx$/,
     /^\/sw\.js$/,
     /^\/sw-strategie\.js$/,
   ];
@@ -52,7 +53,7 @@
     var url;
     try {
       url = new URL(requete.url);
-    } catch (e) {
+    } catch {
       return "reseau";
     }
 

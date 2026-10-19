@@ -9,6 +9,7 @@ import {
   resoudreAccesDirecteur,
 } from "@/lib/tableau-de-bord-directeur";
 import { GraphiqueEvolution, GraphiqueNiveaux } from "./DirecteurCharts";
+import { ExportExcelButton } from "@/components/ExportPdfButton";
 
 function moyenneCls(moyenne: number) {
   if (moyenne >= 12) return "text-emerald-700";
@@ -89,6 +90,13 @@ export default async function DirecteurPage() {
           Département {etablissement.departement} · {etablissement.commune}
           {tdb.anneeScolaire && <> · Année scolaire {tdb.anneeScolaire}</>}
         </p>
+        <div className="mt-5">
+          <ExportExcelButton
+            href={`/api/etablissements/${etablissement.id}/eleves/xlsx`}
+            label="Exporter la liste des élèves (Excel)"
+            fichierParDefaut="eleves.xlsx"
+          />
+        </div>
       </div>
 
       {/* ── Chiffres clés ───────────────────────────────────────── */}

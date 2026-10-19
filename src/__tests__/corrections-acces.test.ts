@@ -32,7 +32,7 @@ vi.mock("next/navigation", () => ({
 const AlertesEleveMock = vi.fn(() => null);
 vi.mock("@/app/enseignant/etudiants/[id]/AlertesEleve", () => ({ default: AlertesEleveMock }));
 vi.mock("@/app/enseignant/etudiants/[id]/StudentDetail", () => ({ default: () => null }));
-vi.mock("@/components/ExportPdfButton", () => ({ ExportPdfButton: () => null }));
+vi.mock("@/components/ExportPdfButton", () => ({ ExportPdfButton: () => null, ExportExcelButton: () => null }));
 
 const prismaMock = {
   etudiant: { findUnique: vi.fn() },

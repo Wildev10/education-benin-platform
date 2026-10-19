@@ -188,6 +188,9 @@ describe("choisirStrategie", () => {
     ["/login", { mode: "navigate" }],
     ["/api/alertes/pdf?statut=toutes", {}],
     ["/api/etudiants/abc/pdf", {}],
+    ["/api/etudiants/abc/xlsx", {}],
+    ["/api/alertes/xlsx?niveau=eleve", {}],
+    ["/api/etablissements/abc/eleves/xlsx", {}],
     ["/sw.js?v=1", {}],
     ["/sw-strategie.js?v=1", {}],
   ])("jamais en cache : %s", (chemin, opts) => {

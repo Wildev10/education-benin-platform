@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useOptimistic, useState, useTransition } from "react";
-import { ExportPdfButton } from "@/components/ExportPdfButton";
+import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
 import {
   compterFiltresActifs,
   filtresVersParams,
@@ -105,11 +105,15 @@ export function ZoneFiltresAlertes({
             Réinitialiser les filtres
           </button>
         )}
-        <div className="ml-auto">
+        <div className="ml-auto flex flex-wrap gap-2">
           <ExportPdfButton
             href={`/api/alertes/pdf${exportParams ? `?${exportParams}` : ""}`}
             label="Exporter en PDF"
             fichierParDefaut="alertes.pdf"
+          />
+          <ExportExcelButton
+            href={`/api/alertes/xlsx${exportParams ? `?${exportParams}` : ""}`}
+            fichierParDefaut="alertes.xlsx"
           />
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { ExportExcelButton } from "@/components/ExportPdfButton";
 
 type Note = {
   id: string;
@@ -111,6 +112,13 @@ export default async function EtudiantPage() {
           Bonjour, {etudiant.prenom}
         </h1>
         <p className="mt-3 text-lg leading-8 text-ink-secondary">Voici tes résultats par période.</p>
+        <div className="mt-5">
+          <ExportExcelButton
+            href={`/api/etudiants/${etudiantId}/xlsx`}
+            label="Télécharger ma fiche (Excel)"
+            fichierParDefaut="ma-fiche.xlsx"
+          />
+        </div>
       </div>
 
       <section aria-labelledby="profile-title" className="mt-8 rounded-2xl border border-border bg-surface p-6 shadow-sm">

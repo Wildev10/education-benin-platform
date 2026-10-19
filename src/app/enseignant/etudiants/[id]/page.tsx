@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { ExportPdfButton } from "@/components/ExportPdfButton";
+import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
 import { peutAccederEtudiant, peutTraiterAlertes } from "@/lib/perimetre";
 import StudentDetail from "./StudentDetail";
 import AlertesEleve from "./AlertesEleve";
@@ -41,11 +41,14 @@ export default async function EtudiantPage({
             <span className="rounded-full bg-brand-light px-3 py-1.5 text-brand-dark ring-1 ring-brand/30">{etudiant.niveau}</span>
           </div>
         </div>
-        <ExportPdfButton
-          href={`/api/etudiants/${etudiant.id}/pdf`}
-          label="Exporter en PDF"
-          fichierParDefaut="fiche-etudiant.pdf"
-        />
+        <div className="flex flex-wrap gap-2">
+          <ExportPdfButton
+            href={`/api/etudiants/${etudiant.id}/pdf`}
+            label="Exporter en PDF"
+            fichierParDefaut="fiche-etudiant.pdf"
+          />
+          <ExportExcelButton href={`/api/etudiants/${etudiant.id}/xlsx`} fichierParDefaut="fiche-etudiant.xlsx" />
+        </div>
       </div>
       <StudentDetail
         etudiantId={etudiant.id}
