@@ -5,16 +5,20 @@ import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import AccessibilityControls from "@/components/AccessibilityControls";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function AppHeader({
   name,
   email,
   spaceLabel = "Espace enseignant",
+  role,
 }: {
   name: string;
   email: string;
   spaceLabel?: string;
+  role?: string;
 }) {
+  const afficherNotifications = role === "admin" || role === "directeur";
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -70,8 +74,12 @@ export default function AppHeader({
           </div>
         </div>
 
-        {/* Right: avatar dropdown + accessibility */}
+        {/* Right: notifications + avatar dropdown + accessibility */}
         <div className="flex items-center gap-3">
+          {afficherNotifications && role && (
+            <NotificationBell utilisateur={email || name} role={role} />
+          )}
+
           {/* Avatar dropdown */}
           <div className="relative" ref={containerRef}>
             <button

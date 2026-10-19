@@ -30,6 +30,7 @@ export default async function EnseignantLayout({
       <AppHeader
         name={session.user.name ?? session.user.email ?? "Enseignant"}
         email={session.user.email ?? ""}
+        role={session.user.role}
       />
       <AppNav items={navItems} ariaLabel="Navigation enseignant" />
       {children}

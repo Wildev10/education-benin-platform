@@ -32,6 +32,7 @@ export default async function ProfilLayout({
       <AppHeader
         name={session.user.name ?? session.user.email ?? "Utilisateur"}
         email={session.user.email ?? ""}
+        role={session.user.role}
         spaceLabel={spaceLabel}
       />
       {children}

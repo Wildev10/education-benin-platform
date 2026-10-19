@@ -39,6 +39,7 @@ export default async function AdminLayout({
       <AppHeader
         name={session.user.name ?? session.user.email ?? "Administrateur"}
         email={session.user.email ?? ""}
+        role={session.user.role}
         spaceLabel="Espace Ministère"
       />
       <AppNav items={items} ariaLabel="Navigation administration" />
