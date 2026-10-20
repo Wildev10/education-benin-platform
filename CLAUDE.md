@@ -45,7 +45,7 @@ Le détail (fonctionnalités, installation, comptes de démo, options de `npm ru
 ## Fichiers clés
 
 - `src/auth.ts` : Auth.js (connexion, session JWT, rôle et établissement de l'utilisateur)
-- `src/lib/prisma.ts` : client Prisma unique (adaptateur `pg`, délai de connexion 5 s)
+- `src/lib/prisma.ts` : client Prisma unique (adaptateur `pg`, délai de connexion 15 s, 2 s par adresse IP au lieu des 250 ms de Node, une nouvelle tentative pour les lectures seulement, sur erreur de connexion)
 - `src/proxy.ts` : redirections selon le rôle (première barrière, pas la seule)
 - `src/lib/perimetre.ts` : règles d'accès aux élèves et établissements
 - `src/lib/detection-alerte.ts` : règles de détection du décrochage (notes, absences)

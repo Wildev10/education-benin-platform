@@ -51,6 +51,24 @@ export function calculerNiveauAlerteAbsence(
   return null;
 }
 
+const RANG_NIVEAU: Record<string, number> = { moyen: 1, eleve: 2 };
+
+/**
+ * Le nouveau niveau dépasse celui d'une alerte encore active. Seul cas où une
+ * alerte existante est modifiée : un niveau égal ou en baisse, ou une alerte
+ * déjà traitée, ne change rien (et ne notifie personne).
+ */
+export function estAggravation(
+  alerte: { statut: string; niveauRisque: string },
+  nouveauNiveau: string
+): boolean {
+  return (
+    alerte.statut === "active" &&
+    (RANG_NIVEAU[nouveauNiveau] ?? 0) > (RANG_NIVEAU[alerte.niveauRisque] ?? 0) &&
+    alerte.niveauRisque in RANG_NIVEAU
+  );
+}
+
 export async function detecterAlerte(etudiantId: string): Promise<IssueDetection> {
   return (await analyserAlerte(etudiantId))?.issue ?? null;
 }
@@ -145,12 +163,9 @@ export async function analyserAlerte(
   };
 
   if (alerteExistante) {
-    // Une alerte active qui s'aggrave (moyen -> élevé) est mise à jour.
-    if (
-      alerteExistante.statut === "active" &&
-      alerteExistante.niveauRisque === "moyen" &&
-      niveauRisque === "eleve"
-    ) {
+    // Une alerte active qui s'aggrave (moyen -> élevé) est mise à jour, et la
+    // date d'aggravation notifie la cloche. Niveau égal ou en baisse : rien.
+    if (estAggravation(alerteExistante, niveauRisque)) {
       if (!simulation) {
         await prisma.alerte.update({
           where: { id: alerteExistante.id },
@@ -158,6 +173,7 @@ export async function analyserAlerte(
             niveauRisque,
             moyenneApres: periodeRecente.moyenne,
             ecartPourcent,
+            niveauModifieLe: new Date(),
           },
         });
       }
@@ -239,14 +255,10 @@ export async function detecterAlerteAbsence(etudiantId: string): Promise<boolean
   });
 
   if (alerteExistante) {
-    if (
-      alerteExistante.statut === "active" &&
-      alerteExistante.niveauRisque === "moyen" &&
-      niveauRisque === "eleve"
-    ) {
+    if (estAggravation(alerteExistante, niveauRisque)) {
       await prisma.alerte.update({
         where: { id: alerteExistante.id },
-        data: { niveauRisque, moyenneApres: count, ecartPourcent: 0 },
+        data: { niveauRisque, moyenneApres: count, ecartPourcent: 0, niveauModifieLe: new Date() },
       });
       return true;
     }

@@ -1,6 +1,7 @@
 // Outils partagés des scénarios navigateur (e2e/). Importer ce module vérifie
 // la base de données : un scénario refuse de démarrer sur une base protégée.
 import { mkdirSync } from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
@@ -54,6 +55,10 @@ export function verifierBaseDeTest() {
 }
 
 export const HOTE_BASE = verifierBaseDeTest();
+
+// Connexions directes à la base (scénario notifications) : même réglage que
+// src/lib/prisma.ts, sinon un réseau lent fait échouer la connexion en ETIMEDOUT
+if (net.getDefaultAutoSelectFamilyAttemptTimeout() < 2000) net.setDefaultAutoSelectFamilyAttemptTimeout(2000);
 
 // ── Comptes ──────────────────────────────────────────────────────────────────
 

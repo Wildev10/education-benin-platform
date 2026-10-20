@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
+import { dateEvenement, estNonLue } from "@/lib/notifications";
 
 const libellesNiveau: Record<string, { label: string; cls: string }> = {
   eleve: { label: "Élevé", cls: "border-red-300 bg-red-50 text-red-900" },
@@ -95,7 +96,9 @@ export default function NotificationBell({
             <ul className="divide-y divide-border">
               {notifications.map((n) => {
                 const niveau = libellesNiveau[n.niveauRisque];
-                const nouvelle = !vuAvantOuverture || n.createdAt > vuAvantOuverture;
+                const nouvelle = estNonLue(n, vuAvantOuverture);
+                const aggravee = n.evenement === "aggravee";
+                const precedent = libellesNiveau[n.niveauPrecedent ?? ""]?.label ?? n.niveauPrecedent;
                 return (
                   <li key={n.id}>
                     <Link
@@ -107,16 +110,19 @@ export default function NotificationBell({
                         <p className="truncate text-sm font-semibold">
                           {n.etudiant.prenom} {n.etudiant.nom}
                         </p>
-                        <time dateTime={n.createdAt} className="shrink-0 text-xs text-ink-secondary">
-                          {formaterHeure(n.createdAt)}
+                        <time dateTime={dateEvenement(n)} className="shrink-0 text-xs text-ink-secondary">
+                          {formaterHeure(dateEvenement(n))}
                         </time>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-ink-secondary">
                         {n.etablissement.nom} · {n.etudiant.niveau}
                       </p>
                       <div className="mt-1.5 flex items-center gap-2">
-                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${niveau?.cls ?? "border-border bg-page text-ink-secondary"}`}>
-                          ⚠ {niveau?.label ?? n.niveauRisque}
+                        <span
+                          data-evenement={aggravee ? "aggravee" : "creee"}
+                          className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${niveau?.cls ?? "border-border bg-page text-ink-secondary"}`}
+                        >
+                          ⚠ {aggravee ? `Aggravée : ${precedent} → ${niveau?.label ?? n.niveauRisque}` : niveau?.label ?? n.niveauRisque}
                         </span>
                         <span className="text-xs text-ink-secondary">{libellesType[n.type] ?? n.type}</span>
                       </div>

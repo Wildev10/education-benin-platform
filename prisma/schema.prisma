@@ -70,6 +70,9 @@ model Alerte {
   anneeScolaire String?
   statut        String   @default("active")
   createdAt     DateTime @default(now())
+  // Date de la dernière aggravation (Moyen → Élevé) d'une alerte active ;
+  // null si le niveau n'a jamais monté. Sert aux notifications de la cloche.
+  niveauModifieLe DateTime?
 }
 
 model Absence {

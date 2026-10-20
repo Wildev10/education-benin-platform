@@ -37,8 +37,9 @@ function ecrireStockage(cle: string, etat: EtatStocke) {
 
 /**
  * Poll /api/notifications/alertes toutes les 30 s. L'état lu/non lu est conservé
- * en localStorage (par utilisateur) : une alerte est « lue » si elle a été créée
- * avant la dernière ouverture du dropdown.
+ * en localStorage (par utilisateur) : une notification est « lue » si son
+ * événement (création, ou aggravation Moyen → Élevé) précède la dernière
+ * ouverture du dropdown. Une aggravation redevient donc non lue.
  */
 export function useNotifications(utilisateur: string, actif = true) {
   const cle = `edutech:notifications:${utilisateur}`;

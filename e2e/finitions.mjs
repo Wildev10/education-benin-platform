@@ -77,7 +77,7 @@ await anonyme.close();
 // Fiche hors périmètre et fiche inexistante : exactement la même page
 const admin = await session(COMPTES.admin);
 const ens = await session(COMPTES.enseignant);
-const etabEns = (await getJson(ens, "/api/etudiants?page=1")).corps.elements[0].etablissement;
+const etabEns = (await lireOk(ens, "/api/etudiants?page=1")).elements[0].etablissement;
 const autreEtab = (await getJson(admin, "/api/etablissements")).corps.find((e) => e.id !== etabEns.id);
 const eleveAutre = (await getJson(admin, `/api/etudiants?page=1&etablissement=${autreEtab.id}`)).corps.elements[0];
 const horsPerimetre = await page404(ens, `/enseignant/etudiants/${eleveAutre.id}`);
@@ -186,17 +186,24 @@ async function verifierAccordeon(page, nom, notes) {
     apresEntree === !avant && apresEspace === avant && bas === 1 && fin === 2 && boucle === 0 && debut === 0, `${bas},${fin},${boucle},${debut}`);
 }
 
+/** GET JSON qui doit réussir : sinon, erreur explicite (statut et message de l'API). */
+async function lireOk(page, url) {
+  const { status, corps } = await getJson(page, url);
+  if (status !== 200) throw new Error(`GET ${url} → ${status} ${JSON.stringify(corps)}`);
+  return corps;
+}
+
 // Fiche admin : comparée aux données de l'API
-const elevesEns = (await getJson(admin, `/api/etudiants?page=1&etablissement=${etabEns.id}`)).corps.elements;
+const elevesEns = (await lireOk(admin, `/api/etudiants?page=1&etablissement=${etabEns.id}`)).elements;
 let eleve = null;
 for (const e of elevesEns.slice(0, 10)) {
-  const fiche = (await getJson(admin, `/api/etudiants/${e.id}`)).corps;
+  const fiche = await lireOk(admin, `/api/etudiants/${e.id}`);
   if (new Set(fiche.notes.map((n) => n.periode)).size >= 2) {
     eleve = fiche;
     break;
   }
 }
-eleve ??= (await getJson(admin, `/api/etudiants/${elevesEns[0].id}`)).corps;
+eleve ??= await lireOk(admin, `/api/etudiants/${elevesEns[0].id}`);
 console.log(`   Fiche testée : ${eleve.notes.length} notes, trimestre ouvert attendu ${ouvertAttendu(eleve.notes)}`);
 
 await ouvrir(admin, `/admin/etudiants/${eleve.id}`);
