@@ -118,7 +118,7 @@ try {
   const libelleCreation = await rafraichirCloche(admin);
   const vueCreation = await ouvrirEtLire(admin, prenom);
   check("Cloche admin : la création est signalée (« Moyen »), non lue", nonLues(libelleCreation) >= 1 && vueCreation.presente &&
-    vueCreation.evenement === "creee" && vueCreation.badge === "⚠ Moyen" && vueCreation.miseEnAvant, `${libelleCreation} — ${vueCreation.badge}`);
+    vueCreation.evenement === "creee" && vueCreation.badge === "Moyen" && vueCreation.miseEnAvant, `${libelleCreation} — ${vueCreation.badge}`);
   await admin.keyboard.press("Escape"); // création lue
 
   // ── 2. Aggravation : moyenne T2 (12,6 + 5) / 2 = 8,8 (−41 %, < 10) → Élevé ──
@@ -132,7 +132,7 @@ try {
   check("Cloche admin : l'aggravation redevient non lue, bien que la création ait été lue", nonLues(libelleAggravation) >= 1 && vueAggravation.miseEnAvant,
     libelleAggravation ?? "");
   check("Dropdown : « Aggravée : Moyen → Élevé », une seule entrée pour l'élève",
-    vueAggravation.evenement === "aggravee" && vueAggravation.badge === "⚠ Aggravée : Moyen → Élevé" &&
+    vueAggravation.evenement === "aggravee" && vueAggravation.badge === "Aggravée : Moyen → Élevé" &&
     (await dropdown(admin).locator("li", { hasText: prenom }).count()) === 1, vueAggravation.badge ?? "");
   await dropdown(admin).screenshot({ path: path.join(CAPTURES, "aggravation-1280.png") });
   await admin.keyboard.press("Escape"); // aggravation lue
@@ -170,7 +170,7 @@ try {
   const vueMobile = await ouvrirEtLire(mobile, prenom);
   const boite = await dropdown(mobile).boundingBox();
   check("375 px : « Aggravée : Moyen → Élevé » visible, dropdown dans l'écran, pas de défilement horizontal",
-    vueMobile.badge === "⚠ Aggravée : Moyen → Élevé" && boite.x >= 0 && boite.x + boite.width <= 375 &&
+    vueMobile.badge === "Aggravée : Moyen → Élevé" && boite.x >= 0 && boite.x + boite.width <= 375 &&
     (await mobile.evaluate(() => document.documentElement.scrollWidth)) <= 375, `${Math.round(boite.x)}–${Math.round(boite.x + boite.width)} px`);
   await mobile.screenshot({ path: path.join(CAPTURES, "aggravation-375.png") });
   await mobile.context().close();

@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/ui/StatCard";
 import StudentDirectory from "./StudentDirectory";
+import { IconeAlerte } from "@/components/ui/Icones";
 
 const TRIMESTRE_PAR_DEFAUT = "Trimestre 3";
 
@@ -97,7 +98,7 @@ export default async function EnseignantPage({
             role="status"
             className="mt-4 rounded-lg border border-brand/30 bg-brand-light px-4 py-3 text-sm font-medium text-brand-dark"
           >
-            <span aria-hidden="true">⚠ </span>
+            <IconeAlerte taille={16} className="mr-1.5 inline-block align-[-3px]" />
             {stats.elevesEnAlerte} élève{stats.elevesEnAlerte > 1 ? "s" : ""} de votre école
             {stats.elevesEnAlerte > 1 ? " nécessitent" : " nécessite"} une attention particulière.
             Consultez leurs fiches pour voir les détails.

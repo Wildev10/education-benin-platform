@@ -9,6 +9,7 @@ import { Swal, Toast } from "@/lib/swal";
 import { viderCachesPwa } from "@/lib/pwa";
 import { BlocIdentite, MentionChallenge } from "@/components/IdentitePlateforme";
 import { SelecteurLangue } from "@/components/SelecteurLangue";
+import { IconeEvolution, IconeRegles, IconeVueEnsemble } from "@/components/ui/Icones";
 import type { Langue } from "@/lib/i18n/langue";
 import { TEXTES, type Textes } from "@/lib/i18n/textes";
 
@@ -56,7 +57,8 @@ async function demanderReinitialisation(t: Textes["connexion"]) {
   }
 }
 
-const icones = ["📊", "⚡", "🏫"];
+/** Icônes des trois atouts, dans l'ordre du dictionnaire (suivi, règles, vue nationale) */
+const icones = [IconeEvolution, IconeRegles, IconeVueEnsemble];
 
 export default function LoginPageClient({ langue }: { langue: Langue }) {
   const textes = TEXTES[langue];
@@ -110,16 +112,6 @@ export default function LoginPageClient({ langue }: { langue: Langue }) {
         className="relative hidden flex-col justify-between overflow-hidden bg-ink px-8 py-10 lg:flex lg:w-[46%] lg:px-12 lg:py-14"
         aria-label={t.presentationPlateforme}
       >
-        {/* Cercles décoratifs */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand/10"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-brand/5"
-        />
-
         {/* Logo + nom */}
         <div className="relative flex items-center gap-3">
           <div className="shrink-0 rounded-xl bg-white p-1.5">
@@ -147,20 +139,18 @@ export default function LoginPageClient({ langue }: { langue: Langue }) {
           </p>
 
           <ul className="mt-8 space-y-5" role="list">
-            {t.atouts.map((f, i) => (
+            {t.atouts.map((f, i) => {
+              const Icone = icones[i];
+              return (
               <li key={f.titre} className="flex items-start gap-4">
-                <span
-                  aria-hidden="true"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-xl"
-                >
-                  {icones[i]}
-                </span>
+                <Icone taille={22} className="mt-0.5 text-brand" />
                 <div>
                   <p className="font-semibold text-surface">{f.titre}</p>
                   <p className="mt-0.5 text-sm text-surface/60">{f.description}</p>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
       </aside>

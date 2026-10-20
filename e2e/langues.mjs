@@ -21,8 +21,12 @@ const ip = () => `192.0.2.${(Date.now() % 200) + Math.floor(Math.random() * 50)}
 /** Doublure de la synthèse vocale : garde la langue de chaque lecture demandée. */
 function doublureSyntheseVocale() {
   window.__lectures = [];
+  window.__textesLus = [];
   const synthese = {
-    speak: (u) => window.__lectures.push(u.lang),
+    speak: (u) => {
+      window.__lectures.push(u.lang);
+      window.__textesLus.push(u.text);
+    },
     cancel: () => {},
     getVoices: () => [],
     addEventListener: () => {},
@@ -65,6 +69,19 @@ const texteVisible = (page) =>
     clone.querySelectorAll('[data-selecteur-langue], [lang="fr"], script, style').forEach((n) => n.remove());
     return clone.innerText.replace(/\s+/g, " ");
   });
+/** Emojis et pictogrammes texte bannis de l'interface */
+const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}]|[✓⚠✕✗]/u;
+/** Toute icône SVG est décorative (aria-hidden) ou nommée (role=img et aria-label) */
+const iconesConformes = (page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll("main svg, header svg, footer svg")].every(
+      (s) =>
+        s.getAttribute("aria-hidden") === "true" ||
+        (s.getAttribute("role") === "img" && !!s.getAttribute("aria-label")) ||
+        // graphique : le conteneur role=img porte déjà la description
+        !!s.parentElement?.closest('[role="img"][aria-label]')
+    )
+  );
 const MOTS_FRANCAIS = /\b(Se connecter|Connexion|Mot de passe|Ministère|élèves|établissements|Comment ça marche|Conçu pour tous|Contraste|Lire|Accédez|Problème)\b/;
 
 // ── 1. Rendu serveur : la bonne langue dès le HTML, sans attendre JavaScript ──
@@ -186,6 +203,12 @@ check("Connexion FR : mention du challenge exacte en pied de page, intitulé neu
   (await p.locator("main [data-identite]").first().innerText()).includes("RÉPUBLIQUE DU BÉNIN"));
 await p.getByRole("button", { name: "Lire" }).click();
 check("Lecture vocale : voix française (fr-FR) sur la page française", (await p.evaluate(() => window.__lectures.at(-1))) === "fr-FR");
+const texteLu = await p.evaluate(() => window.__textesLus.at(-1));
+check("Lecture vocale : lit les atouts exacts, sans pictogramme ni affirmation fausse",
+  texteLu.includes("Détection par règles") && texteLu.includes("Vue nationale") && !EMOJI.test(texteLu) && !/\bIA\b|Tous les établissements du Bénin/.test(texteLu));
+check("Connexion : plus de cercles décoratifs ni d'emoji, icônes des atouts au trait et décoratives",
+  (await p.locator("aside .rounded-full").count()) === 0 && !EMOJI.test(await p.locator("body").innerText()) &&
+  (await iconesConformes(p)));
 await p.goto(`${BASE}/`);
 check("Cookie fr : / reste en français", chemin(p) === "/" && (await lang(p)) === "fr");
 await p.context().close();
@@ -205,7 +228,51 @@ await c.waitForURL((u) => u.pathname === "/admin", { timeout: 30000 });
 check("Connecté avec le cookie en : / mène à l'espace, pas à /en", chemin(c) === "/admin");
 await c.context().close();
 
-// ── 5. Affichage à 375 px ────────────────────────────────────────────────────
+// ── 5. Accueil : faits vérifiables, icônes, contenu visible, contraste ───────
+for (const [largeur, hauteur] of [[1280, 900], [375, 812]]) {
+  const h = await contexte({ largeur, hauteur });
+  await h.goto(`${BASE}/?langue=fr`);
+  await h.waitForLoadState("networkidle");
+  const titres = await h.locator("main h2").allTextContents();
+  const seuils = (await h.locator("main dl dt").allTextContents()).map((t) => t.trim());
+  check(`Accueil ${largeur} px : titres concrets et seuils réels (−15 %, −20 %, 5, 10)`,
+    JSON.stringify(titres) === JSON.stringify(["Les seuils d'alerte", "De la note saisie à l'alerte", "Ce que voit chaque acteur", "Accessibilité"]) &&
+    JSON.stringify(seuils) === JSON.stringify(["−15 %", "−20 %", "5", "10"]), titres.join(" | "));
+  const corps = await h.locator("body").innerText();
+  check(`Accueil ${largeur} px : ni emoji, ni chiffres invérifiables, ni filigrane`,
+    !EMOJI.test(corps) && !/70\+|24\/7|100 ?%/.test(corps) && (await h.locator('main img[alt=""]').count()) === 0);
+  check(`Accueil ${largeur} px : icônes au trait décoratives ou nommées`, await iconesConformes(h));
+  // Contenu visible sans défiler : aucune section masquée en attendant le défilement
+  const masquees = await h.evaluate(() => [...document.querySelectorAll("main section")].filter((s) => Number(getComputedStyle(s).opacity) < 1).length);
+  check(`Accueil ${largeur} px : tout le contenu est visible dès le chargement`, masquees === 0 && (await h.locator(".reveal-section").count()) === 0);
+  const contraste = await h.locator("main dl dt").first().evaluate((el) => {
+    const lum = (rgb) => {
+      const [r, g, b] = rgb.match(/\d+/g).map(Number).map((c) => {
+        c /= 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    let fond = el;
+    while (fond && getComputedStyle(fond).backgroundColor === "rgba(0, 0, 0, 0)") fond = fond.parentElement;
+    const [a, b] = [lum(getComputedStyle(el).color), lum(getComputedStyle(fond).backgroundColor)].sort((x, y) => y - x);
+    return (a + 0.05) / (b + 0.05);
+  });
+  check(`Accueil ${largeur} px : contraste des seuils ≥ 3:1 (grand texte)`, contraste >= 3, contraste.toFixed(2));
+  check(`Accueil ${largeur} px : pas de défilement horizontal`, (await largeurPage(h)) <= largeur);
+  await h.screenshot({ path: path.join(CAPTURES, `accueil-faits-${largeur}.png`), fullPage: true });
+  if (largeur === 375) {
+    await h.evaluate(() => localStorage.setItem("accessibility-contrast", "high"));
+    await h.goto(`${BASE}/login`);
+    await h.waitForFunction(() => document.documentElement.dataset.theme === "high-contrast");
+    const couleurs = await h.locator("main svg").first().evaluate((el) => getComputedStyle(el).color);
+    check("Contraste élevé : icônes au trait en blanc", couleurs === "rgb(255, 255, 255)", couleurs);
+    await h.evaluate(() => localStorage.setItem("accessibility-contrast", "default"));
+  }
+  await h.context().close();
+}
+
+// ── 6. Affichage à 375 px ────────────────────────────────────────────────────
 const m = await contexte({ largeur: 375, hauteur: 812 });
 for (const [adresse, nom] of [["/en?langue=en", "accueil"], ["/en/login", "connexion"]]) {
   await m.goto(`${BASE}${adresse}`);

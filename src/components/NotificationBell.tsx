@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { dateEvenement, estNonLue } from "@/lib/notifications";
+import { IconeAlerte } from "@/components/ui/Icones";
 
 const libellesNiveau: Record<string, { label: string; cls: string }> = {
   eleve: { label: "Élevé", cls: "border-red-300 bg-red-50 text-red-900" },
@@ -120,9 +121,10 @@ export default function NotificationBell({
                       <div className="mt-1.5 flex items-center gap-2">
                         <span
                           data-evenement={aggravee ? "aggravee" : "creee"}
-                          className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${niveau?.cls ?? "border-border bg-page text-ink-secondary"}`}
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${niveau?.cls ?? "border-border bg-page text-ink-secondary"}`}
                         >
-                          ⚠ {aggravee ? `Aggravée : ${precedent} → ${niveau?.label ?? n.niveauRisque}` : niveau?.label ?? n.niveauRisque}
+                          <IconeAlerte taille={12} />
+                          {aggravee ? `Aggravée : ${precedent} → ${niveau?.label ?? n.niveauRisque}` : niveau?.label ?? n.niveauRisque}
                         </span>
                         <span className="text-xs text-ink-secondary">{libellesType[n.type] ?? n.type}</span>
                       </div>

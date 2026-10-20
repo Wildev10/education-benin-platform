@@ -43,7 +43,7 @@ export default function AlertesEleve({
 
       {alertes.length === 0 ? (
         <p className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
-          <span aria-hidden="true">✓ </span>Aucune alerte pour cet élève.
+          Aucune alerte pour cet élève.
         </p>
       ) : (
         <div className="mt-5 space-y-4">

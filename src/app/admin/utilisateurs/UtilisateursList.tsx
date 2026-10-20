@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { generateTempPassword } from "@/lib/generate-password";
 import type { DemandeReinitialisation } from "@/lib/reset-requests";
 import { Toast, Confirm, Swal } from "@/lib/swal";
+import { IconeCloche } from "@/components/ui/Icones";
 
 const dateDemandeFmt = new Intl.DateTimeFormat("fr-FR", {
   dateStyle: "medium",
@@ -248,7 +249,7 @@ export default function UtilisateursList({
           className="mb-10 overflow-hidden rounded-2xl border border-red-200 bg-surface shadow-sm"
         >
           <h2 id="demandes-title" className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-5 py-4 text-lg font-bold text-red-900">
-            <span aria-hidden="true">🔔</span>
+            <IconeCloche />
             {demandes.length} demande{demandes.length > 1 ? "s" : ""} de réinitialisation en attente
           </h2>
           <div className="overflow-x-auto">
@@ -320,7 +321,7 @@ export default function UtilisateursList({
                           href={`/admin/etudiants/${u.etudiantId}`}
                           className="text-xs font-medium text-brand-dark underline decoration-brand/30 underline-offset-2 hover:decoration-brand focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-1"
                         >
-                          Fiche →
+                          Voir la fiche<span className="sr-only"> de {u.prenom} {u.nom}</span>
                         </Link>
                       )}
                       {u.role === "directeur" && u.etablissement && (

@@ -3,6 +3,7 @@
 import { useHorsLigne } from "./PwaProvider";
 import { LANGUE_PAR_DEFAUT, type Langue } from "@/lib/i18n/langue";
 import { TEXTES } from "@/lib/i18n/textes";
+import { IconeHorsLigne } from "@/components/ui/Icones";
 
 export function BandeauHorsLigne({ langue = LANGUE_PAR_DEFAUT }: { langue?: Langue }) {
   const horsLigne = useHorsLigne();
@@ -12,7 +13,7 @@ export function BandeauHorsLigne({ langue = LANGUE_PAR_DEFAUT }: { langue?: Lang
       role="status"
       className="sticky top-0 z-[60] border-b border-amber-300 bg-amber-50 px-4 py-2 text-center text-sm font-medium text-amber-950"
     >
-      <span aria-hidden="true">⚡ </span>
+      <IconeHorsLigne taille={16} className="mr-1.5 inline-block align-[-3px]" />
       {TEXTES[langue].horsLigne.bandeau}
     </div>
   );

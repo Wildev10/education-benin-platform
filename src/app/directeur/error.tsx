@@ -1,10 +1,12 @@
 "use client";
 
+import { IconeAlerte } from "@/components/ui/Icones";
+
 export default function DirecteurError({ reset }: { reset: () => void }) {
   return (
     <main className="mx-auto max-w-3xl px-5 py-16 sm:px-8">
       <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center shadow-sm">
-        <span aria-hidden="true" className="text-5xl">⚠</span>
+        <IconeAlerte taille={40} className="inline-block" />
         <h1 className="mt-4 text-2xl font-bold text-red-900">
           Le tableau de bord est indisponible
         </h1>

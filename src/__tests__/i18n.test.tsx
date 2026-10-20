@@ -31,6 +31,8 @@ const IDENTIQUES = new Set([
   "accueil.chiffres.accessible",
   "connexion.email",
   "accueil.piedDePage", // « © 2026 EduTech Bénin »
+  // Valeurs des seuils d'alerte (« −15 % », « 5 »…), identiques dans les deux langues
+  ...[0, 1, 2, 3].map((i) => `accueil.seuils.${i}.valeur`),
 ]);
 
 describe("dictionnaire", () => {
@@ -90,6 +92,34 @@ describe("dictionnaire", () => {
   it("voix de lecture : française en français, anglaise en anglais", () => {
     expect(TEXTES.fr.accessibiliteControles.voix).toBe("fr-FR");
     expect(TEXTES.en.accessibiliteControles.voix).toMatch(/^en-/);
+  });
+});
+
+// ── Faits affichés sur l'accueil et la connexion ─────────────────────────────
+
+describe("faits affichés : vrais et vérifiables dans le code", () => {
+  it("les seuils de l'accueil sont ceux des règles de détection", async () => {
+    const { calculerNiveauAlerte, calculerNiveauAlerteAbsence } = await import("@/lib/detection-alerte");
+    expect(TEXTES.fr.accueil.seuils.map((s) => s.valeur)).toEqual(["−15 %", "−20 %", "5", "10"]);
+    // −15 % : moyen (juste en dessous : rien)
+    expect(calculerNiveauAlerte(20, 17)).toBe("moyen");
+    expect(calculerNiveauAlerte(20, 17.02)).toBeNull();
+    // −20 % et moyenne sous 10/20 : élevé ; −20 % au-dessus de 10/20 : seulement moyen
+    expect(calculerNiveauAlerte(12, 9.6)).toBe("eleve");
+    expect(calculerNiveauAlerte(15, 12)).toBe("moyen");
+    // 5 et 10 absences injustifiées
+    expect([4, 5, 9, 10].map(calculerNiveauAlerteAbsence)).toEqual([null, "moyen", "moyen", "eleve"]);
+  });
+
+  it("plus aucune affirmation fausse : ni IA, ni « tous les établissements du Bénin », ni chiffres invérifiables", () => {
+    const tout = JSON.stringify(TEXTES);
+    expect(tout).not.toMatch(/\bIA\b|\bAI\b|intelligence artificielle|Tous les établissements du Bénin|All schools in Benin|70\+|24\/7|100 ?%/);
+    expect(TEXTES.fr.connexion.atouts.map((a) => a.titre)).toEqual(["Suivi en temps réel", "Détection par règles", "Vue nationale"]);
+  });
+
+  it("titres concrets à la place des titres de modèle", () => {
+    const tout = JSON.stringify(TEXTES);
+    expect(tout).not.toMatch(/Comment ça marche|pour chaque acteur|Conçu pour tous|How does it work|every stakeholder|Designed for everyone/);
   });
 });
 

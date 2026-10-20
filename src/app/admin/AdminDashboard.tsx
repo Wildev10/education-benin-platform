@@ -16,6 +16,7 @@ import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 import type { StatsEtablissement } from "@/lib/stats-etablissements";
 import type { CleRaccourci, Raccourci } from "@/lib/raccourcis-alertes";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
+import { IconeValide } from "@/components/ui/Icones";
 
 const AlertesEtablissementChart = dynamic(() => import("./AlertesEtablissementChart"), {
   ssr: false,
@@ -262,7 +263,7 @@ export default function AdminDashboard({
 
         {alerts.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-8 py-10 text-center">
-            <span aria-hidden="true" className="text-4xl">✓</span>
+            <IconeValide taille={32} className="inline-block text-emerald-700" />
             <p className="mt-3 text-xl font-bold text-emerald-900">Aucune alerte active</p>
             <p className="mt-2 text-emerald-800">Les indicateurs de suivi sont sous contrôle.</p>
           </div>

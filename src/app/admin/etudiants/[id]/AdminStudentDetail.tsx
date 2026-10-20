@@ -116,7 +116,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        Retour au dashboard
+        Retour au tableau de bord
       </Link>
 
       <header className="mt-6 border-b border-border pb-7">
@@ -267,7 +267,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
           </div>
         ) : (
           <p className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
-            <span aria-hidden="true">✓ </span>Aucune absence enregistrée pour cet étudiant.
+            Aucune absence enregistrée pour cet étudiant.
           </p>
         )}
       </section>
@@ -350,7 +350,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
           </div>
         ) : (
           <p className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
-            <span aria-hidden="true">✓ </span>Aucune alerte dans l&apos;historique de cet étudiant.
+            Aucune alerte dans l&apos;historique de cet étudiant.
           </p>
         )}
       </section>

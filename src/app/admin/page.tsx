@@ -3,7 +3,11 @@ import { getStatsEtablissements } from "@/lib/stats-etablissements";
 import { raccourcisAlertes } from "@/lib/raccourcis-alertes";
 import AdminDashboard from "./AdminDashboard";
 
+/** Date et heure des données affichées (la page est calculée à chaque chargement) */
+const formatDonnees = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: "Africa/Porto-Novo" });
+
 export default async function AdminPage() {
+  const maintenant = new Date();
   const [etudiants, etablissements, alertes, statsEtablissements, raccourcis] = await Promise.all([
     prisma.etudiant.count(),
     prisma.etablissement.count(),
@@ -37,7 +41,10 @@ export default async function AdminPage() {
       <div className="max-w-3xl">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">Pilotage national</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Tableau de bord national</h1>
-        <p className="mt-3 text-lg leading-8 text-ink-secondary">La plateforme repère les baisses avant le décrochage.</p>
+        <p className="mt-3 text-lg leading-8 text-ink-secondary">
+          Périmètre : tous les établissements. Données du{" "}
+          <time dateTime={maintenant.toISOString()}>{formatDonnees.format(maintenant)}</time>, heure du Bénin.
+        </p>
       </div>
       <div className="mt-8">
         <AdminDashboard

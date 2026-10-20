@@ -38,6 +38,18 @@ const cloche = (page) => page.locator('button[aria-haspopup="true"][aria-label^=
 const boutonsSupprimerAbsence = (page) => page.getByRole("button", { name: /^Supprimer l'absence du/ });
 const chemin = (page) => new URL(page.url()).pathname;
 
+/** Ni emoji ni pictogramme texte ; toute icône SVG est décorative ou nommée. */
+const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}]|[✓⚠✕✗]/u;
+const sobre = async (page) =>
+  !EMOJI.test(await page.locator("body").innerText()) &&
+  (await page.evaluate(() =>
+    [...document.querySelectorAll("svg")].every((s) =>
+        s.getAttribute("aria-hidden") === "true" ||
+        (s.getAttribute("role") === "img" && !!s.getAttribute("aria-label")) ||
+        // graphique : le conteneur role=img porte déjà la description
+        !!s.parentElement?.closest('[role="img"][aria-label]'))
+  ));
+
 /** Ouvre une adresse forcée à la main et renvoie le chemin d'arrivée. */
 async function forcer(page, adresse) {
   await page.goto(`${BASE}${adresse}`);
@@ -49,6 +61,7 @@ try {
   // ── ÉTUDIANT ───────────────────────────────────────────────────────────────
   const etu = await session(COMPTES.etudiant);
   await ouvrir(etu, "/etudiant");
+  check("Étudiant, espace : ni emoji ni pictogramme, icônes accessibles", await sobre(etu));
   check("Étudiant : seul export proposé, l'Excel de sa fiche", await visible(etu, /Télécharger ma fiche/) && !(await visible(etu, /PDF/)));
   check("Étudiant : ni navigation d'espace, ni cloche, ni saisie, suppression, import ou traitement",
     (await libellesNav(etu)).length === 0 && (await cloche(etu).count()) === 0 &&
@@ -77,6 +90,7 @@ try {
   check("Enseignant : pas de cloche (réservée à l'admin et au directeur)", (await cloche(ens).count()) === 0);
   const absenceEns = (await getJson(ens, "/api/absences?page=1")).corps.elements[0];
   await ouvrir(ens, `/enseignant/etudiants/${absenceEns.etudiant.id}`);
+  check("Enseignant, fiche : ni emoji ni pictogramme, icônes accessibles", await sobre(ens));
   check("Enseignant, fiche : saisie de notes et d'absences, et « Supprimer » sur les absences",
     (await visible(ens, "Enregistrer la note")) && (await visible(ens, "Enregistrer l'absence")) && (await boutonsSupprimerAbsence(ens).count()) > 0);
   await ouvrir(ens, "/enseignant/alertes");
@@ -98,6 +112,7 @@ try {
     const navDir = await libellesNav(dir);
     check("Directeur : navigation sans « Importer »", !navDir.includes("Importer") && navDir.includes("Alertes"), navDir.join(", "));
     check("Directeur : cloche affichée", (await cloche(dir).count()) === 1);
+    check("Directeur, tableau de bord : ni emoji ni pictogramme, icônes accessibles", await sobre(dir));
     const arrivee = await forcer(dir, "/enseignant/import");
     check(`Directeur : /enseignant/import forcée → renvoyé vers ${arrivee}`, arrivee === "/directeur");
 
@@ -136,11 +151,22 @@ try {
   check("Admin : navigation complète (Utilisateurs, Importer, Historique, Assistant) et cloche",
     ["Utilisateurs", "Importer", "Historique", "Assistant"].every((l) => navAdmin.includes(l)) && (await cloche(admin).count()) === 1, navAdmin.join(", "));
   check("Admin, tableau de bord : « Marquer comme traitée » proposé", await visible(admin, "Marquer comme traitée"));
+  const fautifs = await admin.evaluate(() =>
+    [...document.querySelectorAll("svg")]
+      .filter((s) => s.getAttribute("aria-hidden") !== "true" && !(s.getAttribute("role") === "img" && s.getAttribute("aria-label")) && !s.parentElement?.closest('[role="img"][aria-label]'))
+      .map((s) => s.outerHTML.slice(0, 80))
+  );
+  check("Admin, tableau de bord : ni emoji ni pictogramme, icônes accessibles", await sobre(admin), fautifs.join(" | "));
+  const sousTitre = (await admin.locator("main p", { hasText: "Périmètre" }).first().innerText()).replace(/\s+/g, " ");
+  check("Admin, tableau de bord : sous-titre factuel (périmètre et date des données)",
+    /^Périmètre : tous les établissements\. Données du .+, heure du Bénin\.$/.test(sousTitre), sousTitre);
   await ouvrir(admin, "/admin/utilisateurs");
+  check("Admin, comptes : ni emoji ni pictogramme, « Voir la fiche » sans flèche", (await sobre(admin)) && (await admin.getByText("Fiche →").count()) === 0);
   check("Admin : gestion des comptes (Nouveau compte, Modifier, Supprimer)",
     (await admin.getByRole("link", { name: /Nouveau compte/ }).count()) === 1 && (await visible(admin, "Modifier")) && (await visible(admin, "Supprimer")));
   const ficheAdmin = (await getJson(admin, "/api/etudiants?page=1")).corps.elements[0];
   await ouvrir(admin, `/admin/etudiants/${ficheAdmin.id}`);
+  check("Admin, fiche : « Retour au tableau de bord », ni emoji ni pictogramme", (await admin.getByRole("link", { name: "Retour au tableau de bord" }).count()) === 1 && (await sobre(admin)));
   check("Admin, fiche : consultation et exports, sans formulaire de saisie",
     (await visible(admin, /Exporter en PDF/)) && !(await visible(admin, /Enregistrer la note|Enregistrer l'absence/)));
   await admin.context().close();

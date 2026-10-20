@@ -175,8 +175,7 @@ export async function PageAlertes({ chemin, searchParams }: { chemin: string; se
 
           {alertes.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-border bg-surface px-6 py-10 text-center shadow-sm">
-              <span aria-hidden="true" className="text-4xl">🔍</span>
-              <p className="mt-3 text-xl font-bold text-ink">{libelleAucunResultat(filtres)}</p>
+              <p className="text-xl font-bold text-ink">{libelleAucunResultat(filtres)}</p>
               {compterFiltresActifs(filtres) > 0 && (
                 <p className="mt-2 text-ink-secondary">
                   Modifiez ou réinitialisez les filtres pour élargir la recherche.

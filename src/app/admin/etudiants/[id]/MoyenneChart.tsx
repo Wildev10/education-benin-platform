@@ -15,7 +15,8 @@ type ChartPoint = { periode: string; moyenne: number };
 export default function MoyenneChart({ data }: { data: ChartPoint[] }) {
   return (
     <div
-      aria-label="Graphique de l'évolution de la moyenne par trimestre"
+      role="img"
+      aria-label={`Évolution de la moyenne par trimestre : ${data.map((p) => `${p.periode} ${p.moyenne.toFixed(1)} sur 20`).join(", ")}`}
       className="mt-6 h-72 w-full"
     >
       <ResponsiveContainer width="100%" height="100%">

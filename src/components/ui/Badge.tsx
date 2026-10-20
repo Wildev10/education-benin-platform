@@ -1,3 +1,4 @@
+import { IconeAlerte, IconeValide } from "@/components/ui/Icones";
 type BadgeVariant =
   | "risk-eleve"
   | "risk-moyen"
@@ -21,10 +22,11 @@ const variantCls: Record<BadgeVariant, string> = {
   neutral: "border-border bg-page text-ink-secondary",
 };
 
-const prefix: Partial<Record<BadgeVariant, string>> = {
-  "risk-eleve": "⚠",
-  "risk-moyen": "⚠",
-  "status-traitee": "✓",
+/** Icône au trait devant le libellé (décorative : le texte dit déjà le niveau ou le statut) */
+const prefix: Partial<Record<BadgeVariant, typeof IconeAlerte>> = {
+  "risk-eleve": IconeAlerte,
+  "risk-moyen": IconeAlerte,
+  "status-traitee": IconeValide,
 };
 
 const labels: Record<BadgeVariant, string> = {
@@ -48,7 +50,7 @@ export function Badge({
   children?: React.ReactNode;
   className?: string;
 }) {
-  const icon = prefix[variant];
+  const Icone = prefix[variant];
   const defaultLabel = labels[variant];
 
   return (
@@ -61,7 +63,7 @@ export function Badge({
         .filter(Boolean)
         .join(" ")}
     >
-      {icon && <span aria-hidden="true">{icon}</span>}
+      {Icone && <Icone taille={12} />}
       {children ?? defaultLabel}
     </span>
   );

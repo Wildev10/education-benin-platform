@@ -6,14 +6,15 @@ import { Button } from "@/components/ui/Button";
 import { Toast } from "@/lib/swal";
 import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
+import { IconeDocument, IconeTableur } from "@/components/ui/Icones";
 
 function nomFichier(disposition: string | null, defaut: string) {
   return disposition?.match(/filename="([^"]+)"/)?.[1] ?? defaut;
 }
 
 const FORMATS = {
-  pdf: { icone: "📄", nom: "PDF" },
-  excel: { icone: "📊", nom: "fichier Excel" },
+  pdf: { Icone: IconeDocument, nom: "PDF" },
+  excel: { Icone: IconeTableur, nom: "fichier Excel" },
 } as const;
 
 type ProprietesExport = {
@@ -35,7 +36,7 @@ function BoutonExport({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const horsLigne = useHorsLigne();
-  const { icone, nom } = FORMATS[format];
+  const { Icone, nom } = FORMATS[format];
 
   async function telecharger() {
     setLoading(true);
@@ -74,7 +75,10 @@ function BoutonExport({
       onClick={() => void telecharger()}
       className="shrink-0"
     >
-      <span aria-hidden="true">{icone}</span> {loading ? "Génération..." : label}
+      <span className="inline-flex items-center gap-2">
+        <Icone taille={16} />
+        {loading ? "Génération..." : label}
+      </span>
     </Button>
   );
 }

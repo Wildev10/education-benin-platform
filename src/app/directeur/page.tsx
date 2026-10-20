@@ -10,6 +10,7 @@ import {
 } from "@/lib/tableau-de-bord-directeur";
 import { GraphiqueEvolution, GraphiqueNiveaux } from "./DirecteurCharts";
 import { ExportExcelButton } from "@/components/ExportPdfButton";
+import { IconeEtablissement } from "@/components/ui/Icones";
 
 function moyenneCls(moyenne: number) {
   if (moyenne >= 12) return "text-emerald-700";
@@ -37,7 +38,7 @@ function SansEtablissement() {
   return (
     <main className="mx-auto max-w-3xl px-5 py-16 sm:px-8">
       <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
-        <span aria-hidden="true" className="text-5xl">🏫</span>
+        <IconeEtablissement taille={40} className="inline-block text-amber-900" />
         <h1 className="mt-4 text-2xl font-bold text-amber-950">
           Aucun établissement rattaché à votre compte
         </h1>
@@ -175,7 +176,7 @@ export default async function DirecteurPage() {
           </SectionTitre>
           {tdb.elevesARisque.length === 0 ? (
             <p className="py-8 text-center text-sm text-ink-secondary">
-              <span aria-hidden="true">✓ </span>Aucune alerte active dans l&apos;établissement.
+              Aucune alerte active dans l&apos;établissement.
             </p>
           ) : (
             <ol className="divide-y divide-border">
@@ -219,7 +220,7 @@ export default async function DirecteurPage() {
           <SectionTitre id="absences-titre" surtitre="Assiduité" titre="Dernières absences injustifiées" />
           {tdb.dernieresAbsences.length === 0 ? (
             <p className="py-8 text-center text-sm text-ink-secondary">
-              <span aria-hidden="true">✓ </span>Aucune absence injustifiée enregistrée.
+              Aucune absence injustifiée enregistrée.
             </p>
           ) : (
             <ul className="divide-y divide-border">

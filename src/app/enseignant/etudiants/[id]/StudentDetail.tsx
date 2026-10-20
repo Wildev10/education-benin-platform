@@ -9,6 +9,7 @@ import { MessageEcritureHorsLigne, TITRE_HORS_LIGNE } from "@/components/pwa/Ban
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
+import { IconeAlerte } from "@/components/ui/Icones";
 
 type Note = {
   id: string;
@@ -117,7 +118,7 @@ export default function StudentDetail({
       setValeur("");
       void Toast.fire({ icon: "success", title: "Note enregistrée avec succès." });
       if (data.alerteCreee === true) {
-        void Toast.fire({ icon: "warning", title: "⚠ Alerte déclenchée pour cet étudiant.", timer: 6000 });
+        void Toast.fire({ icon: "warning", title: "Alerte déclenchée pour cet élève.", timer: 6000 });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Une erreur est survenue.");
@@ -284,7 +285,7 @@ export default function StudentDetail({
           <div aria-live="polite" className="mt-4 space-y-3">
             {message && (
               <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-                ✓ {message}
+                {message}
               </p>
             )}
             {alerteCreee && (
@@ -292,7 +293,7 @@ export default function StudentDetail({
                 role="alert"
                 className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
               >
-                <span aria-hidden="true" className="text-amber-600 font-bold">⚠</span>
+                <IconeAlerte taille={18} className="mt-0.5 text-amber-700" />
                 <p>
                   <strong>Alerte déclenchée.</strong> Une baisse de résultats a été détectée.
                 </p>
@@ -459,7 +460,7 @@ export default function StudentDetail({
           <div aria-live="polite" className="mt-4 space-y-3">
             {absMessage && (
               <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-                ✓ {absMessage}
+                {absMessage}
               </p>
             )}
             {absAlerteCreee && (
@@ -467,7 +468,7 @@ export default function StudentDetail({
                 role="alert"
                 className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
               >
-                <span aria-hidden="true" className="font-bold text-amber-600">⚠</span>
+                <IconeAlerte taille={18} className="mt-0.5 text-amber-700" />
                 <p>
                   <strong>Alerte déclenchée.</strong> Nombre élevé d&apos;absences injustifiées.
                 </p>
