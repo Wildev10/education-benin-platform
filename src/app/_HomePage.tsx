@@ -195,7 +195,7 @@ export default function HomePage() {
               <p className="text-sm font-bold uppercase tracking-[0.16em] text-surface">
                 EduTech Bénin
               </p>
-              <p className="text-xs text-surface/50">Ministère de l'Éducation</p>
+              <p className="text-xs text-surface/50">Ministère de l&apos;Éducation</p>
             </div>
           </div>
           <Link
@@ -225,14 +225,14 @@ export default function HomePage() {
             <h1 className="text-3xl font-bold leading-tight text-surface sm:text-4xl lg:text-5xl">
               Personne ne voit un décrochage venir
               <br className="hidden sm:block" />
-              {" "}avant qu'il soit acté.
+              {" "}avant qu&apos;il soit acté.
             </h1>
             <p className="mt-4 text-xl font-bold text-brand sm:text-2xl lg:text-3xl">
               Notre plateforme le détecte automatiquement.
             </p>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-surface/70">
               EduTech Bénin connecte les enseignants, les directeurs et le Ministère de
-              l'Éducation autour d'un objectif commun : agir avant qu'il soit trop tard.
+              l&apos;Éducation autour d&apos;un objectif commun : agir avant qu&apos;il soit trop tard.
             </p>
             <Link
               href="/login"
@@ -347,7 +347,7 @@ export default function HomePage() {
               />
             </div>
             <p className="text-sm text-surface/60">
-              © 2026 EduTech Bénin — Ministère de l'Éducation
+              © 2026 EduTech Bénin — Ministère de l&apos;Éducation
             </p>
           </div>
           <Link

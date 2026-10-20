@@ -24,7 +24,7 @@ Le détail (fonctionnalités, installation, comptes de démo, options de `npm ru
 ## Façon de travailler
 
 - Répondre en français simple.
-- Avant tout commit : `npm test`, `npx tsc --noEmit`, `npm run lint` (le dépôt a déjà des erreurs anciennes : aucune nouvelle dans les fichiers modifiés), `npm run build`.
+- Avant tout commit : `npm test`, `npx tsc --noEmit`, `npm run lint` (0 erreur, 0 avertissement ; un `eslint-disable` seulement local et avec un commentaire qui explique pourquoi, jamais de règle désactivée dans la configuration), `npm run build`.
 - Tout changement visible : `npm run e2e` et vérification à 375 px et à 1280 px.
 - Données de test créées dans la base de dev : les supprimer à la fin. Serveurs lancés (`next dev`, `next start`) : les arrêter à la fin.
 - `git add`, `git commit` et `git push` : trois commandes séparées, jamais enchaînées avec `&&`, lancées depuis la racine du projet (sans `cd …` ni `git -C`). Lancer `node` sans variable d'environnement en préfixe (pas de `VAR=… node`). Ainsi elles correspondent aux autorisations de `.claude/settings.local.json` (fichier local, non suivi) et ne demandent pas de permission.

@@ -9,7 +9,7 @@ export default function EtudiantError({ reset }: { reset: () => void }) {
           Ton espace est indisponible
         </h1>
         <p className="mt-3 text-lg text-red-800">
-          Les données n'ont pas pu être chargées. Vérifie ta connexion puis réessaie.
+          Les données n&apos;ont pas pu être chargées. Vérifie ta connexion puis réessaie.
         </p>
         <button
           type="button"

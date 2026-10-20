@@ -12,6 +12,7 @@ import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { SqueletteGraphiqueLigne } from "@/components/ui/Squelette";
 import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
+import { redirigerVersConnexion } from "@/lib/session-expiree";
 
 const MoyenneChart = dynamic(() => import("./MoyenneChart"), {
   ssr: false,
@@ -91,7 +92,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ statut: "traitee" }),
       });
-      if (response.status === 401) { window.location.assign("/login"); return; }
+      if (response.status === 401) { redirigerVersConnexion(); return; }
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Impossible de traiter l'alerte.");
       setAlerts((current) =>
@@ -180,7 +181,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
           <MoyenneChart data={chartData} />
         ) : (
           <p className="mt-6 rounded-xl bg-page px-5 py-5 text-sm text-ink-secondary">
-            Le graphique s'affichera dès que l'étudiant aura des notes sur au moins deux périodes.
+            Le graphique s&apos;affichera dès que l&apos;étudiant aura des notes sur au moins deux périodes.
           </p>
         )}
       </section>
@@ -349,7 +350,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
           </div>
         ) : (
           <p className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
-            <span aria-hidden="true">✓ </span>Aucune alerte dans l'historique de cet étudiant.
+            <span aria-hidden="true">✓ </span>Aucune alerte dans l&apos;historique de cet étudiant.
           </p>
         )}
       </section>

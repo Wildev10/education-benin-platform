@@ -143,7 +143,7 @@ export default function LoginPageClient() {
             <p className="text-base font-bold uppercase tracking-[0.16em] text-surface">
               EduTech Bénin
             </p>
-            <p className="text-xs text-surface/50">Ministère de l'Éducation</p>
+            <p className="text-xs text-surface/50">Ministère de l&apos;Éducation</p>
           </div>
         </div>
 
@@ -156,7 +156,7 @@ export default function LoginPageClient() {
             <span className="text-brand">scolaire nationale</span>
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-surface/70">
-            Suivez chaque élève, détectez les difficultés tôt et agissez avant qu'il soit trop tard.
+            Suivez chaque élève, détectez les difficultés tôt et agissez avant qu&apos;il soit trop tard.
           </p>
 
           <ul className="mt-8 space-y-5" role="list">
@@ -310,7 +310,7 @@ export default function LoginPageClient() {
                 onClick={() => void demanderReinitialisation()}
                 className="font-semibold text-brand-dark underline decoration-brand/30 underline-offset-2 hover:decoration-brand focus:outline-none focus:ring-2 focus:ring-brand-dark"
               >
-                Contactez l'administration
+                Contactez l&apos;administration
               </button>
             </p>
           </div>

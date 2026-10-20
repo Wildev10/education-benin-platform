@@ -11,7 +11,7 @@ export default function StudentDetailError({ reset }: { reset: () => void }) {
           Fiche étudiant indisponible
         </h1>
         <p className="mt-3 text-lg text-red-800">
-          Les données n'ont pas pu être chargées. Vérifiez votre connexion puis réessayez.
+          Les données n&apos;ont pas pu être chargées. Vérifiez votre connexion puis réessayez.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button

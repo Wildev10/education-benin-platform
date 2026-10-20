@@ -6,10 +6,10 @@ export default function EnseignantError({ reset }: { reset: () => void }) {
       <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center shadow-sm">
         <span aria-hidden="true" className="text-5xl">⚠</span>
         <h1 className="mt-4 text-2xl font-bold text-red-900">
-          L'espace enseignant est indisponible
+          L&apos;espace enseignant est indisponible
         </h1>
         <p className="mt-3 text-lg text-red-800">
-          Les données n'ont pas pu être chargées. Vérifiez votre connexion puis réessayez.
+          Les données n&apos;ont pas pu être chargées. Vérifiez votre connexion puis réessayez.
         </p>
         <button
           type="button"

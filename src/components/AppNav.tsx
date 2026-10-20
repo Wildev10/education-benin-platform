@@ -69,10 +69,13 @@ export function AppNav({ items, ariaLabel }: { items: NavItem[]; ariaLabel: stri
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
 
-  // Close on route change
-  useEffect(() => {
+  // Fermeture au changement de page, pendant le rendu plutôt que dans un effet :
+  // l'état n'est modifié que si le chemin a changé, ce qui exclut toute boucle
+  const [cheminVu, setCheminVu] = useState(pathname);
+  if (pathname !== cheminVu) {
+    setCheminVu(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   // Close on outside click
   useEffect(() => {

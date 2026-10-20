@@ -88,7 +88,7 @@ describe("POST /api/notes — validation des données", () => {
   });
 
   it("21. matière absente dans le body → erreur 400", async () => {
-    const { matiere: _, ...bodySansMatiere } = validBody;
+    const bodySansMatiere = Object.fromEntries(Object.entries(validBody).filter(([cle]) => cle !== "matiere"));
     const res = await POST(makeRequest(bodySansMatiere));
     expect(res.status).toBe(400);
     const data = await res.json();

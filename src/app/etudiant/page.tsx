@@ -47,7 +47,7 @@ export default async function EtudiantPage() {
       <main className="mx-auto max-w-3xl px-5 py-16 sm:px-8">
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-900 shadow-sm">
           <h1 className="text-2xl font-semibold">Fiche étudiant indisponible</h1>
-          <p className="mt-2 text-lg">Aucun étudiant n'est associé à ce compte. Contacte l'administration pour mettre ton profil à jour.</p>
+          <p className="mt-2 text-lg">Aucun étudiant n&apos;est associé à ce compte. Contacte l&apos;administration pour mettre ton profil à jour.</p>
         </div>
       </main>
     );
@@ -75,7 +75,7 @@ export default async function EtudiantPage() {
       <main className="mx-auto max-w-3xl px-5 py-16 sm:px-8">
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-900 shadow-sm">
           <h1 className="text-2xl font-semibold">Fiche étudiant introuvable</h1>
-          <p className="mt-2 text-lg">Ton compte est associé à une fiche qui n'existe plus. Contacte l'administration.</p>
+          <p className="mt-2 text-lg">Ton compte est associé à une fiche qui n&apos;existe plus. Contacte l&apos;administration.</p>
         </div>
       </main>
     );

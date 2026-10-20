@@ -159,7 +159,7 @@ export default function ImportNotesPage() {
       {/* Rapport */}
       {rapport && (
         <section aria-labelledby="rapport-titre" className="mt-8">
-          <h2 id="rapport-titre" className="text-xl font-semibold text-ink">Rapport d'import</h2>
+          <h2 id="rapport-titre" className="text-xl font-semibold text-ink">Rapport d&apos;import</h2>
 
           <dl className="mt-4 grid gap-4 sm:grid-cols-3">
             <div className={`rounded-2xl border p-4 ${toutOk ? "border-emerald-200 bg-emerald-50" : "border-border bg-surface"}`}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useRef, useEffect, useState } from "react";
+import { redirigerVersConnexion } from "@/lib/session-expiree";
 
 type Result = Record<string, unknown>;
 
@@ -48,6 +49,7 @@ export default function AssistantChat() {
   const [question, setQuestion] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const prochainId = useRef(1);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -58,7 +60,9 @@ export default function AssistantChat() {
     const trimmed = value.trim();
     if (!trimmed || sending) return;
 
-    const messageId = Date.now();
+    // Deux identifiants par échange : la question et la réponse attendue
+    const messageId = prochainId.current;
+    prochainId.current += 2;
     setMessages((current) => [
       ...current,
       { id: messageId, role: "user", text: trimmed },
@@ -74,7 +78,7 @@ export default function AssistantChat() {
         body: JSON.stringify({ question: trimmed }),
       });
       if (response.status === 401) {
-        window.location.assign("/login");
+        redirigerVersConnexion();
         return;
       }
       const data = await response.json();
@@ -128,7 +132,7 @@ export default function AssistantChat() {
                 Posez une question sur les données scolaires
               </h2>
               <p className="mt-3 text-ink-secondary">
-                L'assistant cherche les informations utiles et vous les présente clairement.
+                L&apos;assistant cherche les informations utiles et vous les présente clairement.
               </p>
             </div>
           </div>
@@ -189,7 +193,7 @@ export default function AssistantChat() {
                   />
                 ))}
               </span>
-              <span className="text-sm text-ink-secondary">L'assistant réfléchit…</span>
+              <span className="text-sm text-ink-secondary">L&apos;assistant réfléchit…</span>
             </div>
           </div>
         )}

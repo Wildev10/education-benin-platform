@@ -8,6 +8,7 @@ import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { MessageEcritureHorsLigne, TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
+import { redirigerVersConnexion } from "@/lib/session-expiree";
 
 type Note = {
   id: string;
@@ -103,7 +104,7 @@ export default function StudentDetail({
           anneeScolaire: "2025-2026",
         }),
       });
-      if (response.status === 401) { window.location.assign("/login"); return; }
+      if (response.status === 401) { redirigerVersConnexion(); return; }
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Impossible d'enregistrer la note.");
       setNotes((current) => [data, ...current]);
@@ -142,7 +143,7 @@ export default function StudentDetail({
           anneeScolaire: "2025-2026",
         }),
       });
-      if (response.status === 401) { window.location.assign("/login"); return; }
+      if (response.status === 401) { redirigerVersConnexion(); return; }
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Impossible d'enregistrer l'absence.");
       setAbsences((current) => [
@@ -171,7 +172,7 @@ export default function StudentDetail({
     if (!result.isConfirmed) return;
     try {
       const response = await fetch(`/api/absences/${id}`, { method: "DELETE" });
-      if (response.status === 401) { window.location.assign("/login"); return; }
+      if (response.status === 401) { redirigerVersConnexion(); return; }
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error ?? "Impossible de supprimer l'absence.");
@@ -463,7 +464,7 @@ export default function StudentDetail({
               >
                 <span aria-hidden="true" className="font-bold text-amber-600">⚠</span>
                 <p>
-                  <strong>Alerte déclenchée.</strong> Nombre élevé d'absences injustifiées.
+                  <strong>Alerte déclenchée.</strong> Nombre élevé d&apos;absences injustifiées.
                 </p>
               </div>
             )}

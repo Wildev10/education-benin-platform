@@ -9,7 +9,7 @@ export default function AdminError({ reset }: { reset: () => void }) {
           Le tableau de bord est indisponible
         </h1>
         <p className="mt-3 text-lg text-red-800">
-          Les données n'ont pas pu être chargées. Vérifiez votre connexion puis réessayez.
+          Les données n&apos;ont pas pu être chargées. Vérifiez votre connexion puis réessayez.
         </p>
         <button
           type="button"

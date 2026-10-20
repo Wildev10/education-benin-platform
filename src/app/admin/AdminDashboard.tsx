@@ -13,6 +13,7 @@ import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import { SqueletteGraphiqueBarres } from "@/components/ui/Squelette";
 import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 import type { StatsEtablissement } from "@/lib/stats-etablissements";
+import { redirigerVersConnexion } from "@/lib/session-expiree";
 
 const AlertesEtablissementChart = dynamic(() => import("./AlertesEtablissementChart"), {
   ssr: false,
@@ -131,7 +132,7 @@ export default function AdminDashboard({
         body: JSON.stringify({ statut: "traitee" }),
       });
       if (response.status === 401) {
-        window.location.assign("/login");
+        redirigerVersConnexion();
         return;
       }
       const data = await response.json();
@@ -224,7 +225,7 @@ export default function AdminDashboard({
               </Link>
             </div>
             <p className="mt-2 max-w-2xl text-ink-secondary">
-              Les baisses de résultats qui méritent une attention avant qu'elles ne deviennent un décrochage.
+              Les baisses de résultats qui méritent une attention avant qu&apos;elles ne deviennent un décrochage.
             </p>
           </div>
 

@@ -98,7 +98,7 @@ export default function NouvelUtilisateurPage() {
       <div className="mt-6">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">Administration</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink">Nouveau compte</h1>
-        <p className="mt-2 text-ink-secondary">Le mot de passe est temporaire — l'utilisateur devra le changer à sa première connexion.</p>
+        <p className="mt-2 text-ink-secondary">Le mot de passe est temporaire — l&apos;utilisateur devra le changer à sa première connexion.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-2xl border border-border bg-surface p-6 shadow-sm">
@@ -149,7 +149,7 @@ export default function NouvelUtilisateurPage() {
               </select>
             ) : (
               <p className="rounded-lg bg-page px-4 py-3 text-sm text-ink-secondary">
-                Tous les étudiants ont déjà un compte, ou aucun étudiant n'est enregistré.
+                Tous les étudiants ont déjà un compte, ou aucun étudiant n&apos;est enregistré.
               </p>
             )}
           </div>

@@ -355,6 +355,43 @@ check("Contraste élevé : blocs visibles (gris #8a8a8a sur noir), sans pulsatio
 await pReduit.evaluate(() => localStorage.setItem("accessibility-contrast", "default"));
 await reduit.close();
 
+// Préférences d'accessibilité : le bouton les enregistre, l'hydratation ne les écrase pas
+const acces = await session(COMPTES.enseignant);
+await ouvrir(acces, "/enseignant");
+const theme = () => acces.evaluate(() => document.documentElement.dataset.theme);
+await acces.getByRole("button", { name: /Contraste/ }).first().click();
+const apresClic = await theme();
+await acces.reload();
+await acces.locator("main h1").first().waitFor();
+await acces.waitForFunction(() => document.documentElement.dataset.theme === "high-contrast", null, { timeout: 5000 }).catch(() => {});
+const apresRechargement = await theme();
+const stocke = await acces.evaluate(() => localStorage.getItem("accessibility-contrast"));
+await acces.getByRole("button", { name: /Contraste/ }).first().click();
+check("Contraste élevé : activé au clic, conservé après rechargement, désactivable",
+  apresClic === "high-contrast" && apresRechargement === "high-contrast" && stocke === "high" && (await theme()) === "default",
+  `${apresClic} → ${apresRechargement} → ${await theme()}`);
+await acces.getByRole("button", { name: "Augmenter la taille du texte" }).first().click();
+await acces.reload();
+await acces.locator("main h1").first().waitFor();
+await acces.waitForFunction(() => document.documentElement.dataset.fontSize === "large", null, { timeout: 5000 }).catch(() => {});
+check("Taille du texte : augmentée au clic et conservée après rechargement",
+  (await acces.evaluate(() => document.documentElement.dataset.fontSize)) === "large");
+await acces.getByRole("button", { name: "Réduire la taille du texte" }).first().click();
+await acces.context().close();
+
+// Menu mobile : se referme après une navigation
+const menuMobile = await session(COMPTES.admin, MOBILE);
+await ouvrir(menuMobile, "/admin");
+await menuMobile.locator(`nav[aria-label="${NAV.admin}"] button[aria-expanded="false"]`).click();
+await menuMobile.locator("#mobile-nav-menu").waitFor();
+await lienNav(menuMobile, NAV.admin, "Absences").click();
+await menuMobile.waitForURL("**/admin/absences");
+await menuMobile.locator("main h1", { hasText: "Absences" }).waitFor();
+check("Menu mobile : refermé après la navigation",
+  (await menuMobile.locator("#mobile-nav-menu").count()) === 0 &&
+  (await menuMobile.locator(`nav[aria-label="${NAV.admin}"] button[aria-expanded]`).getAttribute("aria-expanded")) === "false");
+await menuMobile.context().close();
+
 // ══ 4. STABILITÉ DE LA MISE EN PAGE (CLS) ════════════════════════════════════
 
 /**

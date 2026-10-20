@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  abonnerPreferences,
+  enregistrerPreferences,
+  lirePreferences,
+  preferencesServeur,
+  type TaillePolice,
+} from "@/lib/preferences-accessibilite";
 
-type FontSize = "normal" | "large" | "x-large";
+type FontSize = TaillePolice;
 
 const fontSizeSteps: FontSize[] = ["normal", "large", "x-large"];
 
@@ -17,42 +24,32 @@ export default function AccessibilityControls({
 }: {
   variant?: "dark" | "light";
 }) {
-  const [highContrast, setHighContrast] = useState(false);
-  const [fontSize, setFontSize] = useState<FontSize>("normal");
+  // Préférences lues dans localStorage ; valeurs par défaut au rendu serveur et à l'hydratation
+  const preferences = useSyncExternalStore(abonnerPreferences, lirePreferences, preferencesServeur);
+  const { contrasteEleve: highContrast, taille: fontSize } = preferences;
   const [isReading, setIsReading] = useState(false);
   const [speechMessage, setSpeechMessage] = useState("");
-  const [hydrated, setHydrated] = useState(false);
 
+  // Applique les préférences à la page ; localStorage n'est écrit que sur une action de l'utilisateur
   useEffect(() => {
-    const savedContrast = localStorage.getItem("accessibility-contrast") === "high";
-    const savedFontSize = localStorage.getItem("accessibility-font-size") as FontSize | null;
-    setHighContrast(savedContrast);
-    setFontSize(savedFontSize === "large" || savedFontSize === "x-large" ? savedFontSize : "normal");
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
     document.documentElement.dataset.theme = highContrast ? "high-contrast" : "default";
     document.documentElement.dataset.fontSize = fontSize;
-    localStorage.setItem("accessibility-contrast", highContrast ? "high" : "default");
-    localStorage.setItem("accessibility-font-size", fontSize);
-  }, [hydrated, highContrast, fontSize]);
+  }, [highContrast, fontSize]);
 
   useEffect(() => () => {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   }, []);
 
   function toggleContrast() {
-    setHighContrast((current) => !current);
+    const courantes = lirePreferences();
+    enregistrerPreferences({ ...courantes, contrasteEleve: !courantes.contrasteEleve });
   }
 
   function changeFontSize(direction: "increase" | "decrease") {
-    setFontSize((current) => {
-      const idx = fontSizeSteps.indexOf(current);
-      if (direction === "increase") return fontSizeSteps[Math.min(idx + 1, 2)];
-      return fontSizeSteps[Math.max(idx - 1, 0)];
-    });
+    const courantes = lirePreferences();
+    const idx = fontSizeSteps.indexOf(courantes.taille);
+    const taille = direction === "increase" ? fontSizeSteps[Math.min(idx + 1, 2)] : fontSizeSteps[Math.max(idx - 1, 0)];
+    enregistrerPreferences({ ...courantes, taille });
   }
 
   function startReading() {
