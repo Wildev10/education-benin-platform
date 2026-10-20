@@ -1,24 +1,9 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import HomePage from "./_HomePage";
+import type { Metadata } from "next";
+import { metadonneesPage } from "@/lib/i18n/metadonnees";
+import { AccueilPublic } from "./_AccueilPublic";
 
-export default async function Home() {
-  const session = await auth();
+export const metadata: Metadata = metadonneesPage("accueil", "fr");
 
-  if (!session?.user) {
-    return <HomePage />;
-  }
-
-  switch (session.user.role) {
-    case "admin":
-      redirect("/admin");
-    case "enseignant":
-      redirect("/enseignant");
-    case "directeur":
-      redirect("/directeur");
-    case "etudiant":
-      redirect("/etudiant");
-    default:
-      redirect("/login");
-  }
+export default function Home() {
+  return <AccueilPublic langue="fr" />;
 }

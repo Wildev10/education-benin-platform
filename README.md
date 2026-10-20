@@ -44,6 +44,7 @@ Les règles s'appliquent à chaque saisie de note ou d'absence :
 ### Liste complète
 
 - Page d'accueil publique institutionnelle
+- Accueil et connexion en français et en anglais (`/en`, `/en/login`), avec sélecteur FR/EN mémorisé ; le reste de l'application est en français
 - Détection automatique des alertes de décrochage (notes et absences)
 - Gestion des absences par période (justifiées / injustifiées)
 - Import de notes par fichier CSV, avec rapport d'erreurs
@@ -146,7 +147,7 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ```bash
 npm test          # 21 tests automatisés
 npm run build     # vérification TypeScript et build complet
-npm run e2e       # tests navigateur (connexions, exports Excel, pagination, finitions visuelles, notifications)
+npm run e2e       # tests navigateur (connexions, exports Excel, pagination, finitions visuelles, notifications, langues)
 ```
 
 `npm run e2e` fait le build, lance `next start` sur le port 3100, exécute les scénarios de `e2e/` avec Google Chrome, puis arrête le serveur ; il refuse de démarrer si la base du `.env` figure dans `PROTECTED_DB_HOSTS`. Le scénario `notifications` crée dans la base de dev un élève de test (nommé `E2E-Aggravation`), ses notes et son alerte, puis les supprime à la fin, même en cas d'échec. Pour inclure le rôle directeur, copiez `.env.e2e.example` en `.env.e2e.local` (ignoré par git) et renseignez `E2E_DIRECTEUR_EMAIL` et `E2E_DIRECTEUR_MOT_DE_PASSE` avec un compte directeur de la base de dev ; sans eux, ces étapes sont ignorées. Options : `npm run e2e -- pagination` pour un seul scénario, `npm run e2e -- --sans-build` pour réutiliser le build existant.

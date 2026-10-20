@@ -44,17 +44,19 @@ function abonnementReseau(rappel: () => void) {
 
 async function proposerRechargement(worker: ServiceWorker) {
   // Chargé seulement quand une mise à jour est disponible
-  const { Swal } = await import("@/lib/swal");
+  const [{ Swal }, { TEXTES }] = await Promise.all([import("@/lib/swal"), import("@/lib/i18n/textes")]);
+  // Seules les pages publiques en anglais ont <html lang="en"> ; partout ailleurs, français
+  const t = TEXTES[document.documentElement.lang === "en" ? "en" : "fr"].miseAJour;
   void Swal.fire({
     toast: true,
     position: "bottom-end",
     icon: "info",
-    title: "Une nouvelle version d'EduTech est disponible.",
+    title: t.titre,
     showConfirmButton: true,
-    confirmButtonText: "Recharger",
+    confirmButtonText: t.recharger,
     confirmButtonColor: "#F97316",
     showCancelButton: true,
-    cancelButtonText: "Plus tard",
+    cancelButtonText: t.plusTard,
     customClass: { popup: "swal-toast-custom" },
   }).then((r) => {
     if (r.isConfirmed) worker.postMessage({ type: "SKIP_WAITING" });

@@ -7,16 +7,21 @@ import { useRouter } from "next/navigation";
 import AccessibilityControls from "@/components/AccessibilityControls";
 import { Swal, Toast } from "@/lib/swal";
 import { viderCachesPwa } from "@/lib/pwa";
+import { SelecteurLangue } from "@/components/SelecteurLangue";
+import type { Langue } from "@/lib/i18n/langue";
+import { TEXTES, type Textes } from "@/lib/i18n/textes";
 
-async function demanderReinitialisation() {
+async function demanderReinitialisation(t: Textes["connexion"]) {
+  const o = t.oubli;
   const { value: email } = await Swal.fire<string>({
-    title: "Mot de passe oublié ?",
+    title: o.titre,
+    // Textes du dictionnaire (constantes), jamais une saisie de l'utilisateur
     html: `
-      <p>Saisissez votre adresse email. Un administrateur réinitialisera votre mot de passe et vous contactera.</p>
-      <input id="swal-email" type="email" placeholder="votre@email.bj" class="swal2-input" autocomplete="email">
+      <p>${o.explication}</p>
+      <input id="swal-email" type="email" placeholder="${t.exempleEmail}" class="swal2-input" autocomplete="email">
     `,
-    confirmButtonText: "Envoyer la demande",
-    cancelButtonText: "Annuler",
+    confirmButtonText: o.envoyer,
+    cancelButtonText: o.annuler,
     showCancelButton: true,
     confirmButtonColor: "#F97316",
     cancelButtonColor: "#0A0A0A",
@@ -25,11 +30,11 @@ async function demanderReinitialisation() {
     preConfirm: () => {
       const saisie = (document.getElementById("swal-email") as HTMLInputElement).value.trim();
       if (!saisie) {
-        Swal.showValidationMessage("Email requis");
+        Swal.showValidationMessage(o.emailRequis);
         return false;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(saisie)) {
-        Swal.showValidationMessage("Adresse email invalide");
+        Swal.showValidationMessage(o.emailInvalide);
         return false;
       }
       return saisie;
@@ -44,31 +49,17 @@ async function demanderReinitialisation() {
       body: JSON.stringify({ email }),
     });
     if (!res.ok) throw new Error();
-    void Toast.fire({ icon: "success", title: "Demande envoyée. Un administrateur vous contactera." });
+    void Toast.fire({ icon: "success", title: o.envoyee });
   } catch {
-    void Toast.fire({ icon: "error", title: "Impossible d'envoyer la demande. Réessayez." });
+    void Toast.fire({ icon: "error", title: o.echec });
   }
 }
 
-const features = [
-  {
-    icon: "📊",
-    title: "Suivi en temps réel",
-    desc: "Moyennes, absences et alertes mis à jour dès la saisie.",
-  },
-  {
-    icon: "⚡",
-    title: "Détection précoce",
-    desc: "L'IA repère les baisses de résultats avant le décrochage.",
-  },
-  {
-    icon: "🏫",
-    title: "Couverture nationale",
-    desc: "Tous les établissements du Bénin sur une seule plateforme.",
-  },
-];
+const icones = ["📊", "⚡", "🏫"];
 
-export default function LoginPageClient() {
+export default function LoginPageClient({ langue }: { langue: Langue }) {
+  const textes = TEXTES[langue];
+  const t = textes.connexion;
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -94,18 +85,18 @@ export default function LoginPageClient() {
         if (res.code === "rate_limit") {
           setEstBloque(true);
         } else {
-          setErreur("Email ou mot de passe incorrect.");
+          setErreur(t.erreurIdentifiants);
         }
         return;
       }
 
       // Nouveau compte sur cet appareil : on repart d'un cache vide
       await viderCachesPwa();
-      void Toast.fire({ icon: "success", title: "Connexion réussie. Bienvenue !" });
+      void Toast.fire({ icon: "success", title: t.bienvenue });
       router.push("/");
       router.refresh();
     } catch {
-      setErreur("La connexion est indisponible. Vérifie ta connexion puis réessaie.");
+      setErreur(t.erreurIndisponible);
     } finally {
       setLoading(false);
     }
@@ -116,7 +107,7 @@ export default function LoginPageClient() {
       {/* ── Panneau gauche — identité (masqué sur mobile) ────── */}
       <aside
         className="relative hidden flex-col justify-between overflow-hidden bg-ink px-8 py-10 lg:flex lg:w-[46%] lg:px-12 lg:py-14"
-        aria-label="Présentation de la plateforme"
+        aria-label={t.presentationPlateforme}
       >
         {/* Cercles décoratifs */}
         <div
@@ -133,7 +124,7 @@ export default function LoginPageClient() {
           <div className="shrink-0 rounded-xl bg-white p-1.5">
             <Image
               src="/armoiries-benin.png"
-              alt="Armoiries du Bénin"
+              alt={textes.commun.armoiriesAlt}
               height={36}
               width={36}
               priority
@@ -143,7 +134,7 @@ export default function LoginPageClient() {
             <p className="text-base font-bold uppercase tracking-[0.16em] text-surface">
               EduTech Bénin
             </p>
-            <p className="text-xs text-surface/50">Ministère de l&apos;Éducation</p>
+            <p className="text-xs text-surface/50">{textes.commun.ministere}</p>
           </div>
         </div>
 
@@ -151,26 +142,26 @@ export default function LoginPageClient() {
         <div className="relative mt-10 lg:mt-0">
           {/* FIX 1 — "nationale" avec un e */}
           <h1 className="text-3xl font-bold leading-tight text-surface lg:text-4xl">
-            La plateforme de suivi
+            {t.titreLigne1}
             <br />
-            <span className="text-brand">scolaire nationale</span>
+            <span className="text-brand">{t.titreLigne2}</span>
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-surface/70">
-            Suivez chaque élève, détectez les difficultés tôt et agissez avant qu&apos;il soit trop tard.
+            {t.accroche}
           </p>
 
           <ul className="mt-8 space-y-5" role="list">
-            {features.map((f) => (
-              <li key={f.title} className="flex items-start gap-4">
+            {t.atouts.map((f, i) => (
+              <li key={f.titre} className="flex items-start gap-4">
                 <span
                   aria-hidden="true"
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-xl"
                 >
-                  {f.icon}
+                  {icones[i]}
                 </span>
                 <div>
-                  <p className="font-semibold text-surface">{f.title}</p>
-                  <p className="mt-0.5 text-sm text-surface/60">{f.desc}</p>
+                  <p className="font-semibold text-surface">{f.titre}</p>
+                  <p className="mt-0.5 text-sm text-surface/60">{f.description}</p>
                 </div>
               </li>
             ))}
@@ -186,8 +177,9 @@ export default function LoginPageClient() {
       */}
       <div className="flex flex-1 flex-col bg-page px-6 lg:px-12">
         {/* Barre accessibilité — épinglée en haut, jamais coupée */}
-        <div className="flex justify-end pt-5 pb-2">
-          <AccessibilityControls variant="light" />
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-5 pb-2">
+          <SelecteurLangue page="connexion" langue={langue} variante="clair" />
+          <AccessibilityControls variant="light" textes={textes.accessibiliteControles} />
         </div>
 
         {/* Formulaire centré dans l'espace restant */}
@@ -197,7 +189,7 @@ export default function LoginPageClient() {
             <div className="mb-8 flex items-center gap-3 lg:hidden">
               <Image
                 src="/armoiries-benin.png"
-                alt="Armoiries du Bénin"
+                alt={textes.commun.armoiriesAlt}
                 height={36}
                 width={36}
                 className="shrink-0"
@@ -206,21 +198,21 @@ export default function LoginPageClient() {
                 <p className="text-sm font-bold uppercase tracking-[0.16em] text-ink">
                   EduTech Bénin
                 </p>
-                <p className="text-xs text-ink-secondary">Plateforme de suivi scolaire</p>
+                <p className="text-xs text-ink-secondary">{textes.commun.sousTitrePlateforme}</p>
               </div>
             </div>
 
             <div className="rounded-2xl border border-border bg-surface p-8 shadow-sm">
-              <h2 className="text-2xl font-bold text-ink">Connexion</h2>
+              <h2 className="text-2xl font-bold text-ink">{t.titre}</h2>
               <p className="mt-1 text-sm text-ink-secondary">
-                Accédez à votre espace dédié.
+                {t.sousTitre}
               </p>
 
               <form onSubmit={handleSubmit} className="mt-7 space-y-5" noValidate>
                 {/* FIX 4 — pl-4 explicite sur l'email */}
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="email" className="text-sm font-semibold text-ink">
-                    Email
+                    {t.email}
                   </label>
                   <input
                     id="email"
@@ -228,7 +220,7 @@ export default function LoginPageClient() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-lg border border-border bg-surface pl-4 pr-4 py-3 text-ink placeholder:text-ink-secondary/50 transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
-                    placeholder="votre@email.bj"
+                    placeholder={t.exempleEmail}
                     autoComplete="email"
                     required
                   />
@@ -237,7 +229,7 @@ export default function LoginPageClient() {
                 {/* FIX 4 + 5 — pl-4 pr-10 + icône œil */}
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="password" className="text-sm font-semibold text-ink">
-                    Mot de passe
+                    {t.motDePasse}
                   </label>
                   <div className="relative">
                     <input
@@ -252,7 +244,7 @@ export default function LoginPageClient() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                      aria-label={showPassword ? t.masquerMotDePasse : t.afficherMotDePasse}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-secondary hover:text-ink transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-1 rounded"
                     >
                       {showPassword ? (
@@ -277,9 +269,9 @@ export default function LoginPageClient() {
                     role="alert"
                     className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
                   >
-                    <p className="font-semibold">Accès temporairement bloqué</p>
+                    <p className="font-semibold">{t.bloqueTitre}</p>
                     <p className="mt-0.5">
-                      Trop de tentatives échouées. Réessayez dans 15 minutes.
+                      {t.bloqueDetail}
                     </p>
                   </div>
                 )}
@@ -298,19 +290,19 @@ export default function LoginPageClient() {
                   disabled={loading || estBloque}
                   className="flex h-12 w-full items-center justify-center rounded-lg bg-brand px-4 font-bold leading-none text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? "Connexion…" : "Se connecter"}
+                  {loading ? t.boutonEnCours : t.bouton}
                 </button>
               </form>
             </div>
 
             <p className="mt-6 text-center text-sm text-ink-secondary">
-              Problème de connexion ?{" "}
+              {t.probleme}{" "}
               <button
                 type="button"
-                onClick={() => void demanderReinitialisation()}
+                onClick={() => void demanderReinitialisation(t)}
                 className="font-semibold text-brand-dark underline decoration-brand/30 underline-offset-2 hover:decoration-brand focus:outline-none focus:ring-2 focus:ring-brand-dark"
               >
-                Contactez l&apos;administration
+                {t.contacter}
               </button>
             </p>
           </div>

@@ -8,6 +8,7 @@ import {
   preferencesServeur,
   type TaillePolice,
 } from "@/lib/preferences-accessibilite";
+import { TEXTES_FR, type Textes } from "@/lib/i18n/textes";
 
 type FontSize = TaillePolice;
 
@@ -21,9 +22,13 @@ const fontSizeLabel: Record<FontSize, string> = {
 
 export default function AccessibilityControls({
   variant = "dark",
+  textes = TEXTES_FR.accessibiliteControles,
 }: {
   variant?: "dark" | "light";
+  /** Libellés et voix de lecture ; français par défaut (reste de l'application) */
+  textes?: Textes["accessibiliteControles"];
 }) {
+  const t = textes;
   // Préférences lues dans localStorage ; valeurs par défaut au rendu serveur et à l'hydratation
   const preferences = useSyncExternalStore(abonnerPreferences, lirePreferences, preferencesServeur);
   const { contrasteEleve: highContrast, taille: fontSize } = preferences;
@@ -56,17 +61,21 @@ export default function AccessibilityControls({
     const main = document.querySelector("main");
     const text = main?.textContent?.replace(/\s+/g, " ").trim();
     if (!text) {
-      setSpeechMessage("Aucun texte principal à lire.");
+      setSpeechMessage(t.rienALire);
       return;
     }
     if (!("speechSynthesis" in window)) {
-      setSpeechMessage("La lecture vocale n'est pas disponible dans ce navigateur.");
+      setSpeechMessage(t.lectureIndisponible);
       return;
     }
     setSpeechMessage("");
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "fr-FR";
+    utterance.lang = t.voix;
+    // Voix installée dans la langue de la page (anglaise sur les pages en anglais), si le navigateur en propose une
+    const prefixe = t.voix.slice(0, 2).toLowerCase();
+    const voix = window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(prefixe));
+    if (voix) utterance.voice = voix;
     utterance.rate = 0.85;
     utterance.onend = () => setIsReading(false);
     utterance.onerror = () => setIsReading(false);
@@ -90,14 +99,14 @@ export default function AccessibilityControls({
   const ringOffset = d ? "focus-visible:ring-offset-ink" : "focus-visible:ring-offset-surface";
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2" aria-label="Options d'accessibilité">
+    <div className="flex flex-wrap items-center justify-end gap-2" aria-label={t.groupe}>
 
       {/* ── Contrast toggle ─────────────────────────── */}
       <button
         type="button"
         aria-pressed={highContrast}
         onClick={toggleContrast}
-        title={highContrast ? "Désactiver le contraste élevé" : "Activer le contraste élevé"}
+        title={highContrast ? t.desactiverContraste : t.activerContraste}
         className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition ${ring} ${ringOffset} ${
           highContrast
             ? d
@@ -109,7 +118,7 @@ export default function AccessibilityControls({
         }`}
       >
         <span aria-hidden="true" className="text-base leading-none">◐</span>
-        <span>Contraste</span>
+        <span>{t.contraste}</span>
         {highContrast && (
           <span aria-hidden="true" className={`rounded px-1 py-px text-xs font-bold ${d ? "bg-brand text-ink" : "bg-brand text-ink"}`}>
             ON
@@ -120,12 +129,12 @@ export default function AccessibilityControls({
       {/* ── Font size ────────────────────────────────── */}
       <div
         role="group"
-        aria-label="Taille du texte"
+        aria-label={t.tailleTexte}
         className={`flex items-stretch overflow-hidden rounded-lg border ${d ? "border-white/25 bg-white/10" : "border-border bg-surface"}`}
       >
         <button
           type="button"
-          aria-label="Réduire la taille du texte"
+          aria-label={t.reduireTexte}
           onClick={() => changeFontSize("decrease")}
           disabled={!canDecrease}
           className={`px-3 py-2 text-sm font-semibold transition ${ring} ${
@@ -148,7 +157,7 @@ export default function AccessibilityControls({
 
         <button
           type="button"
-          aria-label="Augmenter la taille du texte"
+          aria-label={t.augmenterTexte}
           onClick={() => changeFontSize("increase")}
           disabled={!canIncrease}
           className={`px-3 py-2 text-sm font-semibold transition ${ring} ${
@@ -173,7 +182,7 @@ export default function AccessibilityControls({
           }`}
         >
           <span aria-hidden="true">■</span>
-          <span>Arrêter</span>
+          <span>{t.arreter}</span>
         </button>
       ) : (
         <button
@@ -186,7 +195,7 @@ export default function AccessibilityControls({
           }`}
         >
           <span aria-hidden="true">▶</span>
-          <span>Lire</span>
+          <span>{t.lire}</span>
         </button>
       )}
 
