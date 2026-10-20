@@ -1,11 +1,11 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { creerClientPrisma } from "../src/lib/prisma";
 import { verifierBaseNonProtegee } from "./garde-prod";
 import bcrypt from "bcryptjs";
 
 verifierBaseNonProtegee();
 
-const prisma = new PrismaClient();
+const prisma = creerClientPrisma();
 
 async function main() {
   const password = await bcrypt.hash("password123", 10);

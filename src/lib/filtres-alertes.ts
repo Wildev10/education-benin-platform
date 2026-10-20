@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
 // Ce module n'importe Prisma qu'en type : il est utilisé côté client (formulaire
 // de filtres) comme côté serveur (page, API, export PDF).

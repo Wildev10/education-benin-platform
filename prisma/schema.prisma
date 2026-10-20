@@ -1,11 +1,14 @@
+// Prisma 7 : client généré dans src/generated/prisma (ignoré par git, recréé par
+// `prisma generate` à l'installation). Importer depuis "@/generated/prisma/client".
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
+// La connexion du CLI est dans prisma.config.ts ; celle de l'application passe
+// par le driver adapter de src/lib/prisma.ts.
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Etudiant {

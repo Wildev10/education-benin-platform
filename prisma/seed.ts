@@ -1,11 +1,11 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { creerClientPrisma } from "../src/lib/prisma";
 import { faker } from "@faker-js/faker";
 import { verifierBaseNonProtegee } from "./garde-prod";
 
 verifierBaseNonProtegee();
 
-const prisma = new PrismaClient();
+const prisma = creerClientPrisma();
 
 const ETABLISSEMENTS = [
   { nom: "Lycée Mathieu Bouké", departement: "Atlantique", commune: "Abomey-Calavi" },

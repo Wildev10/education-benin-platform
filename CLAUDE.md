@@ -3,7 +3,7 @@
 # EduTech Bénin — consignes pour Claude Code
 
 Plateforme de suivi scolaire pour le Ministère de l'Éducation du Bénin : notes, absences, alertes de décrochage, quatre espaces (admin, directeur, enseignant, étudiant).
-Stack : Next.js 16 (App Router), Prisma 6, PostgreSQL Neon, Auth.js v5, Tailwind 4, déployé sur Vercel.
+Stack : Next.js 16 (App Router), Prisma 7 (driver adapter `pg`), PostgreSQL Neon, Auth.js v5, Tailwind 4, Node 24, déployé sur Vercel.
 Le détail (fonctionnalités, installation, comptes de démo, options de `npm run e2e`) est dans le README : s'y reporter plutôt que de le recopier ici.
 
 ## Sécurité : règles absolues
@@ -31,6 +31,7 @@ Le détail (fonctionnalités, installation, comptes de démo, options de `npm ru
 - Après un push sur main, vérifier que le déploiement Vercel réussit (statut du commit : `gh api repos/Wildev10/education-benin-platform/commits/<sha>/status`).
 - Dépendances : version exacte, sans `^` ni `~`, pour toute dépendance ajoutée ou mise à jour. Jamais de `npm audit fix --force`.
 - Next 16 diffère des versions connues : lire le guide concerné dans `node_modules/next/dist/docs/` avant d'écrire du code (voir AGENTS.md).
+- Prisma 7 : importer `PrismaClient` et le type `Prisma` depuis `@/generated/prisma/client` (jamais `@prisma/client`) ; utiliser le client de `src/lib/prisma.ts`. Après `npx prisma db push` sur la base de dev, lancer `npx prisma generate` : `db push` ne régénère plus le client.
 
 ## Commandes
 
@@ -44,6 +45,7 @@ Le détail (fonctionnalités, installation, comptes de démo, options de `npm ru
 ## Fichiers clés
 
 - `src/auth.ts` : Auth.js (connexion, session JWT, rôle et établissement de l'utilisateur)
+- `src/lib/prisma.ts` : client Prisma unique (adaptateur `pg`, délai de connexion 5 s)
 - `src/proxy.ts` : redirections selon le rôle (première barrière, pas la seule)
 - `src/lib/perimetre.ts` : règles d'accès aux élèves et établissements
 - `src/lib/detection-alerte.ts` : règles de détection du décrochage (notes, absences)

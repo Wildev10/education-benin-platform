@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { FiltresEleves } from "@/lib/filtres-eleves";
 import { pageVide, paginer, type DemandePage, type PageResultats } from "@/lib/pagination";

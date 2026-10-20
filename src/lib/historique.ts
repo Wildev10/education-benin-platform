@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { ACTION_TYPES, type ActionType } from "@/lib/audit-types";
 import type { FiltresHistorique } from "@/lib/filtres-historique";
 import { paginer, type DemandePage, type PageResultats } from "@/lib/pagination";

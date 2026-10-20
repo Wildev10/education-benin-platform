@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import type { FiltresAbsences } from "@/lib/filtres-absences";
 import { pageVide, paginer, type DemandePage, type PageResultats } from "@/lib/pagination";
 import { filtreEtudiantsAccessibles } from "@/lib/perimetre";

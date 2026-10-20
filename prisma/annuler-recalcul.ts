@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
-import { PrismaClient } from "@prisma/client";
+import { creerClientPrisma } from "../src/lib/prisma";
 import { verifierBaseNonProtegee } from "./garde-prod";
 
 // Sortie de secours : supprime UNIQUEMENT les alertes listées dans
@@ -10,7 +10,7 @@ import { verifierBaseNonProtegee } from "./garde-prod";
 const execute = process.argv.includes("--execute");
 if (execute) verifierBaseNonProtegee();
 
-const prisma = new PrismaClient();
+const prisma = creerClientPrisma();
 
 async function main() {
   const ids: string[] = JSON.parse(readFileSync("prisma/alertes-creees.json", "utf8"));

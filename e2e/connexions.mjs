@@ -1,5 +1,5 @@
 // Parcours de connexion des 4 rôles : page d'accueil, navigation, service worker, déconnexion.
-import { COMPTES, connecter, creerRapport, lancerNavigateur } from "./commun.mjs";
+import { BASE, COMPTES, connecter, creerRapport, lancerNavigateur } from "./commun.mjs";
 
 const rapport = creerRapport("Connexions");
 const navigateur = await lancerNavigateur();
@@ -49,6 +49,43 @@ for (const r of ROLES) {
   rapport.check(`${r.role} : aucune erreur JS`, page.erreursJs.length === 0, page.erreursJs.slice(0, 2).join(" ; "));
   await page.context().close();
 }
+
+// ── Limitation des tentatives ────────────────────────────────────────────────
+// Le compteur est gardé en mémoire par IP (x-forwarded-for) : une IP de
+// documentation (RFC 5737) propre à ce test, pour ne bloquer aucun autre scénario.
+const ipTest = (n) => `198.51.100.${n}`;
+const suffixe = Date.now() % 200;
+const essais = await navigateur.newContext({ extraHTTPHeaders: { "x-forwarded-for": ipTest(suffixe) } });
+const pageEssais = await essais.newPage();
+await pageEssais.goto(`${BASE}/login`);
+const messages = [];
+for (let i = 1; i <= 6; i++) {
+  await pageEssais.fill("#email", COMPTES.admin.email);
+  await pageEssais.fill("#password", `mauvais-mot-de-passe-${i}`);
+  await pageEssais.click('button[type="submit"]');
+  const alerte = pageEssais.locator('[role="alert"]').filter({ hasText: /incorrect|bloqué/ });
+  await alerte.first().waitFor({ timeout: 20000 });
+  messages.push((await alerte.first().textContent()).replace(/\s+/g, " ").trim());
+}
+const bloque = messages[5].includes("Accès temporairement bloqué");
+rapport.check("Limitation : 5 mauvais mots de passe → « Email ou mot de passe incorrect. »",
+  messages.slice(0, 5).every((m) => m.includes("Email ou mot de passe incorrect")), messages.slice(0, 5).map((m) => m.slice(0, 30)).join(" | "));
+rapport.check("Limitation : 6ᵉ essai → « Accès temporairement bloqué », bouton désactivé",
+  bloque && (await pageEssais.locator('button[type="submit"]').isDisabled()), messages[5].slice(0, 60));
+rapport.check("Limitation : toujours sur /login, aucune session ouverte", new URL(pageEssais.url()).pathname === "/login" &&
+  !(await essais.cookies()).some((c) => c.name.includes("session-token")));
+await essais.close();
+
+// Le blocage vise l'IP, pas le compte : depuis une autre IP, la connexion fonctionne
+const autreIp = await navigateur.newContext({ extraHTTPHeaders: { "x-forwarded-for": ipTest(suffixe + 1) } });
+const pageAutre = await autreIp.newPage();
+await pageAutre.goto(`${BASE}/login`);
+await pageAutre.fill("#email", COMPTES.admin.email);
+await pageAutre.fill("#password", COMPTES.admin.motDePasse);
+await pageAutre.click('button[type="submit"]');
+const connecteAutre = await pageAutre.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 60000 }).then(() => true, () => false);
+rapport.check("Limitation : depuis une autre IP, le même compte se connecte normalement", connecteAutre, new URL(pageAutre.url()).pathname);
+await autreIp.close();
 
 await navigateur.close();
 rapport.terminer();

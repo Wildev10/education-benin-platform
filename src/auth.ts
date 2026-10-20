@@ -2,11 +2,9 @@ import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
 import { headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
 import { verifierRateLimit, enregistrerEchec, reinitialiserCompteur } from "@/lib/rate-limit";
-
-const prisma = new PrismaClient();
 
 class RateLimitError extends CredentialsSignin {
   code = "rate_limit";

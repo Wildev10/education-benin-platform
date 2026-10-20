@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { writeFileSync } from "node:fs";
-import { PrismaClient } from "@prisma/client";
+import { creerClientPrisma } from "../src/lib/prisma";
 import { analyserAlerte } from "../src/lib/detection-alerte";
 import { verifierBaseNonProtegee } from "./garde-prod";
 
@@ -11,7 +11,7 @@ import { verifierBaseNonProtegee } from "./garde-prod";
 const execute = process.argv.includes("--execute");
 if (execute) verifierBaseNonProtegee();
 
-const prisma = new PrismaClient();
+const prisma = creerClientPrisma();
 
 async function main() {
   const etudiants = await prisma.etudiant.findMany({

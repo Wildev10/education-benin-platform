@@ -72,7 +72,7 @@ Les règles s'appliquent à chaque saisie de note ou d'absence :
 | Framework | Next.js 16 (App Router) |
 | Langage | TypeScript |
 | Base de données | PostgreSQL (Neon) |
-| ORM | Prisma 6 |
+| ORM | Prisma 7 (driver adapter `pg`) |
 | Authentification | Auth.js v5 (sessions JWT) |
 | Style | Tailwind CSS 4 |
 | IA | Google Gemini API |
@@ -100,7 +100,7 @@ Les règles s'appliquent à chaque saisie de note ou d'absence :
 
 ### Prérequis
 
-- Node.js 20.9 ou plus récent (exigé par Next.js 16)
+- Node.js 24 (champ `engines` de `package.json` ; Prisma 7 exige au moins 20.19)
 - Un compte [Neon](https://neon.tech) avec une branche **dev**
 - Une clé API Google Gemini
 - Un compte Sentry (facultatif en local)
@@ -117,7 +117,7 @@ Créez un fichier `.env` à partir de `.env.example` :
 
 | Variable | Valeur |
 |---|---|
-| `DATABASE_URL` | Connexion à la branche **dev** sur Neon (jamais la production) |
+| `DATABASE_URL` | Connexion à la branche **dev** sur Neon (jamais la production). `sslmode=verify-full` est conseillé : `pg` traite déjà `require` comme `verify-full`, mais `require` deviendra moins strict avec `pg` v9 |
 | `AUTH_SECRET` | À générer avec `openssl rand -base64 32` |
 | `GEMINI_API_KEY` | Depuis [aistudio.google.com](https://aistudio.google.com) |
 | `PROTECTED_DB_HOSTS` | Hôte(s) de la base de production, séparés par des virgules (garde-fou) |
@@ -126,8 +126,8 @@ Créez un fichier `.env` à partir de `.env.example` :
 ### Base de données et démarrage
 
 ```bash
-npx prisma generate
-npx prisma db push                 # crée les tables
+npx prisma generate                # client dans src/generated/prisma (aussi lancé par npm install)
+npx prisma db push                 # crée les tables (ne régénère plus le client depuis Prisma 7)
 npx prisma db seed                 # établissements, élèves, notes de démonstration
 npx tsx prisma/seed-users.ts       # comptes de démonstration (admin, enseignant, étudiant)
 npm run dev
@@ -136,7 +136,8 @@ npm run dev
 L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 
 > ⚠️ **Utilisez toujours une branche Neon « dev », jamais la production.**
-> Le garde-fou `prisma/garde-prod.ts` bloque les scripts d'écriture (seed, recalcul des alertes) si `DATABASE_URL` pointe vers un hôte listé dans `PROTECTED_DB_HOSTS`.
+> Le garde-fou `prisma/garde-prod.ts` bloque les scripts d'écriture (seed, recalcul des alertes) si `DATABASE_URL` pointe vers un hôte listé dans `PROTECTED_DB_HOSTS`, ou si cette variable est vide.
+> Le client Prisma est importé depuis `@/generated/prisma/client` (plus depuis `@prisma/client`) et se connecte via `src/lib/prisma.ts`.
 
 ---
 
