@@ -1,101 +1,55 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/Badge";
+import { Pagination } from "@/components/Pagination";
+import { rechercherElevesPagines } from "@/lib/eleves-server";
+import { filtresElevesVersParams, lireFiltresEleves } from "@/lib/filtres-eleves";
+import { lirePagination } from "@/lib/pagination";
+import { corrigerUrlPagination } from "@/lib/pagination-serveur";
+import { FiltresEleves } from "./FiltresEleves";
 
-type Etablissement = { id: string; nom: string };
+type SearchParams = Record<string, string | string[] | undefined>;
 
-type Etudiant = {
-  id: string;
-  nom: string;
-  prenom: string;
-  niveau: string;
-  etablissement: Etablissement;
-};
-
-type ActiveAlert = { etudiant: { id: string } };
-
-const niveaux = ["Seconde C", "Première D", "Terminale D"];
-
-export default function StudentDirectory({
-  etablissements,
+/**
+ * Liste paginée des élèves (admin, directeur, enseignant). Filtres, page et
+ * taille viennent de l'URL ; le périmètre du rôle est appliqué avant la
+ * pagination, si bien que le total ne compte que les élèves visibles.
+ */
+export default async function StudentDirectory({
+  chemin,
+  searchParams,
   detailBasePath = "/enseignant/etudiants",
   showActiveAlerts = false,
 }: {
-  etablissements: Etablissement[];
+  chemin: string;
+  searchParams: SearchParams;
   detailBasePath?: string;
   showActiveAlerts?: boolean;
 }) {
-  const [etudiants, setEtudiants] = useState<Etudiant[]>([]);
-  const [activeAlertStudentIds, setActiveAlertStudentIds] = useState<Set<string>>(new Set());
-  const [etablissementId, setEtablissementId] = useState("");
-  const [niveau, setNiveau] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const session = await auth();
+  if (!session?.user) redirect("/login");
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setSearch(searchInput.trim());
-    }, 300);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [searchInput]);
+  const estAdmin = session.user.role === "admin";
+  const lus = lireFiltresEleves(searchParams);
+  // Hors admin, le filtre établissement de l'URL est sans effet : on ne le garde pas dans les liens
+  const filtres = estAdmin ? lus : { ...lus, etablissement: undefined };
+  const requete = filtresElevesVersParams(filtres);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const [resultat, etablissements] = await Promise.all([
+    rechercherElevesPagines(filtres, session.user, lirePagination(searchParams)),
+    estAdmin
+      ? prisma.etablissement.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } })
+      : Promise.resolve(null),
+  ]);
+  corrigerUrlPagination(chemin, requete, searchParams, resultat);
 
-    async function loadStudents() {
-      setLoading(true);
-      setError("");
-
-      const params = new URLSearchParams();
-      if (etablissementId) params.set("etablissementId", etablissementId);
-      if (niveau) params.set("niveau", niveau);
-      if (search) params.set("search", search);
-
-      try {
-        const requests = [
-          fetch(`/api/etudiants?${params.toString()}`, { signal: controller.signal }),
-        ];
-        if (showActiveAlerts) {
-          requests.push(fetch("/api/alertes?statut=active", { signal: controller.signal }));
-        }
-
-        const responses = await Promise.all(requests);
-        if (responses.some((r) => r.status === 401)) {
-          window.location.assign("/login");
-          return;
-        }
-        const studentData = await responses[0].json();
-        if (!responses[0].ok) throw new Error(studentData.error ?? "Erreur de chargement");
-
-        setEtudiants(studentData);
-        if (showActiveAlerts) {
-          const alertData = await responses[1].json() as ActiveAlert[];
-          if (!responses[1].ok) throw new Error("Impossible de charger les alertes actives.");
-          setActiveAlertStudentIds(new Set(alertData.map((a) => a.etudiant.id)));
-        }
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError("Impossible de charger la liste des étudiants.");
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    }
-
-    void loadStudents();
-    return () => controller.abort();
-  }, [etablissementId, niveau, search, showActiveAlerts]);
+  const sansEtablissement = !estAdmin && !session.user.etablissementId;
+  const { elements: etudiants, total } = resultat;
 
   return (
     <section aria-labelledby="liste-etudiants" className="mt-8">
-      {/* Section header */}
       <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">
@@ -105,170 +59,85 @@ export default function StudentDirectory({
             Étudiants
           </h2>
         </div>
-        {!search && (
-          <p className="text-sm text-ink-secondary" aria-live="polite">
-            {loading
-              ? "Chargement…"
-              : `${etudiants.length} étudiant${etudiants.length > 1 ? "s" : ""}`}
-          </p>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="border-b border-border py-5">
-        <div className="relative w-full max-w-md">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className={`h-4 w-4 transition ${searchInput ? "text-brand-dark" : "text-ink-secondary"} peer-focus:text-brand-dark`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-            </svg>
-          </span>
-          <input
-            id="search-etudiants"
-            type="search"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Rechercher par nom ou prénom..."
-            className="peer w-full rounded-lg border border-border bg-surface py-2.5 pl-9 pr-9 text-sm text-ink transition placeholder:text-ink-secondary focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
-          />
-          {searchInput && (
-            <button
-              type="button"
-              onClick={() => setSearchInput("")}
-              aria-label="Effacer la recherche"
-              className="absolute inset-y-0 right-3 flex items-center text-ink-secondary hover:text-ink"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
-        {search && (
-          <p className="mt-2 text-sm text-ink-secondary" aria-live="polite">
-            {loading ? "Recherche…" : `${etudiants.length} élève${etudiants.length > 1 ? "s" : ""} trouvé${etudiants.length > 1 ? "s" : ""}`}
-          </p>
-        )}
-      </div>
-
-      {/* Filters */}
-      <div className="grid gap-4 border-b border-border py-5 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="filter-etablissement" className="text-sm font-semibold text-ink">
-            Établissement
-          </label>
-          <select
-            id="filter-etablissement"
-            value={etablissementId}
-            onChange={(e) => setEtablissementId(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
-          >
-            <option value="">Tous les établissements</option>
-            {etablissements.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.nom}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="filter-niveau" className="text-sm font-semibold text-ink">
-            Niveau
-          </label>
-          <select
-            id="filter-niveau"
-            value={niveau}
-            onChange={(e) => setNiveau(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
-          >
-            <option value="">Tous les niveaux</option>
-            {niveaux.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {error && (
-        <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 font-medium text-red-800">
-          {error}
+        <p role="status" className="text-sm text-ink-secondary">
+          {total} étudiant{total > 1 ? "s" : ""}
+          {filtres.q ? ` trouvé${total > 1 ? "s" : ""}` : ""}
         </p>
-      )}
-
-      {/* Table */}
-      <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-160 text-left">
-            <caption className="sr-only">Liste filtrée des étudiants</caption>
-            <thead>
-              <tr className="bg-ink text-sm text-surface">
-                <th scope="col" className="px-5 py-4 font-semibold">Nom</th>
-                <th scope="col" className="px-5 py-4 font-semibold">Prénom</th>
-                <th scope="col" className="px-5 py-4 font-semibold">Établissement</th>
-                <th scope="col" className="px-5 py-4 font-semibold">Niveau</th>
-                {showActiveAlerts && (
-                  <th scope="col" className="px-5 py-4 font-semibold">Suivi</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {etudiants.map((etudiant, i) => (
-                <tr
-                  key={etudiant.id}
-                  className={`transition hover:bg-brand-light ${i % 2 === 1 ? "bg-page" : "bg-surface"}`}
-                >
-                  <td className="px-5 py-4">
-                    <Link
-                      href={`${detailBasePath}/${etudiant.id}`}
-                      className="font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-brand-dark hover:decoration-brand/30 focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
-                    >
-                      {etudiant.nom}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-4 text-ink-secondary">{etudiant.prenom}</td>
-                  <td className="px-5 py-4 text-ink-secondary">{etudiant.etablissement.nom}</td>
-                  <td className="px-5 py-4 text-ink-secondary">{etudiant.niveau}</td>
-                  {showActiveAlerts && (
-                    <td className="px-5 py-4">
-                      {activeAlertStudentIds.has(etudiant.id) ? (
-                        <Badge variant="risk-eleve">Alerte active</Badge>
-                      ) : (
-                        <span className="text-sm text-ink-secondary">Aucune alerte</span>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!loading && etudiants.length === 0 && (
-          <p className="p-8 text-center text-ink-secondary">
-            Aucun étudiant ne correspond à ces filtres.
-          </p>
-        )}
-        {loading && (
-          <div className="space-y-0" aria-hidden="true">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex gap-5 border-t border-border px-5 py-4">
-                <div className="h-4 w-28 animate-pulse rounded bg-border" />
-                <div className="h-4 w-20 animate-pulse rounded bg-border" />
-                <div className="h-4 w-40 animate-pulse rounded bg-border" />
-                <div className="h-4 w-24 animate-pulse rounded bg-border" />
-              </div>
-            ))}
-          </div>
-        )}
       </div>
+
+      {sansEtablissement ? (
+        <div role="alert" className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
+          <p className="text-xl font-bold text-amber-950">Aucun établissement rattaché à votre compte</p>
+          <p className="mt-2 text-amber-900">
+            La liste des élèves s&apos;affichera dès que votre compte sera rattaché à un établissement.
+            Contactez l&apos;administrateur.
+          </p>
+        </div>
+      ) : (
+        <FiltresEleves filtres={filtres} taille={resultat.taille} etablissements={etablissements}>
+          <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-160 text-left">
+                <caption className="sr-only">Liste filtrée des étudiants</caption>
+                <thead>
+                  <tr className="bg-ink text-sm text-surface">
+                    <th scope="col" className="px-5 py-4 font-semibold">Nom</th>
+                    <th scope="col" className="px-5 py-4 font-semibold">Prénom</th>
+                    <th scope="col" className="px-5 py-4 font-semibold">Établissement</th>
+                    <th scope="col" className="px-5 py-4 font-semibold">Niveau</th>
+                    {showActiveAlerts && (
+                      <th scope="col" className="px-5 py-4 font-semibold">Suivi</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {etudiants.map((etudiant, i) => (
+                    <tr
+                      key={etudiant.id}
+                      className={`transition hover:bg-brand-light ${i % 2 === 1 ? "bg-page" : "bg-surface"}`}
+                    >
+                      <td className="px-5 py-4">
+                        <Link
+                          href={`${detailBasePath}/${etudiant.id}`}
+                          className="font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-brand-dark hover:decoration-brand/30 focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
+                        >
+                          {etudiant.nom}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-4 text-ink-secondary">{etudiant.prenom}</td>
+                      <td className="px-5 py-4 text-ink-secondary">{etudiant.etablissement.nom}</td>
+                      <td className="px-5 py-4 text-ink-secondary">{etudiant.niveau}</td>
+                      {showActiveAlerts && (
+                        <td className="px-5 py-4">
+                          {etudiant.alerteActive ? (
+                            <Badge variant="risk-eleve">Alerte active</Badge>
+                          ) : (
+                            <span className="text-sm text-ink-secondary">Aucune alerte</span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {etudiants.length === 0 && (
+              <p className="p-8 text-center text-ink-secondary">
+                Aucun étudiant ne correspond à ces filtres.
+              </p>
+            )}
+          </div>
+          <Pagination
+            chemin={chemin}
+            requete={requete.toString()}
+            page={resultat.page}
+            taille={resultat.taille}
+            total={total}
+            nbPages={resultat.nbPages}
+            libelle="Pages des étudiants"
+          />
+        </FiltresEleves>
+      )}
     </section>
   );
 }

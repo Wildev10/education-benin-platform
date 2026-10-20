@@ -49,16 +49,13 @@ async function getStatsEcole(etablissementId: string | null | undefined) {
   };
 }
 
-export default async function EnseignantPage() {
+export default async function EnseignantPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
-
-  const [etablissements, stats] = await Promise.all([
-    prisma.etablissement.findMany({
-      orderBy: { nom: "asc" },
-      select: { id: true, nom: true },
-    }),
-    getStatsEcole(session?.user?.etablissementId),
-  ]);
+  const stats = await getStatsEcole(session?.user?.etablissementId);
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
@@ -108,7 +105,7 @@ export default async function EnseignantPage() {
         )}
       </section>
 
-      <StudentDirectory etablissements={etablissements} />
+      <StudentDirectory chemin="/enseignant" searchParams={await searchParams} />
     </main>
   );
 }

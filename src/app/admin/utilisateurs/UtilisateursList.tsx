@@ -33,19 +33,23 @@ type Utilisateur = {
 
 type Etablissement = { id: string; nom: string };
 
+/**
+ * Une page de comptes, rendue côté serveur. Après une modification ou une
+ * suppression, on relit la page depuis le serveur (router.refresh) pour que
+ * le total et le contenu de la page restent justes.
+ */
 export default function UtilisateursList({
-  initialUtilisateurs,
+  utilisateurs,
   currentUserId,
   etablissements,
   initialDemandes,
 }: {
-  initialUtilisateurs: Utilisateur[];
+  utilisateurs: Utilisateur[];
   currentUserId: string;
   etablissements: Etablissement[];
   initialDemandes: DemandeReinitialisation[];
 }) {
   const router = useRouter();
-  const [utilisateurs, setUtilisateurs] = useState(initialUtilisateurs);
   const [demandes, setDemandes] = useState(initialDemandes);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -73,7 +77,7 @@ export default function UtilisateursList({
         const data = await res.json() as { error?: string };
         throw new Error(data.error ?? "Impossible de supprimer.");
       }
-      setUtilisateurs((current) => current.filter((u) => u.id !== id));
+      router.refresh();
       void Toast.fire({ icon: "success", title: "Compte supprimé." });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
@@ -84,13 +88,8 @@ export default function UtilisateursList({
   }
 
   async function handleResetDemande(demande: DemandeReinitialisation) {
-    const utilisateur = utilisateurs.find((u) => u.id === demande.user.id);
-    if (!utilisateur) {
-      void Toast.fire({ icon: "error", title: "Compte introuvable dans la liste." });
-      return;
-    }
-
-    const motDePasse = await handleEdit(utilisateur, generateTempPassword());
+    // Le compte peut se trouver sur une autre page de la liste : la demande porte ses informations
+    const motDePasse = await handleEdit(demande.user, generateTempPassword());
     if (!motDePasse) return;
 
     const res = await fetch(`/api/admin/reset-requests/${demande.id}`, { method: "PATCH" }).catch(() => null);
@@ -219,7 +218,7 @@ export default function UtilisateursList({
         body: JSON.stringify(formValues),
       });
 
-      const data = await res.json() as Utilisateur & { error?: string };
+      const data = await res.json() as { error?: string };
 
       if (res.status === 403) {
         void Toast.fire({ icon: "warning", title: data.error ?? "Action interdite." });
@@ -230,9 +229,7 @@ export default function UtilisateursList({
         return null;
       }
 
-      setUtilisateurs((current) =>
-        current.map((u) => (u.id === utilisateur.id ? { ...data } : u))
-      );
+      router.refresh();
       if (!modeReinitialisation) void Toast.fire({ icon: "success", title: "Compte modifié." });
       return formValues.password ?? "";
     } catch {

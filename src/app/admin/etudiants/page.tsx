@@ -1,12 +1,10 @@
-import { prisma } from "@/lib/prisma";
 import StudentDirectory from "../../enseignant/StudentDirectory";
 
-export default async function AdminStudentsPage() {
-  const etablissements = await prisma.etablissement.findMany({
-    orderBy: { nom: "asc" },
-    select: { id: true, nom: true },
-  });
-
+export default async function AdminStudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
       <div className="max-w-3xl">
@@ -21,7 +19,8 @@ export default async function AdminStudentsPage() {
         </p>
       </div>
       <StudentDirectory
-        etablissements={etablissements}
+        chemin="/admin/etudiants"
+        searchParams={await searchParams}
         detailBasePath="/admin/etudiants"
         showActiveAlerts
       />

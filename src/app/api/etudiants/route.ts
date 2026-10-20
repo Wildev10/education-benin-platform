@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { rechercherElevesPagines } from "@/lib/eleves-server";
+import { lireFiltresEleves } from "@/lib/filtres-eleves";
+import { lirePagination, paginationDemandee } from "@/lib/pagination";
 
 export async function GET(request: Request) {
   const access = await requireRole(["admin", "enseignant", "directeur"]);
@@ -25,6 +28,13 @@ export async function GET(request: Request) {
       return NextResponse.json(
         { error: "Votre compte n'est pas rattaché à un établissement. Contactez l'administrateur." },
         { status: 403 }
+      );
+    }
+
+    // Avec page ou taille : une page { elements, total, page, taille, nbPages }, triée par nom
+    if (paginationDemandee(searchParams)) {
+      return NextResponse.json(
+        await rechercherElevesPagines(lireFiltresEleves(searchParams), access.user, lirePagination(searchParams))
       );
     }
 

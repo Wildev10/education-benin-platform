@@ -145,7 +145,10 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ```bash
 npm test          # 21 tests automatisés
 npm run build     # vérification TypeScript et build complet
+npm run e2e       # tests navigateur (connexions, exports Excel, pagination)
 ```
+
+`npm run e2e` fait le build, lance `next start` sur le port 3100, exécute les scénarios de `e2e/` avec Google Chrome, puis arrête le serveur ; il refuse de démarrer si la base du `.env` figure dans `PROTECTED_DB_HOSTS`. Pour inclure le rôle directeur, copiez `.env.e2e.example` en `.env.e2e.local` (ignoré par git) et renseignez `E2E_DIRECTEUR_EMAIL` et `E2E_DIRECTEUR_MOT_DE_PASSE` avec un compte directeur de la base de dev ; sans eux, ces étapes sont ignorées. Options : `npm run e2e -- pagination` pour un seul scénario, `npm run e2e -- --sans-build` pour réutiliser le build existant.
 
 ---
 

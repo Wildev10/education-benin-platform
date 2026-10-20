@@ -1,35 +1,35 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { Pagination } from "@/components/Pagination";
+import { lirePagination } from "@/lib/pagination";
+import { corrigerUrlPagination } from "@/lib/pagination-serveur";
 import { prisma } from "@/lib/prisma";
 import { getDemandesEnAttente } from "@/lib/reset-requests";
+import { listerUtilisateursPagines } from "@/lib/utilisateurs-server";
 import UtilisateursList from "./UtilisateursList";
 
-export default async function UtilisateursPage() {
+const CHEMIN = "/admin/utilisateurs";
+
+export default async function UtilisateursPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   if (!session?.user || session.user.role !== "admin") redirect("/login");
 
-  const [utilisateurs, etablissements, demandes] = await Promise.all([
-    prisma.user.findMany({
-    select: {
-      id: true,
-      nom: true,
-      prenom: true,
-      email: true,
-      role: true,
-      etudiantId: true,
-      etablissementId: true,
-      etablissement: { select: { nom: true } },
-      createdAt: true,
-    },
-      orderBy: { createdAt: "asc" },
-    }),
+  const params = await searchParams;
+  const [resultat, etablissements, demandes] = await Promise.all([
+    listerUtilisateursPagines(lirePagination(params)),
     prisma.etablissement.findMany({
       select: { id: true, nom: true },
       orderBy: { nom: "asc" },
     }),
     getDemandesEnAttente(),
   ]);
+  corrigerUrlPagination(CHEMIN, new URLSearchParams(), params, resultat);
+  const { total } = resultat;
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
@@ -37,7 +37,7 @@ export default async function UtilisateursPage() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-dark">Administration</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Comptes utilisateurs</h1>
-          <p className="mt-2 text-ink-secondary">{utilisateurs.length} compte{utilisateurs.length > 1 ? "s" : ""} enregistré{utilisateurs.length > 1 ? "s" : ""}</p>
+          <p className="mt-2 text-ink-secondary">{total} compte{total > 1 ? "s" : ""} enregistré{total > 1 ? "s" : ""}</p>
         </div>
         <Link
           href="/admin/utilisateurs/nouveau"
@@ -50,7 +50,7 @@ export default async function UtilisateursPage() {
 
       <div className="mt-8">
         <UtilisateursList
-          initialUtilisateurs={utilisateurs.map((u) => ({
+          utilisateurs={resultat.elements.map((u) => ({
             ...u,
             createdAt: u.createdAt.toISOString(),
             etablissement: u.etablissement ?? null,
@@ -58,6 +58,15 @@ export default async function UtilisateursPage() {
           currentUserId={session.user.id ?? ""}
           etablissements={etablissements}
           initialDemandes={demandes}
+        />
+        <Pagination
+          chemin={CHEMIN}
+          requete=""
+          page={resultat.page}
+          taille={resultat.taille}
+          total={total}
+          nbPages={resultat.nbPages}
+          libelle="Pages des comptes"
         />
       </div>
     </main>

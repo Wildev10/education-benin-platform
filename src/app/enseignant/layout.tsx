@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 const navItems = [
   { href: "/enseignant", label: "Étudiants", exact: true },
   { href: "/enseignant/alertes", label: "Alertes" },
+  { href: "/enseignant/absences", label: "Absences" },
   { href: "/enseignant/import", label: "Importer" },
   { href: "/enseignant/assistant", label: "Assistant" },
 ];

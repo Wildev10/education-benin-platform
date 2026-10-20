@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useOptimistic, useTransition } from "react";
 import { Badge, roleVariant } from "@/components/ui/Badge";
 import { ACTION_TYPES, type ActionType } from "@/lib/audit-types";
+import { filtresHistoriqueVersParams, type FiltresHistorique } from "@/lib/filtres-historique";
 import type { EntreeHistorique } from "@/lib/historique";
+import { urlListe, type TaillePage } from "@/lib/pagination";
 
 const actionLabels: Record<ActionType, string> = {
   NOTE_CREEE: "Note créée",
@@ -42,54 +45,45 @@ function formatDateHeure(iso: string) {
 const selectCls =
   "w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark";
 
+/**
+ * Filtres et tableau du journal. Les filtres sont gardés dans l'URL et la page
+ * est rendue côté serveur ; changer un filtre revient à la page 1.
+ */
 export default function HistoriqueList({
-  initialLogs,
+  logs,
+  filtres,
+  taille,
   utilisateurs,
+  children,
 }: {
-  initialLogs: EntreeHistorique[];
+  logs: EntreeHistorique[];
+  filtres: FiltresHistorique;
+  taille: TaillePage;
   utilisateurs: { id: string; nom: string; prenom: string }[];
+  /** Pagination, affichée sous le tableau */
+  children?: React.ReactNode;
 }) {
-  const [logs, setLogs] = useState(initialLogs);
-  const [action, setAction] = useState("");
-  const [userId, setUserId] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const isFirstRender = useRef(true);
+  const router = useRouter();
+  const pathname = usePathname();
+  const [loading, startTransition] = useTransition();
+  const [courants, setCourants] = useOptimistic(filtres);
+  const action = courants.action ?? "";
+  const userId = courants.userId ?? "";
 
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    const controller = new AbortController();
-    const params = new URLSearchParams();
-    if (action) params.set("action", action);
-    if (userId) params.set("userId", userId);
-
-    setLoading(true);
-    setError("");
-    fetch(`/api/admin/historique?${params}`, { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) throw new Error();
-        setLogs(await res.json());
-      })
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError("Impossible de charger l'historique.");
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [action, userId]);
+  function appliquer(partiel: FiltresHistorique) {
+    const suivants = { ...courants, ...partiel };
+    startTransition(() => {
+      setCourants(suivants);
+      router.push(urlListe(pathname, filtresHistoriqueVersParams(suivants), taille), { scroll: false });
+    });
+  }
 
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:max-w-2xl">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="filtre-action" className="text-sm font-semibold text-ink">Type d&apos;action</label>
-          <select id="filtre-action" value={action} onChange={(e) => setAction(e.target.value)} className={selectCls}>
+          <select id="filtre-action" value={action} onChange={(e) => appliquer({ action: e.target.value || undefined })} className={selectCls}>
             <option value="">Toutes les actions</option>
             {ACTION_TYPES.map((a) => (
               <option key={a} value={a}>{actionLabels[a]}</option>
@@ -98,7 +92,7 @@ export default function HistoriqueList({
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="filtre-utilisateur" className="text-sm font-semibold text-ink">Utilisateur</label>
-          <select id="filtre-utilisateur" value={userId} onChange={(e) => setUserId(e.target.value)} className={selectCls}>
+          <select id="filtre-utilisateur" value={userId} onChange={(e) => appliquer({ userId: e.target.value || undefined })} className={selectCls}>
             <option value="">Tous les utilisateurs</option>
             {utilisateurs.map((u) => (
               <option key={u.id} value={u.id}>{u.prenom} {u.nom}</option>
@@ -106,12 +100,6 @@ export default function HistoriqueList({
           </select>
         </div>
       </div>
-
-      {error && (
-        <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 font-medium text-red-800">
-          {error}
-        </p>
-      )}
 
       <div
         className={`mt-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition-opacity ${loading ? "opacity-60" : ""}`}
@@ -156,6 +144,7 @@ export default function HistoriqueList({
           )}
         </div>
       </div>
+      {children}
     </>
   );
 }

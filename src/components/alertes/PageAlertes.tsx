@@ -3,19 +3,20 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Badge, riskVariant } from "@/components/ui/Badge";
-import { rechercherAlertes, type AlerteFiltree } from "@/lib/alertes-server";
+import { Pagination } from "@/components/Pagination";
+import { rechercherAlertesPaginees, type AlerteFiltree } from "@/lib/alertes-server";
 import {
   compterFiltresActifs,
+  filtresVersParams,
   lireFiltres,
   porteeAlertes,
   type FiltresAlertes,
 } from "@/lib/filtres-alertes";
+import { lirePagination } from "@/lib/pagination";
+import { corrigerUrlPagination } from "@/lib/pagination-serveur";
 import { peutTraiterAlertes } from "@/lib/perimetre";
 import { BoutonTraiterAlerte } from "./BoutonTraiterAlerte";
 import { ZoneFiltresAlertes } from "./ZoneFiltresAlertes";
-
-/** Au-delà, on invite à affiner plutôt que d'afficher une page interminable. */
-const LIMITE_AFFICHAGE = 100;
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -114,11 +115,13 @@ function CarteAlerte({
   );
 }
 
-export async function PageAlertes({ searchParams }: { searchParams: SearchParams }) {
+export async function PageAlertes({ chemin, searchParams }: { chemin: string; searchParams: SearchParams }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const filtres = lireFiltres(await searchParams);
+  const params = await searchParams;
+  const filtres = lireFiltres(params);
+  const demande = lirePagination(params);
   const portee = porteeAlertes(session.user);
   const estAdmin = portee.type === "toutes";
   const ficheBase = session.user.role === "admin" ? "/admin/etudiants" : "/enseignant/etudiants";
@@ -151,23 +154,23 @@ export async function PageAlertes({ searchParams }: { searchParams: SearchParams
     );
   }
 
-  const [{ total, alertes }, etablissements] = await Promise.all([
-    rechercherAlertes(filtres, portee, { limite: LIMITE_AFFICHAGE }),
+  const [resultat, etablissements] = await Promise.all([
+    rechercherAlertesPaginees(filtres, portee, demande),
     estAdmin
       ? prisma.etablissement.findMany({ select: { id: true, nom: true }, orderBy: { nom: "asc" } })
       : Promise.resolve(null),
   ]);
+  const requete = filtresVersParams(filtres);
+  corrigerUrlPagination(chemin, requete, params, resultat);
+  const { total, elements: alertes } = resultat;
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
       {entete}
       <div className="mt-8">
-        <ZoneFiltresAlertes filtres={filtres} etablissements={etablissements}>
+        <ZoneFiltresAlertes filtres={filtres} taille={resultat.taille} etablissements={etablissements}>
           <p role="status" className="text-sm font-semibold text-ink-secondary">
             <span className="text-ink">{total}</span> alerte{total > 1 ? "s" : ""}
-            {total > alertes.length && (
-              <> · {alertes.length} premières affichées, affinez les filtres pour voir les autres</>
-            )}
           </p>
 
           {alertes.length === 0 ? (
@@ -187,6 +190,15 @@ export async function PageAlertes({ searchParams }: { searchParams: SearchParams
               ))}
             </div>
           )}
+          <Pagination
+            chemin={chemin}
+            requete={requete.toString()}
+            page={resultat.page}
+            taille={resultat.taille}
+            total={total}
+            nbPages={resultat.nbPages}
+            libelle="Pages des alertes"
+          />
         </ZoneFiltresAlertes>
       </div>
     </main>

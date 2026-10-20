@@ -10,5 +10,5 @@ export default function AlertesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  return <PageAlertes searchParams={searchParams} />;
+  return <PageAlertes chemin="/directeur/alertes" searchParams={searchParams} />;
 }

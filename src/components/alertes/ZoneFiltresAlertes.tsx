@@ -9,6 +9,7 @@ import {
   periodeIncoherente,
   type FiltresAlertes,
 } from "@/lib/filtres-alertes";
+import { urlListe, type TaillePage } from "@/lib/pagination";
 
 const DELAI_RECHERCHE_MS = 350;
 
@@ -18,10 +19,13 @@ const labelCls = "mb-1.5 block text-sm font-semibold text-ink";
 
 export function ZoneFiltresAlertes({
   filtres,
+  taille,
   etablissements,
   children,
 }: {
   filtres: FiltresAlertes;
+  /** Taille de page courante, conservée quand les filtres changent */
+  taille: TaillePage;
   /** Liste des établissements : fournie uniquement pour l'admin */
   etablissements: { id: string; nom: string }[] | null;
   children: React.ReactNode;
@@ -43,8 +47,8 @@ export function ZoneFiltresAlertes({
   }
 
   function naviguer(suivants: FiltresAlertes, mode: "push" | "replace" = "push") {
-    const params = filtresVersParams(suivants).toString();
-    const url = params ? `${pathname}?${params}` : pathname;
+    // Nouveaux filtres : retour à la page 1, même taille de page
+    const url = urlListe(pathname, filtresVersParams(suivants), taille);
     startTransition(() => {
       setCourants(suivants);
       router[mode](url, { scroll: false });

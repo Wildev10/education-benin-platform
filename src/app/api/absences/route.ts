@@ -3,43 +3,34 @@ import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { detecterAlerteAbsence } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
-import { filtreEtudiantsAccessibles, introuvable, peutAccederEtudiant } from "@/lib/perimetre";
+import { construireWhereAbsences, lectureAbsences, rechercherAbsencesPaginees } from "@/lib/absences-server";
+import { lireFiltresAbsences } from "@/lib/filtres-absences";
+import { lirePagination, pageVide, paginationDemandee } from "@/lib/pagination";
+import { introuvable, peutAccederEtudiant } from "@/lib/perimetre";
 
 const MOTIFS_VALIDES = new Set(["injustifiee", "justifiee"]);
 const PERIODES_VALIDES = new Set(["Trimestre 1", "Trimestre 2", "Trimestre 3"]);
 
+/**
+ * Filtres : etudiantId, periode, annee (ou anneeScolaire), motif, q,
+ * etablissement (admin uniquement). Avec `page` ou `taille` : une page
+ * { elements, total, page, taille, nbPages } ; sans : toutes les absences.
+ */
 export async function GET(request: Request) {
   const access = await requireRole(["admin", "enseignant", "directeur"]);
   if (access instanceof Response) return access;
 
+  const sp = new URL(request.url).searchParams;
+  const filtres = lireFiltresAbsences(sp);
   // Un compte sans établissement ne voit aucune absence (auparavant : toutes)
-  const perimetre = filtreEtudiantsAccessibles(access.user);
-  if (!perimetre) return NextResponse.json([]);
+  const where = construireWhereAbsences(filtres, access.user);
+  if (!where) return NextResponse.json(paginationDemandee(sp) ? pageVide(lirePagination(sp).taille) : []);
 
   try {
-    const sp = new URL(request.url).searchParams;
-    const etudiantId = sp.get("etudiantId");
-    const periode = sp.get("periode");
-    const anneeScolaire = sp.get("anneeScolaire");
-    const motif = sp.get("motif");
-
-    const absences = await prisma.absence.findMany({
-      where: {
-        ...(etudiantId ? { etudiantId } : {}),
-        ...(periode ? { periode } : {}),
-        ...(anneeScolaire ? { anneeScolaire } : {}),
-        ...(motif ? { motif } : {}),
-        // Le directeur et l'enseignant ne voient que les absences de leur établissement.
-        etudiant: perimetre,
-      },
-      include: {
-        etudiant: {
-          select: { nom: true, prenom: true, etablissement: { select: { nom: true } } },
-        },
-      },
-      orderBy: { date: "desc" },
-    });
-
+    if (paginationDemandee(sp)) {
+      return NextResponse.json(await rechercherAbsencesPaginees(filtres, access.user, lirePagination(sp)));
+    }
+    const absences = await prisma.absence.findMany({ where, ...lectureAbsences });
     return NextResponse.json(absences);
   } catch (error) {
     console.error("Erreur GET absences", error);

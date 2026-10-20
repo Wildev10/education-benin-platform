@@ -2,28 +2,25 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
+import { lirePagination, paginationDemandee } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
+import { listerUtilisateursPagines, selectionUtilisateur } from "@/lib/utilisateurs-server";
 
 const ROLES_VALIDES = ["etudiant", "enseignant", "admin", "directeur"] as const;
 
-export async function GET() {
+/** Avec `page` ou `taille` : une page { elements, total, page, taille, nbPages } ; sans : tous les comptes. */
+export async function GET(request: Request) {
   const access = await requireRole(["admin"]);
   if (access instanceof Response) return access;
 
   try {
+    const params = new URL(request.url).searchParams;
+    if (paginationDemandee(params)) {
+      return NextResponse.json(await listerUtilisateursPagines(lirePagination(params)));
+    }
     const utilisateurs = await prisma.user.findMany({
-      select: {
-        id: true,
-        nom: true,
-        prenom: true,
-        email: true,
-        role: true,
-        etudiantId: true,
-        etablissementId: true,
-        etablissement: { select: { nom: true } },
-        createdAt: true,
-      },
-      orderBy: { createdAt: "asc" },
+      select: selectionUtilisateur,
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     });
     return NextResponse.json(utilisateurs);
   } catch (error) {

@@ -2,6 +2,7 @@
 export const navDirecteur = [
   { href: "/directeur", label: "Tableau de bord", exact: true },
   { href: "/directeur/alertes", label: "Alertes" },
+  { href: "/directeur/absences", label: "Absences" },
   { href: "/enseignant", label: "Élèves", exact: true },
   { href: "/enseignant/import", label: "Importer" },
   { href: "/enseignant/assistant", label: "Assistant" },
