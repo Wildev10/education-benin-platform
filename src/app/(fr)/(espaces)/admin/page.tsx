@@ -8,9 +8,10 @@ const formatDonnees = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", time
 
 export default async function AdminPage() {
   const maintenant = new Date();
-  const [etudiants, etablissements, alertes, statsEtablissements, raccourcis] = await Promise.all([
-    prisma.etudiant.count(),
-    prisma.etablissement.count(),
+  // Alertes actives lues une seule fois : pour la liste et pour les statistiques
+  // par établissement. Les totaux d'élèves et d'établissements sont déduits de
+  // ces statistiques (chaque élève appartient à un établissement).
+  const alertesActives = Promise.resolve(
     prisma.alerte.findMany({
       where: { statut: "active" },
       include: {
@@ -19,15 +20,21 @@ export default async function AdminPage() {
             id: true,
             nom: true,
             prenom: true,
+            etablissementId: true,
             etablissement: { select: { nom: true, departement: true } },
           },
         },
       },
       orderBy: { createdAt: "desc" },
-    }),
-    getStatsEtablissements(),
+    })
+  );
+  const [alertes, statsEtablissements, raccourcis] = await Promise.all([
+    alertesActives,
+    getStatsEtablissements(alertesActives),
     raccourcisAlertes({ type: "toutes" }),
   ]);
+  const etudiants = statsEtablissements.reduce((total, e) => total + e.nbEtudiants, 0);
+  const etablissements = statsEtablissements.length;
 
   const alertesTriees = alertes.sort((a, b) => {
     const niveauA = a.niveauRisque === "eleve" ? 2 : 1;
@@ -61,7 +68,12 @@ export default async function AdminPage() {
             moyenneAvant: alerte.moyenneAvant,
             moyenneApres: alerte.moyenneApres,
             ecartPourcent: alerte.ecartPourcent,
-            etudiant: alerte.etudiant,
+            etudiant: {
+              id: alerte.etudiant.id,
+              nom: alerte.etudiant.nom,
+              prenom: alerte.etudiant.prenom,
+              etablissement: alerte.etudiant.etablissement,
+            },
           }))}
           initialStatsEtablissements={statsEtablissements}
           raccourcis={raccourcis}

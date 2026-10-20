@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
@@ -20,6 +21,21 @@ const navItems = [
   { href: "/admin/historique", label: "Historique" },
 ];
 
+const ARIA_NAV = "Navigation administration";
+
+/**
+ * Navigation avec le nombre de demandes de réinitialisation en attente. Rendue
+ * dans un Suspense : la page est envoyée sans attendre ce comptage, puis le
+ * badge apparaît dès qu'il est connu.
+ */
+async function NavAdmin({ compterDemandes }: { compterDemandes: boolean }) {
+  const demandesEnAttente = compterDemandes ? await countDemandesEnAttente() : 0;
+  const items = navItems.map((item) =>
+    item.href === "/admin/utilisateurs" ? { ...item, badge: demandesEnAttente } : item
+  );
+  return <AppNav items={items} ariaLabel={ARIA_NAV} />;
+}
+
 export default async function AdminLayout({
   children,
 }: Readonly<{
@@ -31,11 +47,6 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  const demandesEnAttente = session.user.role === "admin" ? await countDemandesEnAttente() : 0;
-  const items = navItems.map((item) =>
-    item.href === "/admin/utilisateurs" ? { ...item, badge: demandesEnAttente } : item
-  );
-
   return (
     <div className="min-h-screen bg-page text-ink">
       <AppHeader
@@ -44,7 +55,9 @@ export default async function AdminLayout({
         role={session.user.role}
         spaceLabel="Espace national"
       />
-      <AppNav items={items} ariaLabel="Navigation administration" />
+      <Suspense fallback={<AppNav items={navItems} ariaLabel={ARIA_NAV} />}>
+        <NavAdmin compterDemandes={session.user.role === "admin"} />
+      </Suspense>
       {children}
     </div>
   );

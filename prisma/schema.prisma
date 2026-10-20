@@ -26,6 +26,9 @@ model Etudiant {
   absences        Absence[]
   compte          User?
   createdAt       DateTime @default(now())
+
+  @@index([etablissementId])
+  @@index([nom, prenom])
 }
 
 model Etablissement {
@@ -44,6 +47,8 @@ model Inscription {
   anneeScolaire String
   niveau        String
   statut        String
+
+  @@index([etudiantId])
 }
 
 model Note {
@@ -55,6 +60,8 @@ model Note {
   periode       String
   anneeScolaire String
   createdAt     DateTime @default(now())
+
+  @@index([etudiantId])
 }
 
 model Alerte {
@@ -73,6 +80,10 @@ model Alerte {
   // Date de la dernière aggravation (Moyen → Élevé) d'une alerte active ;
   // null si le niveau n'a jamais monté. Sert aux notifications de la cloche.
   niveauModifieLe DateTime?
+
+  @@index([etudiantId])
+  @@index([statut, createdAt])
+  @@index([niveauModifieLe])
 }
 
 model Absence {
@@ -84,6 +95,9 @@ model Absence {
   periode       String
   anneeScolaire String
   createdAt     DateTime @default(now())
+
+  @@index([etudiantId])
+  @@index([date])
 }
 
 model User {

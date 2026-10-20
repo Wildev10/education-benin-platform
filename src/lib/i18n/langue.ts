@@ -14,8 +14,6 @@ export const COOKIE_LANGUE = "langue";
 export const DUREE_COOKIE_LANGUE_S = 365 * 24 * 60 * 60;
 /** Paramètre d'URL du sélecteur : enregistre le choix puis redirige vers l'adresse propre. */
 export const PARAMETRE_LANGUE = "langue";
-/** En-tête posé par le proxy pour que la mise en page racine connaisse la langue (attribut lang). */
-export const EN_TETE_LANGUE = "x-edutech-langue";
 
 export type PagePublique = "accueil" | "connexion";
 

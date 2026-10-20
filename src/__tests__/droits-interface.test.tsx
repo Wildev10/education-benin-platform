@@ -22,10 +22,10 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/components/ExportPdfButton", () => ({ ExportPdfButton: () => null, ExportExcelButton: () => null }));
 
 const perimetre = await import("@/lib/perimetre");
-const { navDirecteur } = await import("@/app/directeur/navigation");
+const { navDirecteur } = await import("@/app/(fr)/(espaces)/directeur/navigation");
 const { proxy } = await import("@/proxy");
-const { default: StudentDetail } = await import("@/app/enseignant/etudiants/[id]/StudentDetail");
-const { default: FichePage } = await import("@/app/enseignant/etudiants/[id]/page");
+const { default: StudentDetail } = await import("@/app/(fr)/(espaces)/enseignant/etudiants/[id]/StudentDetail");
+const { default: FichePage } = await import("@/app/(fr)/(espaces)/enseignant/etudiants/[id]/page");
 
 const ROLES = ["etudiant", "enseignant", "directeur", "admin"] as const;
 

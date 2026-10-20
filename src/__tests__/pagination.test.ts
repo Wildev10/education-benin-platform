@@ -59,7 +59,7 @@ const apiHistorique = await import("@/app/api/admin/historique/route");
 const apiUtilisateurs = await import("@/app/api/admin/utilisateurs/route");
 const exportXlsx = await import("@/app/api/alertes/xlsx/route");
 const exportPdf = await import("@/app/api/alertes/pdf/route");
-const { default: StudentDirectory } = await import("@/app/enseignant/StudentDirectory");
+const { default: StudentDirectory } = await import("@/app/(fr)/(espaces)/enseignant/StudentDirectory");
 
 const {
   lirePagination,

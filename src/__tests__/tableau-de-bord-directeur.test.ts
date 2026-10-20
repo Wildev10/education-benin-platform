@@ -23,7 +23,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-vi.mock("@/app/directeur/DirecteurCharts", () => ({
+vi.mock("@/app/(fr)/(espaces)/directeur/DirecteurCharts", () => ({
   GraphiqueEvolution: () => null,
   GraphiqueNiveaux: () => null,
 }));
@@ -38,7 +38,7 @@ const prismaMock = {
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 
 // Import AFTER mocks are set up
-const { default: DirecteurPage } = await import("@/app/directeur/page");
+const { default: DirecteurPage } = await import("@/app/(fr)/(espaces)/directeur/page");
 const { getTableauDeBordDirecteur, resoudreAccesDirecteur } = await import(
   "@/lib/tableau-de-bord-directeur"
 );

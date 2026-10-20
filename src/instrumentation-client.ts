@@ -7,10 +7,9 @@ import * as Sentry from "@sentry/nextjs";
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-  integrations: [Sentry.replayIntegration()],
-
-  replaysSessionSampleRate: 0,
-  replaysOnErrorSampleRate: 0,
+  // Erreurs seulement : ni enregistrement de session (replay), ni envoi d'une
+  // « session » à chaque page vue, qui ajoutait une requête réseau par page.
+  integrations: (parDefaut) => parDefaut.filter((integration) => integration.name !== "BrowserSession"),
 
   dataCollection: {
     // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:

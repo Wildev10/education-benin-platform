@@ -25,6 +25,7 @@
     "@prisma/client": "7.10.1",
     "@react-pdf/renderer": "^4.9.0",
     "@sentry/nextjs": "^11.5.0",
+    "@vercel/functions": "3.9.11",
     "bcryptjs": "^3.0.3",
     "dotenv": "^18.0.3",
     "exceljs": "^4.4.0",

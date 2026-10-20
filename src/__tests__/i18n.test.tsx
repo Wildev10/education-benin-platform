@@ -250,27 +250,24 @@ describe("AccessibilityControls", () => {
 
 // ── Proxy ────────────────────────────────────────────────────────────────────
 
-async function appeler(chemin: string, { cookie, connecte = false }: { cookie?: string; connecte?: boolean } = {}) {
+async function appeler(
+  chemin: string,
+  { cookie, connecte = false, role = "admin" }: { cookie?: string; connecte?: boolean; role?: string } = {}
+) {
   const req = new NextRequest(`https://exemple.bj${chemin}`, cookie ? { headers: { cookie: `langue=${cookie}` } } : undefined) as NextRequest & {
     auth: unknown;
   };
-  req.auth = connecte ? { user: { role: "admin" } } : null;
+  req.auth = connecte ? { user: { role } } : null;
   const res = await proxy(req, {} as NextFetchEvent);
   return {
     redirection: res?.headers.get("location") ?? null,
     cookie: res?.headers.get("set-cookie") ?? null,
-    langue: res?.headers.get("x-middleware-request-x-edutech-langue") ?? null,
   };
 }
 
 describe("proxy : langue", () => {
-  it.each([
-    ["/", "fr"],
-    ["/en", "en"],
-    ["/login", "fr"],
-    ["/en/login", "en"],
-  ])("%s : langue transmise à la mise en page (%s)", async (chemin, l) => {
-    expect(await appeler(chemin)).toMatchObject({ redirection: null, langue: l });
+  it.each(["/", "/en", "/login", "/en/login"])("%s : page publique servie sans redirection", async (chemin) => {
+    expect(await appeler(chemin)).toMatchObject({ redirection: null, cookie: null });
   });
 
   it("sélecteur ?langue=en : cookie d'un an posé, redirection vers l'adresse anglaise", async () => {
@@ -291,7 +288,7 @@ describe("proxy : langue", () => {
   });
 
   it("paramètre inconnu : ignoré", async () => {
-    expect(await appeler("/login?langue=de")).toMatchObject({ redirection: null, cookie: null, langue: "fr" });
+    expect(await appeler("/login?langue=de")).toMatchObject({ redirection: null, cookie: null });
   });
 
   it("cookie en : / et /login redirigent vers la version anglaise", async () => {
@@ -300,21 +297,28 @@ describe("proxy : langue", () => {
   });
 
   it("cookie fr : une adresse anglaise explicite est respectée", async () => {
-    expect(await appeler("/en/login", { cookie: "fr" })).toMatchObject({ redirection: null, langue: "en" });
+    expect(await appeler("/en/login", { cookie: "fr" })).toMatchObject({ redirection: null });
   });
 
-  it("personne connectée avec le cookie en : pas de redirection vers /en (son espace reste en français)", async () => {
-    expect((await appeler("/", { cookie: "en", connecte: true })).redirection).toBeNull();
+  it("personne connectée avec le cookie en : envoyée vers son espace, en français, pas vers /en", async () => {
+    expect((await appeler("/", { cookie: "en", connecte: true })).redirection).toBe("https://exemple.bj/admin");
   });
 
-  it("reste de l'application : toujours en français, même avec le cookie en", async () => {
-    expect(await appeler("/admin", { cookie: "en", connecte: true })).toMatchObject({ redirection: null, langue: "fr" });
+  it.each([
+    ["admin", "/admin"],
+    ["directeur", "/directeur"],
+    ["enseignant", "/enseignant"],
+    ["etudiant", "/etudiant"],
+  ])("accueil statique : %s connecté redirigé vers %s, depuis / comme depuis /en", async (role, espace) => {
+    expect((await appeler("/", { connecte: true, role })).redirection).toBe(`https://exemple.bj${espace}`);
+    expect((await appeler("/en", { connecte: true, role })).redirection).toBe(`https://exemple.bj${espace}`);
   });
 
-  it("un client ne peut pas imposer la langue par l'en-tête : il est écrasé", async () => {
-    const req = new NextRequest("https://exemple.bj/admin", { headers: { "x-edutech-langue": "en" } }) as NextRequest & { auth: unknown };
-    req.auth = { user: { role: "admin" } };
-    const res = await proxy(req, {} as NextFetchEvent);
-    expect(res?.headers.get("x-middleware-request-x-edutech-langue")).toBe("fr");
+  it("connexion : une personne connectée n'est pas redirigée (comportement inchangé)", async () => {
+    expect((await appeler("/login", { connecte: true })).redirection).toBeNull();
+  });
+
+  it("reste de l'application : pas de redirection vers l'anglais, même avec le cookie en", async () => {
+    expect(await appeler("/admin", { cookie: "en", connecte: true })).toMatchObject({ redirection: null });
   });
 });

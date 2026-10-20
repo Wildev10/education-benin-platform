@@ -6,31 +6,17 @@ import {
   CHEMINS,
   COOKIE_LANGUE,
   DUREE_COOKIE_LANGUE_S,
-  EN_TETE_LANGUE,
   PARAMETRE_LANGUE,
   estLangue,
   pagePublique,
-  type Langue,
 } from "@/lib/i18n/langue";
+import { accueilDuRole } from "@/lib/accueil";
 import { ROLES_IMPORT_NOTES } from "@/lib/perimetre";
 
 type AuthMiddleware = (
   request: NextAuthRequest,
   event: NextFetchEvent
 ) => ReturnType<import("next/server").NextMiddleware>;
-
-/**
- * En-têtes de la requête transmise à l'application, avec la langue d'affichage
- * (lue par la mise en page racine pour l'attribut lang). Toujours écrasée :
- * un client ne peut pas imposer l'anglais à une page de l'application.
- */
-function entetesAvecLangue(request: NextRequest, langue: Langue) {
-  const entetes = new Headers(request.headers);
-  entetes.set(EN_TETE_LANGUE, langue);
-  return { request: { headers: entetes } };
-}
-
-const continuer = (request: NextRequest, langue: Langue = "fr") => NextResponse.next(entetesAvecLangue(request, langue));
 
 const authMiddleware: AuthMiddleware = (request) => {
   const { pathname } = request.nextUrl;
@@ -52,6 +38,11 @@ const authMiddleware: AuthMiddleware = (request) => {
       });
       return reponse;
     }
+    // Accueil (/ ou /en) : une personne connectée est envoyée vers son espace, en
+    // français. Fait ici plutôt que dans la page, qui reste ainsi statique.
+    if (session?.user && publique.page === "accueil") {
+      return NextResponse.redirect(new URL(accueilDuRole(session.user.role) ?? "/login", request.url));
+    }
     // Choix mémorisé : un visiteur qui a choisi l'anglais arrive sur la version anglaise.
     // Une adresse anglaise explicite (/en…) est toujours respectée. Une personne
     // connectée garde le comportement actuel (son espace, en français).
@@ -59,7 +50,7 @@ const authMiddleware: AuthMiddleware = (request) => {
     if (!session?.user && publique.langue === "fr" && estLangue(memorisee) && memorisee !== "fr") {
       return NextResponse.redirect(new URL(CHEMINS[publique.page][memorisee], request.url));
     }
-    return continuer(request, publique.langue);
+    return NextResponse.next();
   }
 
   if (!session?.user) {
@@ -71,7 +62,7 @@ const authMiddleware: AuthMiddleware = (request) => {
   // Un étudiant n'a accès qu'à sa propre fiche, dans /etudiant : toute URL de fiche
   // élève lui affiche la page introuvable, sans révéler si l'élève existe.
   if (role === "etudiant" && /^\/(enseignant|admin)\/etudiants\/[^/]+/.test(pathname)) {
-    return NextResponse.rewrite(new URL("/_introuvable", request.url), entetesAvecLangue(request, "fr"));
+    return NextResponse.rewrite(new URL("/_introuvable", request.url));
   }
   // Import de notes : mêmes rôles que l'API (le directeur n'importe pas)
   const requiredRoles = pathname.startsWith("/enseignant/import")
@@ -90,7 +81,7 @@ const authMiddleware: AuthMiddleware = (request) => {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return continuer(request);
+  return NextResponse.next();
 };
 
 const authProxy = auth(authMiddleware);

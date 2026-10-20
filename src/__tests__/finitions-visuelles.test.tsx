@@ -13,7 +13,7 @@ const { grouperNotesParTrimestre, moyenneNotes, trimestreOuvertParDefaut, TRIMES
 const { AccordeonTrimestres } = await import("@/components/notes/AccordeonTrimestres");
 const { accueilDuRole } = await import("@/lib/accueil");
 const { hauteurGraphiqueBarres } = await import("@/lib/graphiques");
-const { default: NotFound } = await import("@/app/not-found");
+const { default: NotFound } = await import("@/app/(fr)/(espaces)/not-found");
 
 const note = (id: string, periode: string, valeur: number, matiere = "Maths") => ({ id, periode, valeur, matiere });
 
@@ -189,22 +189,22 @@ describe("Page introuvable", () => {
 // ── Squelettes de chargement ─────────────────────────────────────────────────
 
 const SQUELETTES: Record<string, string> = {
-  "admin (tableau de bord)": "@/app/admin/loading",
-  directeur: "@/app/directeur/loading",
-  "enseignant (élèves)": "@/app/enseignant/loading",
-  etudiant: "@/app/etudiant/loading",
-  "admin, élèves": "@/app/admin/etudiants/loading",
-  "admin, alertes": "@/app/admin/alertes/loading",
-  "directeur, alertes": "@/app/directeur/alertes/loading",
-  "enseignant, alertes": "@/app/enseignant/alertes/loading",
-  "admin, absences": "@/app/admin/absences/loading",
-  "directeur, absences": "@/app/directeur/absences/loading",
-  "enseignant, absences": "@/app/enseignant/absences/loading",
-  "admin, historique": "@/app/admin/historique/loading",
-  "admin, utilisateurs": "@/app/admin/utilisateurs/loading",
-  "admin, nouveau compte": "@/app/admin/utilisateurs/nouveau/loading",
-  "admin, fiche élève": "@/app/admin/etudiants/[id]/loading",
-  "enseignant, fiche élève": "@/app/enseignant/etudiants/[id]/loading",
+  "admin (tableau de bord)": "@/app/(fr)/(espaces)/admin/loading",
+  directeur: "@/app/(fr)/(espaces)/directeur/loading",
+  "enseignant (élèves)": "@/app/(fr)/(espaces)/enseignant/loading",
+  etudiant: "@/app/(fr)/(espaces)/etudiant/loading",
+  "admin, élèves": "@/app/(fr)/(espaces)/admin/etudiants/loading",
+  "admin, alertes": "@/app/(fr)/(espaces)/admin/alertes/loading",
+  "directeur, alertes": "@/app/(fr)/(espaces)/directeur/alertes/loading",
+  "enseignant, alertes": "@/app/(fr)/(espaces)/enseignant/alertes/loading",
+  "admin, absences": "@/app/(fr)/(espaces)/admin/absences/loading",
+  "directeur, absences": "@/app/(fr)/(espaces)/directeur/absences/loading",
+  "enseignant, absences": "@/app/(fr)/(espaces)/enseignant/absences/loading",
+  "admin, historique": "@/app/(fr)/(espaces)/admin/historique/loading",
+  "admin, utilisateurs": "@/app/(fr)/(espaces)/admin/utilisateurs/loading",
+  "admin, nouveau compte": "@/app/(fr)/(espaces)/admin/utilisateurs/nouveau/loading",
+  "admin, fiche élève": "@/app/(fr)/(espaces)/admin/etudiants/[id]/loading",
+  "enseignant, fiche élève": "@/app/(fr)/(espaces)/enseignant/etudiants/[id]/loading",
 };
 
 describe("Squelettes de chargement", () => {
@@ -223,7 +223,7 @@ describe("Squelettes de chargement", () => {
   });
 
   it("fiches et espace étudiant : les notes ont la forme de l'accordéon (3 en-têtes, le dernier ouvert)", async () => {
-    for (const chemin of ["@/app/etudiant/loading", "@/app/admin/etudiants/[id]/loading", "@/app/enseignant/etudiants/[id]/loading"]) {
+    for (const chemin of ["@/app/(fr)/(espaces)/etudiant/loading", "@/app/(fr)/(espaces)/admin/etudiants/[id]/loading", "@/app/(fr)/(espaces)/enseignant/etudiants/[id]/loading"]) {
       const { default: Chargement } = await import(/* @vite-ignore */ chemin);
       const html = renderToStaticMarkup(<Chargement />);
       expect(html.match(/min-h-14 items-center justify-between gap-3 bg-ink/g), chemin).toHaveLength(3);

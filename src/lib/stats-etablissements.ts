@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getStatsEtablissements() {
+type AlerteActive = { niveauRisque: string; etudiant: { etablissementId: string } };
+
+/**
+ * Statistiques par établissement. `alertesActives` : les alertes actives déjà
+ * chargées par l'appelant (tableau de bord), pour ne pas les relire en base.
+ */
+export async function getStatsEtablissements(alertesActives?: Promise<AlerteActive[]>) {
   const [etablissements, alertes, moyennesParEtudiant] = await Promise.all([
     prisma.etablissement.findMany({
       select: {
@@ -10,10 +16,11 @@ export async function getStatsEtablissements() {
         etudiants: { select: { id: true } },
       },
     }),
-    prisma.alerte.findMany({
-      where: { statut: "active" },
-      select: { niveauRisque: true, etudiant: { select: { etablissementId: true } } },
-    }),
+    alertesActives ??
+      prisma.alerte.findMany({
+        where: { statut: "active" },
+        select: { niveauRisque: true, etudiant: { select: { etablissementId: true } } },
+      }),
     prisma.note.groupBy({ by: ["etudiantId"], _avg: { valeur: true } }),
   ]);
 

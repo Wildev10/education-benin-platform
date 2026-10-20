@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { metadonneesPage } from "@/lib/i18n/metadonnees";
-import { AccueilPublic } from "../_AccueilPublic";
+import HomePage from "../_HomePage";
 
 export const metadata: Metadata = metadonneesPage("accueil", "en");
 
-/** Version anglaise de la page d'accueil publique. */
+/** Version anglaise de la page d'accueil publique, statique (redirection des personnes connectées : proxy). */
 export default function HomeEn() {
-  return <AccueilPublic langue="en" />;
+  return <HomePage langue="en" />;
 }

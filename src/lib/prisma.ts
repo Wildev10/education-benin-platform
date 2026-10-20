@@ -1,5 +1,7 @@
 import net from "node:net";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { attachDatabasePool } from "@vercel/functions";
+import pg from "pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 // Pour un hôte à plusieurs adresses (le pooler Neon en a plusieurs, IPv4 et
@@ -67,13 +69,27 @@ export async function avecNouvelleTentative<T>(operation: string, executer: () =
  * Client Prisma de l'application. Prisma 7 passe par un driver adapter :
  * ici node-postgres (pg), connecté au pooler Neon de DATABASE_URL.
  */
+/**
+ * Connexions inactives fermées après 30 s (valeur par défaut de pg). Vercel
+ * suggère 5 s, mais les pages d'une même visite sont souvent espacées de plus
+ * de 5 s : chacune rouvrirait alors ses connexions (≈ 1,4 s de plus par page
+ * mesuré depuis le Bénin sur la base de dev).
+ */
+export const DELAI_INACTIVITE_CONNEXION_MS = 30_000;
+
 export function creerClientPrisma() {
-  const adapter = new PrismaPg({
+  const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
     // 15 s, comme le recommande Neon : un réveil de la base après une mise en
     // veille, ou un réseau lent, peut dépasser les 5 s habituels
     connectionTimeoutMillis: 15000,
+    idleTimeoutMillis: DELAI_INACTIVITE_CONNEXION_MS,
   });
+  // Sur Vercel (Fluid compute), l'instance reste active jusqu'à la fermeture des
+  // connexions inactives au lieu d'être mise en veille avec des connexions
+  // ouvertes, qui resteraient comptées par Neon. Hors de Vercel : sans effet.
+  attachDatabasePool(pool);
+  const adapter = new PrismaPg(pool, { disposeExternalPool: true });
   return new PrismaClient({ adapter }).$extends({
     query: {
       $allModels: {

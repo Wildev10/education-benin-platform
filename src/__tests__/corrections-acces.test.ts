@@ -30,8 +30,8 @@ vi.mock("next/navigation", () => ({
 
 // Composants clients de la fiche : remplacés par des marqueurs
 const AlertesEleveMock = vi.fn(() => null);
-vi.mock("@/app/enseignant/etudiants/[id]/AlertesEleve", () => ({ default: AlertesEleveMock }));
-vi.mock("@/app/enseignant/etudiants/[id]/StudentDetail", () => ({ default: () => null }));
+vi.mock("@/app/(fr)/(espaces)/enseignant/etudiants/[id]/AlertesEleve", () => ({ default: AlertesEleveMock }));
+vi.mock("@/app/(fr)/(espaces)/enseignant/etudiants/[id]/StudentDetail", () => ({ default: () => null }));
 vi.mock("@/components/ExportPdfButton", () => ({ ExportPdfButton: () => null, ExportExcelButton: () => null }));
 
 const prismaMock = {
@@ -41,7 +41,7 @@ const prismaMock = {
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 
 // Import AFTER mocks are set up
-const { default: FichePage } = await import("@/app/enseignant/etudiants/[id]/page");
+const { default: FichePage } = await import("@/app/(fr)/(espaces)/enseignant/etudiants/[id]/page");
 const utilisateurs = await import("@/app/api/admin/utilisateurs/[id]/route");
 const { proxy } = await import("@/proxy");
 const { peutTraiterAlertes } = await import("@/lib/perimetre");

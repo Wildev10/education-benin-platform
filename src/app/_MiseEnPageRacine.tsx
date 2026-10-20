@@ -1,7 +1,6 @@
 import Providers from "./providers";
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
-import { EN_TETE_LANGUE, estLangue, LANGUE_PAR_DEFAUT } from "@/lib/i18n/langue";
+import type { Langue } from "@/lib/i18n/langue";
 import { BandeauHorsLigne } from "@/components/pwa/BandeauHorsLigne";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
@@ -12,7 +11,7 @@ const jakarta = Plus_Jakarta_Sans({
   weight: ["400", "600"],
 });
 
-export const metadata: Metadata = {
+export const metadataRacine: Metadata = {
   metadataBase: new URL("https://education-benin-platform.vercel.app"),
   title: "EduTech Bénin — Plateforme nationale de suivi scolaire",
   description:
@@ -30,14 +29,17 @@ export const metadata: Metadata = {
   icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
-export const viewport: Viewport = {
+export const viewportRacine: Viewport = {
   themeColor: "#0A0A0A",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Langue posée par le proxy : anglais seulement sur /en et /en/login, français partout ailleurs
-  const valeur = (await headers()).get(EN_TETE_LANGUE);
-  const langue = estLangue(valeur) ? valeur : LANGUE_PAR_DEFAUT;
+/**
+ * Structure commune aux deux mises en page racines : (fr)/layout.tsx pour tout
+ * le site en français, en/layout.tsx pour /en et /en/login. La langue est fixée
+ * par l'emplacement de la page, sans lire la requête : les pages publiques
+ * peuvent ainsi être générées à l'avance (statiques).
+ */
+export function MiseEnPageRacine({ langue, children }: { langue: Langue; children: React.ReactNode }) {
   return (
     <html
       lang={langue}

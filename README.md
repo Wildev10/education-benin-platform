@@ -36,7 +36,7 @@ Une alerte active qui passe de Moyen à Élevé est mise à jour, sans créer de
 
 ### Notifications en temps réel
 
-Une cloche, dans l'en-tête de l'admin et du directeur, signale les alertes **créées** ou **aggravées** (« Aggravée : Moyen → Élevé ») dans les 5 dernières minutes. Elle se met à jour toutes les 30 secondes et distingue les notifications lues des non lues : une aggravation redevient non lue, même si la création avait déjà été vue. Le directeur ne voit que son établissement.
+Une cloche, dans l'en-tête de l'admin et du directeur, signale les alertes **créées** ou **aggravées** (« Aggravée : Moyen → Élevé ») dans les 5 dernières minutes. Elle se met à jour toutes les 60 secondes tant que l'onglet est visible, et dès le retour sur l'onglet ; elle distingue les notifications lues des non lues : une aggravation redevient non lue, même si la création avait déjà été vue. Le directeur ne voit que son établissement.
 
 ### Tableaux de bord
 
@@ -113,8 +113,8 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **466 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, connexion à la base.
-- **266 vérifications navigateur** (7 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
+- **470 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, connexion à la base.
+- **267 vérifications navigateur** (7 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---
@@ -160,7 +160,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 | Interface | SweetAlert2 |
 | Monitoring | Sentry |
 | Tests | Vitest (unitaires), Playwright (navigateur) |
-| Déploiement | Vercel, Node.js 24 |
+| Déploiement | Vercel (fonctions en région `cle1`, Cleveland, à côté de la base Neon `us-east-2`), Node.js 24 |
 
 ### Base de données et connexions
 
@@ -169,6 +169,12 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
   - délai de connexion de 15 s, comme le recommande Neon pour le réveil d'une base en veille ;
   - 2 s par adresse IP au lieu des 250 ms de Node, utile sur un réseau lent ;
   - une nouvelle tentative pour les **lectures** uniquement, en cas d'erreur de connexion. Une écriture n'est jamais rejouée, pour ne pas risquer de doublon.
+- **Pool de connexions** créé une fois par instance, connexions inactives fermées après 30 s. Avec Fluid compute, `attachDatabasePool` (`@vercel/functions`) garde l'instance active le temps de les fermer, au lieu de la mettre en veille avec des connexions ouvertes.
+- **Index** sur les colonnes de jointure et de tri : `etudiantId` (notes, absences, alertes, inscriptions), `Etudiant.etablissementId`, `Etudiant (nom, prenom)`, `Alerte (statut, createdAt)`, `Alerte.niveauModifieLe`, `Absence.date`.
+- **Vitesse** :
+  - l'accueil et la connexion, en français comme en anglais, sont des pages **statiques** servies depuis le cache de Vercel. Deux mises en page racines fixent la langue (`src/app/(fr)` et `src/app/en`), et c'est le proxy qui envoie une personne connectée vers son espace ;
+  - SweetAlert2 n'est téléchargé qu'au premier message affiché ;
+  - côté navigateur, Sentry ne remonte que les erreurs : ni Session Replay, ni envoi d'une session à chaque page.
 - **Évolution de schéma d'octobre 2026.** Colonne `Alerte.niveauModifieLe` (date de la dernière aggravation, nullable), ajoutée de façon purement additive : l'ancien code reste compatible.
 
 ### Lancer en local
@@ -207,7 +213,7 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ### Lancer les tests
 
 ```bash
-npm test          # 466 tests unitaires
+npm test          # 470 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
 npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits

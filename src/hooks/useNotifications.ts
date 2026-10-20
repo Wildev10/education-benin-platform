@@ -7,7 +7,7 @@ import {
   type NotificationAlerte,
 } from "@/lib/notifications";
 
-const INTERVALLE_POLL_MS = 30_000;
+const INTERVALLE_POLL_MS = 60_000;
 
 type EtatStocke = { dernierVu: string | null; notifications: NotificationAlerte[] };
 
@@ -36,7 +36,8 @@ function ecrireStockage(cle: string, etat: EtatStocke) {
 }
 
 /**
- * Poll /api/notifications/alertes toutes les 30 s. L'état lu/non lu est conservé
+ * Poll /api/notifications/alertes toutes les 60 s, seulement quand l'onglet est
+ * visible, et au retour sur l'onglet si le dernier appel date de plus de 60 s. L'état lu/non lu est conservé
  * en localStorage (par utilisateur) : une notification est « lue » si son
  * événement (création, ou aggravation Moyen → Élevé) précède la dernière
  * ouverture du dropdown. Une aggravation redevient donc non lue.
@@ -56,8 +57,10 @@ export function useNotifications(utilisateur: string, actif = true) {
     if (!actif) return;
 
     let annule = false;
+    let dernierAppel = 0;
     async function charger() {
       if (document.visibilityState === "hidden") return;
+      dernierAppel = Date.now();
       try {
         const res = await fetch("/api/notifications/alertes", { cache: "no-store" });
         if (!res.ok) return;
@@ -78,11 +81,17 @@ export function useNotifications(utilisateur: string, actif = true) {
       }
     }
 
+    function auRetourSurLOnglet() {
+      if (document.visibilityState === "visible" && Date.now() - dernierAppel >= INTERVALLE_POLL_MS) void charger();
+    }
+
     void charger();
     const id = window.setInterval(charger, INTERVALLE_POLL_MS);
+    document.addEventListener("visibilitychange", auRetourSurLOnglet);
     return () => {
       annule = true;
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", auRetourSurLOnglet);
     };
   }, [cle, actif, hydrater]);
 
