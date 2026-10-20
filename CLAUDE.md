@@ -11,7 +11,7 @@ Le détail (fonctionnalités, installation, comptes de démo, options de `npm ru
 - Ne jamais afficher un mot de passe, une clé ou une chaîne de connexion complète : masquer avec `***` (n'afficher au plus que l'hôte d'une base de dev).
 - Ne jamais écrire de secret dans un fichier suivi par git. Avant chaque commit, relire `git diff --cached` : aucun `.env*` (sauf les `.example`), cookie ou jeton.
 - Ne jamais lancer de script ni de commande Prisma (`db push`, `migrate`, `db seed`, `tsx prisma/…`) sur la base de production.
-- Avant toute commande sur une base, vérifier que l'hôte de `DATABASE_URL` ne figure pas dans `PROTECTED_DB_HOSTS`. Les scripts d'écriture passent par `verifierBaseNonProtegee()` de `prisma/garde-prod.ts`. Attention : cette garde ne bloque rien si `PROTECTED_DB_HOSTS` est vide, et les commandes Prisma CLI n'y passent pas : la vérification manuelle reste obligatoire. Ne jamais utiliser `--autoriser-prod`.
+- Avant toute commande sur une base, vérifier que l'hôte de `DATABASE_URL` ne figure pas dans `PROTECTED_DB_HOSTS`. Les scripts d'écriture passent par `verifierBaseNonProtegee()` de `prisma/garde-prod.ts`, qui bloque aussi si `PROTECTED_DB_HOSTS` est vide ou absente. Attention : les commandes Prisma CLI n'y passent pas : la vérification manuelle reste obligatoire. Ne jamais utiliser `--autoriser-prod`.
 - Une mise à jour du schéma en production est faite par le développeur lui-même, jamais par Claude.
 
 ## Périmètre des données
