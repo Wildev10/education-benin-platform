@@ -12,6 +12,7 @@ import {
   pagePublique,
   type Langue,
 } from "@/lib/i18n/langue";
+import { ROLES_IMPORT_NOTES } from "@/lib/perimetre";
 
 type AuthMiddleware = (
   request: NextAuthRequest,
@@ -72,7 +73,10 @@ const authMiddleware: AuthMiddleware = (request) => {
   if (role === "etudiant" && /^\/(enseignant|admin)\/etudiants\/[^/]+/.test(pathname)) {
     return NextResponse.rewrite(new URL("/_introuvable", request.url), entetesAvecLangue(request, "fr"));
   }
-  const requiredRoles = pathname.startsWith("/admin")
+  // Import de notes : mêmes rôles que l'API (le directeur n'importe pas)
+  const requiredRoles = pathname.startsWith("/enseignant/import")
+    ? ROLES_IMPORT_NOTES
+    : pathname.startsWith("/admin")
     ? ["admin"]
     : pathname.startsWith("/directeur")
       ? ["directeur"]

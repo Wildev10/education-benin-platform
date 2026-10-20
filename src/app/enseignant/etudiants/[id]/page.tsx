@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
-import { peutAccederEtudiant, peutTraiterAlertes } from "@/lib/perimetre";
+import { peutAccederEtudiant, peutSupprimerAbsence, peutTraiterAlertes } from "@/lib/perimetre";
 import StudentDetail from "./StudentDetail";
 import AlertesEleve from "./AlertesEleve";
 
@@ -52,6 +52,7 @@ export default async function EtudiantPage({
       </div>
       <StudentDetail
         etudiantId={etudiant.id}
+        peutSupprimerAbsence={peutSupprimerAbsence(session.user.role)}
         initialNotes={etudiant.notes.map((note) => ({
           id: note.id,
           matiere: note.matiere,

@@ -18,6 +18,19 @@ const ROLES_ETABLISSEMENT = new Set(["enseignant", "directeur"]);
 
 /** Rôles autorisés à marquer une alerte comme traitée (le directeur consulte seulement). */
 export const ROLES_TRAITEMENT_ALERTES = ["admin", "enseignant"];
+/** Supprimer une absence (DELETE /api/absences/[id]) : le directeur saisit mais ne supprime pas. */
+export const ROLES_SUPPRESSION_ABSENCE = ["admin", "enseignant"];
+/** Importer des notes par fichier CSV (POST /api/notes/import). */
+export const ROLES_IMPORT_NOTES = ["admin", "enseignant"];
+
+/** L'interface n'affiche une action qu'aux rôles que l'API autorise : mêmes listes des deux côtés. */
+export function peutSupprimerAbsence(role: string | undefined): boolean {
+  return !!role && ROLES_SUPPRESSION_ABSENCE.includes(role);
+}
+
+export function peutImporterNotes(role: string | undefined): boolean {
+  return !!role && ROLES_IMPORT_NOTES.includes(role);
+}
 
 export function peutTraiterAlertes(role: string | undefined): boolean {
   return !!role && ROLES_TRAITEMENT_ALERTES.includes(role);

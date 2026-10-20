@@ -94,7 +94,7 @@ Gestion des comptes (création, modification, suppression), demandes de mot de p
 | Assistant | — | ✓ | ✓ | ✓ |
 | Comptes, historique, mots de passe oubliés | — | — | — | ✓ |
 
-Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque route de l'API vérifie elle-même ces droits. Les comptes sont créés par l'administration : il n'y a pas d'inscription libre, ce qui empêche un utilisateur de s'attribuer un rôle sensible.
+Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque route de l'API vérifie elle-même ces droits, et l'interface n'affiche une action qu'aux rôles que l'API autorise. Les comptes sont créés par l'administration : il n'y a pas d'inscription libre, ce qui empêche un utilisateur de s'attribuer un rôle sensible.
 
 ---
 
@@ -113,8 +113,8 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **443 tests unitaires** (Vitest) : règles de détection, périmètre des routes, notifications, pagination, exports, accessibilité, langues, connexion à la base.
-- **207 vérifications navigateur** (6 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise. Toutes à 375 px et à 1280 px.
+- **458 tests unitaires** (Vitest) : règles de détection, périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, connexion à la base.
+- **236 vérifications navigateur** (7 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---
@@ -207,14 +207,14 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ### Lancer les tests
 
 ```bash
-npm test          # 443 tests unitaires
+npm test          # 458 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
-npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues
+npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits
 ```
 
 `npm run e2e` fait le build, lance `next start` sur le port 3100, exécute les scénarios de `e2e/` avec Google Chrome, puis arrête le serveur. Il refuse de démarrer si la base du `.env` figure dans `PROTECTED_DB_HOSTS`.
 
-- Le scénario `notifications` crée dans la base de dev un élève de test (nommé `E2E-Aggravation`), ses notes et son alerte, puis les supprime à la fin, même en cas d'échec.
+- Le scénario `notifications` crée dans la base de dev un élève de test (nommé `E2E-Aggravation`), ses notes et son alerte ; le scénario `droits` crée une absence temporaire. Les deux les suppriment à la fin, même en cas d'échec.
 - Pour inclure le rôle directeur, copiez `.env.e2e.example` en `.env.e2e.local` (ignoré par git) et renseignez `E2E_DIRECTEUR_EMAIL` et `E2E_DIRECTEUR_MOT_DE_PASSE` avec un compte directeur de la base de dev ; sans eux, ces étapes sont ignorées.
 - Options : `npm run e2e -- pagination` pour un seul scénario, `npm run e2e -- --sans-build` pour réutiliser le build existant.

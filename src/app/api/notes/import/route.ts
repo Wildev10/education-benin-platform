@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
+import { ROLES_IMPORT_NOTES } from "@/lib/perimetre";
 import { detecterAlerte } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
 
@@ -22,7 +23,7 @@ const ANNEE_REGEX = /^\d{4}-\d{4}$/;
 type LigneErreur = { ligne: number; contenu: string; raison: string };
 
 export async function POST(request: Request) {
-  const access = await requireRole(["admin", "enseignant"]);
+  const access = await requireRole(ROLES_IMPORT_NOTES);
   if (access instanceof Response) return access;
 
   if (access.user.role === "enseignant" && !access.user.etablissementId) {

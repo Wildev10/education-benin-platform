@@ -53,10 +53,13 @@ export default function StudentDetail({
   etudiantId,
   initialNotes,
   initialAbsences,
+  peutSupprimerAbsence = false,
 }: {
   etudiantId: string;
   initialNotes: Note[];
   initialAbsences: Absence[];
+  /** Même règle que DELETE /api/absences/[id] (le directeur ne supprime pas) */
+  peutSupprimerAbsence?: boolean;
 }) {
   const horsLigne = useHorsLigne();
   const [notes, setNotes] = useState(initialNotes);
@@ -366,16 +369,18 @@ export default function StudentDetail({
                             {formatDate(abs.date)}
                           </span>
                         </div>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => void handleDeleteAbsence(abs.id)}
-                          disabled={horsLigne}
-                          title={horsLigne ? TITRE_HORS_LIGNE : undefined}
-                          aria-label={`Supprimer l'absence du ${formatDate(abs.date)}`}
-                        >
-                          Supprimer
-                        </Button>
+                        {peutSupprimerAbsence && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => void handleDeleteAbsence(abs.id)}
+                            disabled={horsLigne}
+                            title={horsLigne ? TITRE_HORS_LIGNE : undefined}
+                            aria-label={`Supprimer l'absence du ${formatDate(abs.date)}`}
+                          >
+                            Supprimer
+                          </Button>
+                        )}
                       </li>
                     ))}
                   </ul>
