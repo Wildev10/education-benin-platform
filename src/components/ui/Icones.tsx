@@ -106,3 +106,26 @@ export const IconeVueEnsemble = (p: ProprietesIcone) => (
     <rect x="14" y="14" width="7" height="7" rx="1" />
   </Icone>
 );
+
+/** Contraste : cercle à moitié plein */
+export const IconeContraste = (p: ProprietesIcone) => (
+  <Icone {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" />
+  </Icone>
+);
+
+/** Lecture à voix haute : haut-parleur */
+export const IconeLecture = (p: ProprietesIcone) => (
+  <Icone {...p}>
+    <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+  </Icone>
+);
+
+/** Arrêt : carré */
+export const IconeArret = (p: ProprietesIcone) => (
+  <Icone {...p}>
+    <rect x="6" y="6" width="12" height="12" rx="1.5" />
+  </Icone>
+);

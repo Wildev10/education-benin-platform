@@ -9,6 +9,7 @@ import {
   type TaillePolice,
 } from "@/lib/preferences-accessibilite";
 import { TEXTES_FR, type Textes } from "@/lib/i18n/textes";
+import { IconeArret, IconeContraste, IconeLecture } from "@/components/ui/Icones";
 
 type FontSize = TaillePolice;
 
@@ -117,7 +118,7 @@ export default function AccessibilityControls({
               : "border-border bg-surface text-ink hover:bg-page"
         }`}
       >
-        <span aria-hidden="true" className="text-base leading-none">◐</span>
+        <IconeContraste taille={16} />
         <span>{t.contraste}</span>
         {highContrast && (
           <span aria-hidden="true" className={`rounded px-1 py-px text-xs font-bold ${d ? "bg-brand text-ink" : "bg-brand text-ink"}`}>
@@ -181,7 +182,7 @@ export default function AccessibilityControls({
               : "border-red-200 bg-red-50 text-red-900 hover:bg-red-100"
           }`}
         >
-          <span aria-hidden="true">■</span>
+          <IconeArret taille={16} />
           <span>{t.arreter}</span>
         </button>
       ) : (
@@ -194,7 +195,7 @@ export default function AccessibilityControls({
               : "border-brand/30 bg-brand-light text-brand-dark hover:border-brand/50"
           }`}
         >
-          <span aria-hidden="true">▶</span>
+          <IconeLecture taille={16} />
           <span>{t.lire}</span>
         </button>
       )}

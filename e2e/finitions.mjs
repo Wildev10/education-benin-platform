@@ -424,6 +424,18 @@ await acces.reload();
 await acces.locator("main h1").first().waitFor();
 await acces.waitForFunction(() => document.documentElement.dataset.theme === "high-contrast", null, { timeout: 5000 }).catch(() => {});
 const apresRechargement = await theme();
+const iconesCommandes = await acces.evaluate(() =>
+  ["Contraste", "Lire"].map((nom) => {
+    const bouton = [...document.querySelectorAll("button")].find((b) => b.textContent.trim().startsWith(nom) && b.offsetParent);
+    const svg = bouton?.querySelector("svg");
+    const r = svg?.getBoundingClientRect();
+    return { nom, couleur: svg && getComputedStyle(svg).color, decorative: svg?.getAttribute("aria-hidden") === "true", visible: !!r && r.width > 0 && r.height > 0 };
+  })
+);
+check("Contraste élevé : icônes au trait des commandes (contraste, lecture) blanches, visibles, décoratives ; libellés conservés",
+  iconesCommandes.every((i) => i.couleur === "rgb(255, 255, 255)" && i.visible && i.decorative) &&
+  (await acces.getByRole("button", { name: "Lire" }).count()) >= 1,
+  JSON.stringify(iconesCommandes));
 const stocke = await acces.evaluate(() => localStorage.getItem("accessibility-contrast"));
 await acces.getByRole("button", { name: /Contraste/ }).first().click();
 check("Contraste élevé : activé au clic, conservé après rechargement, désactivable",
