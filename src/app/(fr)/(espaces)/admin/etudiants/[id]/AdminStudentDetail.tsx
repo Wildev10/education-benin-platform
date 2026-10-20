@@ -13,6 +13,7 @@ import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { SqueletteGraphiqueLigne } from "@/components/ui/Squelette";
 import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
+import { FUSEAU_BENIN } from "@/lib/dates";
 
 const MoyenneChart = dynamic(() => import("./MoyenneChart"), {
   ssr: false,
@@ -61,7 +62,7 @@ type Student = {
 };
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: FUSEAU_BENIN }).format(new Date(value));
 }
 
 export default function AdminStudentDetail({ student }: { student: Student }) {

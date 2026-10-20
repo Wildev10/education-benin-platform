@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge, roleVariant } from "@/components/ui/Badge";
 import { Toast } from "@/lib/swal";
+import { FUSEAU_BENIN } from "@/lib/dates";
 
 type ProfilData = {
   id: string;
@@ -104,6 +105,7 @@ function formatDate(date: string | Date) {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: FUSEAU_BENIN,
   });
 }
 

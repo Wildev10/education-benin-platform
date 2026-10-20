@@ -9,6 +9,7 @@ import { generateTempPassword } from "@/lib/generate-password";
 import type { DemandeReinitialisation } from "@/lib/reset-requests";
 import { Toast, Confirm, Swal } from "@/lib/swal";
 import { IconeCloche } from "@/components/ui/Icones";
+import { FUSEAU_BENIN } from "@/lib/dates";
 
 const dateDemandeFmt = new Intl.DateTimeFormat("fr-FR", {
   dateStyle: "medium",
@@ -330,7 +331,7 @@ export default function UtilisateursList({
                     </div>
                   </td>
                   <td className="hidden px-5 py-4 text-ink-secondary lg:table-cell">
-                    {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(
+                    {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: FUSEAU_BENIN }).format(
                       new Date(u.createdAt)
                     )}
                   </td>

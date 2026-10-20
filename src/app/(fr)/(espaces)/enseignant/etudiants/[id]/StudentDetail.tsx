@@ -10,6 +10,7 @@ import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { IconeAlerte } from "@/components/ui/Icones";
+import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
 
 type Note = {
   id: string;
@@ -41,6 +42,7 @@ function formatDate(iso: string) {
     day: "2-digit",
     month: "long",
     year: "numeric",
+    timeZone: FUSEAU_BENIN,
   });
 }
 
@@ -74,7 +76,7 @@ export default function StudentDetail({
   const [derniereSaisie, setDerniereSaisie] = useState<{ id: string; periode: string } | null>(null);
 
   const [absences, setAbsences] = useState(initialAbsences);
-  const [absDate, setAbsDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [absDate, setAbsDate] = useState(() => jourIsoAuBenin(new Date()));
   const [absMotif, setAbsMotif] = useState("injustifiee");
   const [absPeriode, setAbsPeriode] = useState<string>(periodes[0]);
   const [absLoading, setAbsLoading] = useState(false);
@@ -156,7 +158,7 @@ export default function StudentDetail({
       ]);
       setAbsMessage(`Absence du ${formatDate(absDate)} enregistrée.`);
       setAbsAlerteCreee(data.alerteCreee === true);
-      setAbsDate(new Date().toISOString().slice(0, 10));
+      setAbsDate(jourIsoAuBenin(new Date()));
       void Toast.fire({ icon: "success", title: "Absence enregistrée." });
     } catch (e) {
       setAbsError(e instanceof Error ? e.message : "Une erreur est survenue.");
@@ -417,7 +419,7 @@ export default function StudentDetail({
                 id="abs-date"
                 type="date"
                 required
-                max={new Date().toISOString().slice(0, 10)}
+                max={jourIsoAuBenin(new Date())}
                 value={absDate}
                 onChange={(e) => setAbsDate(e.target.value)}
                 className={inputCls}

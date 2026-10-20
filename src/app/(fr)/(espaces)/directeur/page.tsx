@@ -11,6 +11,7 @@ import {
 import { GraphiqueEvolution, GraphiqueNiveaux } from "./DirecteurCharts";
 import { ExportExcelButton } from "@/components/ExportPdfButton";
 import { IconeEtablissement } from "@/components/ui/Icones";
+import { FUSEAU_BENIN } from "@/lib/dates";
 
 function moyenneCls(moyenne: number) {
   if (moyenne >= 12) return "text-emerald-700";
@@ -30,7 +31,7 @@ function formaterDate(iso: string) {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "UTC",
+    timeZone: FUSEAU_BENIN,
   });
 }
 

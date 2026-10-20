@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { dateIso, formatDateHeure } from "@/lib/pdf/commun";
+import { jourAuBenin } from "@/lib/dates";
 
 /** Format numérique à 2 décimales : Excel l'affiche avec la virgule en français. */
 export const FORMAT_NOTE = "0.00";
@@ -100,7 +101,11 @@ export function nouvelleFeuille(
 
 /** Ajoute une ligne de données ; les valeurs null deviennent des cellules vides. */
 export function ajouterLigne(feuille: ExcelJS.Worksheet, valeurs: Record<string, unknown>, zebre = false) {
-  const ligne = feuille.addRow(valeurs);
+  // Les cellules de date (format jj/mm/aaaa) reçoivent le jour au Bénin : le
+  // tableur affiche la valeur sans fuseau, une alerte de 23 h 30 UTC serait datée de la veille
+  const ligne = feuille.addRow(
+    Object.fromEntries(Object.entries(valeurs).map(([cle, v]) => [cle, v instanceof Date ? jourAuBenin(v) : v]))
+  );
   if (zebre) {
     ligne.eachCell({ includeEmpty: false }, (c) => {
       c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF9FAFB" } };

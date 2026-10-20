@@ -7,6 +7,7 @@ import { construireWhereAbsences, lectureAbsences, rechercherAbsencesPaginees } 
 import { lireFiltresAbsences } from "@/lib/filtres-absences";
 import { lirePagination, pageVide, paginationDemandee } from "@/lib/pagination";
 import { introuvable, peutAccederEtudiant } from "@/lib/perimetre";
+import { FUSEAU_BENIN } from "@/lib/dates";
 
 const MOTIFS_VALIDES = new Set(["injustifiee", "justifiee"]);
 const PERIODES_VALIDES = new Set(["Trimestre 1", "Trimestre 2", "Trimestre 3"]);
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     await logAction({
       userId: access.user.id,
       action: "ABSENCE_CREEE",
-      description: `Absence ${motif === "justifiee" ? "justifiée" : "injustifiée"} le ${date.toLocaleDateString("fr-FR")} pour ${etudiant.prenom} ${etudiant.nom}`,
+      description: `Absence ${motif === "justifiee" ? "justifiée" : "injustifiée"} le ${date.toLocaleDateString("fr-FR", { timeZone: FUSEAU_BENIN })} pour ${etudiant.prenom} ${etudiant.nom}`,
       entityType: "absence",
       entityId: absence.id,
     });

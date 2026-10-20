@@ -109,10 +109,11 @@ export function lancerNavigateur() {
 }
 
 /** Ouvre un contexte neuf, se connecte et attend la page d'accueil du rôle. */
-export async function connecter(navigateur, compte, { largeur = 1280, hauteur = 900, telechargements = false } = {}) {
+export async function connecter(navigateur, compte, { largeur = 1280, hauteur = 900, telechargements = false, fuseau } = {}) {
   const contexte = await navigateur.newContext({
     acceptDownloads: telechargements,
     viewport: { width: largeur, height: hauteur },
+    ...(fuseau ? { timezoneId: fuseau } : {}),
   });
   const page = await contexte.newPage();
   page.erreursJs = [];

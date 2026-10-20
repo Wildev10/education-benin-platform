@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { dateEvenement, estNonLue } from "@/lib/notifications";
 import { IconeAlerte } from "@/components/ui/Icones";
+import { FUSEAU_BENIN } from "@/lib/dates";
 
 const libellesNiveau: Record<string, { label: string; cls: string }> = {
   eleve: { label: "Élevé", cls: "border-red-300 bg-red-50 text-red-900" },
@@ -17,7 +18,7 @@ const libellesType: Record<string, string> = {
 };
 
 function formaterHeure(iso: string) {
-  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: FUSEAU_BENIN });
 }
 
 export default function NotificationBell({

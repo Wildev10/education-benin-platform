@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
+import { FUSEAU_BENIN } from "@/lib/dates";
 
 export const couleurs = {
   noir: "#0A0A0A",
@@ -11,7 +12,7 @@ export const couleurs = {
   vert: "#047857",
 };
 
-const TZ = "Africa/Porto-Novo";
+const TZ = FUSEAU_BENIN;
 
 export function formatDateLongue(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: TZ }).format(date);

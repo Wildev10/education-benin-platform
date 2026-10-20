@@ -245,12 +245,22 @@ describe("getTableauDeBordDirecteur — filtrage", () => {
     await getTableauDeBordDirecteur(ETAB, new Date(2026, 9, 19));
     const where = prismaMock.absence.count.mock.calls[0][0].where;
     expect(where.motif).toBe("injustifiee");
-    expect(where.date.gte).toEqual(new Date(2026, 9, 1));
-    expect(where.date.lt).toEqual(new Date(2026, 10, 1));
+    // Bornes à minuit UTC, convention des dates d'absence (jour sans heure)
+    expect(where.date.gte).toEqual(new Date("2026-10-01T00:00:00.000Z"));
+    expect(where.date.lt).toEqual(new Date("2026-11-01T00:00:00.000Z"));
     expect(prismaMock.absence.findMany.mock.calls[0][0]).toMatchObject({
       where: { motif: "injustifiee" },
       take: 5,
     });
+  });
+
+  it("mois en cours : celui du Bénin, même à 23 h 30 UTC le dernier jour du mois", async () => {
+    // 31 octobre 23 h 30 UTC = 1er novembre 0 h 30 au Bénin
+    const tdb = await getTableauDeBordDirecteur(ETAB, new Date("2026-10-31T23:30:00.000Z"));
+    const where = prismaMock.absence.count.mock.calls[0][0].where;
+    expect(where.date.gte).toEqual(new Date("2026-11-01T00:00:00.000Z"));
+    expect(where.date.lt).toEqual(new Date("2026-12-01T00:00:00.000Z"));
+    expect(tdb?.mois).toBe("novembre 2026");
   });
 });
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { construireWhereAlertes, lireFiltres, type PorteeAlertes } from "@/lib/filtres-alertes";
+import { FUSEAU_BENIN } from "@/lib/dates";
 
 /**
  * Accès directs du tableau de bord national vers la page Alertes déjà
@@ -26,7 +27,7 @@ export function debutSeptDerniersJours(maintenant: Date = new Date()): string {
 }
 
 function formaterJour(jour: string) {
-  return new Date(`${jour}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" });
+  return new Date(`${jour}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: FUSEAU_BENIN });
 }
 
 export function definitionsRaccourcis(maintenant: Date = new Date()): Omit<Raccourci, "total">[] {

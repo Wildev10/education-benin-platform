@@ -1,5 +1,6 @@
 import type { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
 
 // ── Accès ────────────────────────────────────────────────────────────────────
 
@@ -86,8 +87,10 @@ export async function getTableauDeBordDirecteur(
   maintenant: Date = new Date()
 ): Promise<TableauDeBordDirecteur | null> {
   const ecole = { etudiant: { etablissementId } };
-  const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1);
-  const debutMoisSuivant = new Date(maintenant.getFullYear(), maintenant.getMonth() + 1, 1);
+  // Mois en cours au Bénin ; bornes à minuit UTC, convention des dates d'absence
+  const [annee, mois] = jourIsoAuBenin(maintenant).split("-").map(Number);
+  const debutMois = new Date(Date.UTC(annee, mois - 1, 1));
+  const debutMoisSuivant = new Date(Date.UTC(annee, mois, 1));
   const absencesInjustifiees = { ...ecole, motif: "injustifiee" };
 
   const [
@@ -239,7 +242,7 @@ export async function getTableauDeBordDirecteur(
     nbElevesEnAlerte: elevesEnAlerte.size,
     tauxElevesEnAlerte: nbEleves > 0 ? arrondir((elevesEnAlerte.size / nbEleves) * 100, 1) : 0,
     absencesInjustifieesMois,
-    mois: maintenant.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }),
+    mois: maintenant.toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: FUSEAU_BENIN }),
     evolution,
     moyennesParNiveau,
     elevesARisque,
