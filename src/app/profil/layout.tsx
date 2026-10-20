@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 const spaceLabels: Record<string, string> = {
-  admin: "Espace Ministère",
+  admin: "Espace national",
   enseignant: "Espace Enseignant",
   directeur: "Espace Directeur",
   etudiant: "Mon Espace",

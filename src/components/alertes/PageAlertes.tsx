@@ -147,7 +147,7 @@ export async function PageAlertes({ chemin, searchParams }: { chemin: string; se
           <p className="text-xl font-bold text-amber-950">Aucun établissement rattaché à votre compte</p>
           <p className="mt-2 text-amber-900">
             Les alertes s&apos;afficheront dès que votre compte sera rattaché à un établissement.
-            Contactez l&apos;administrateur du Ministère.
+            Contactez l&apos;administrateur de la plateforme.
           </p>
         </div>
       </main>

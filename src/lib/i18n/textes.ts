@@ -2,20 +2,28 @@ import type { Langue } from "./langue";
 
 /**
  * Textes des pages publiques (accueil et connexion), en français et en
- * anglais. Le français reprend mot pour mot les textes d'origine ; l'anglais
- * a exactement la même structure (vérifié par TypeScript et par les tests).
+ * anglais ; l'anglais a exactement la même structure (vérifié par TypeScript
+ * et par les tests).
  *
- * Nom du ministère : celui déjà affiché sur le site. Aucune forme anglaise
- * officielle n'a été trouvée sur gouv.bj : « Ministry of Education » en est la
- * traduction fidèle.
+ * Intitulé neutre : la plateforme n'est le service d'aucun ministère. Seule
+ * mention d'un ministère : le challenge dans lequel le projet a été
+ * sélectionné, sans jamais présenter la plateforme comme un service officiel.
  */
+
+/**
+ * Nom recopié exactement (apostrophe typographique comprise). Pas de forme
+ * anglaise officielle : il reste en français dans les deux langues.
+ */
+export const NOM_MINISTERE_CHALLENGE = "Ministère de la Transformation Digitale et de l’Innovation";
 
 const fr = {
   commun: {
     nomPlateforme: "EduTech Bénin",
-    ministere: "Ministère de l'Éducation",
+    pays: "République du Bénin",
+    intitule: "Plateforme nationale de suivi scolaire",
     armoiriesAlt: "Armoiries du Bénin",
-    sousTitrePlateforme: "Plateforme de suivi scolaire",
+    /** Suivie du nom du ministère (NOM_MINISTERE_CHALLENGE), en français */
+    mentionChallenge: "Projet sélectionné dans le cadre du challenge du",
   },
   selecteurLangue: {
     libelle: "Choix de la langue",
@@ -28,7 +36,7 @@ const fr = {
     titreLigne2: "avant qu'il soit acté.",
     accroche: "Notre plateforme le détecte automatiquement.",
     presentation:
-      "EduTech Bénin connecte les enseignants, les directeurs et le Ministère de l'Éducation autour d'un objectif commun : agir avant qu'il soit trop tard.",
+      "EduTech Bénin relie les enseignants, les directeurs d'établissement et le pilotage national autour d'un objectif commun : agir avant qu'il soit trop tard.",
     acceder: "Accéder à la plateforme",
     chiffres: {
       eleves: "élèves suivis",
@@ -40,14 +48,14 @@ const fr = {
     etapes: [
       { titre: "L'enseignant saisit une note", description: "Les résultats sont enregistrés par période et par matière." },
       { titre: "La plateforme détecte les baisses", description: "Les moyennes sont comparées automatiquement entre périodes." },
-      { titre: "Le ministère est alerté et peut agir", description: "Les alertes remontent en temps réel au niveau national." },
+      { titre: "Le niveau national est alerté et peut agir", description: "Les alertes remontent en temps réel au niveau national." },
     ],
     titreEspaces: "Une plateforme pour chaque acteur",
     espaces: {
       etudiant: { titre: "Étudiant", description: "Suivez vos résultats et votre progression" },
       enseignant: { titre: "Enseignant", description: "Gérez vos élèves et saisissez les notes" },
       directeur: { titre: "Directeur", description: "Pilotez votre établissement" },
-      ministere: { titre: "Ministère", description: "Vue nationale des alertes et indicateurs" },
+      national: { titre: "Pilotage national", description: "Vue nationale des alertes et indicateurs" },
     },
     titreAccessibilite: "Conçu pour tous",
     accessibilite: {
@@ -56,7 +64,7 @@ const fr = {
       lecture: "Lecture à voix haute",
       langue: "Interface en français simple",
     },
-    piedDePage: "© 2026 EduTech Bénin — Ministère de l'Éducation",
+    piedDePage: "© 2026 EduTech Bénin",
   },
   connexion: {
     presentationPlateforme: "Présentation de la plateforme",
@@ -120,9 +128,9 @@ const fr = {
   },
   metadonnees: {
     accueil: {
-      titre: "EduTech Bénin — Plateforme de suivi scolaire",
+      titre: "EduTech Bénin — Plateforme nationale de suivi scolaire",
       description:
-        "Détectez automatiquement les risques de décrochage scolaire. Plateforme de suivi des élèves pour les établissements et le Ministère de l'Éducation du Bénin.",
+        "Détectez automatiquement les risques de décrochage scolaire. Plateforme nationale de suivi des élèves pour les établissements scolaires du Bénin.",
     },
     connexion: {
       titre: "Connexion — EduTech Bénin",
@@ -137,9 +145,10 @@ export type Textes = typeof fr;
 const en: Textes = {
   commun: {
     nomPlateforme: "EduTech Bénin",
-    ministere: "Ministry of Education",
+    pays: "Republic of Benin",
+    intitule: "National student monitoring platform",
     armoiriesAlt: "Coat of arms of Benin",
-    sousTitrePlateforme: "Student monitoring platform",
+    mentionChallenge: "Project selected as part of the challenge organized by the",
   },
   selecteurLangue: {
     libelle: "Language selection",
@@ -152,7 +161,7 @@ const en: Textes = {
     titreLigne2: "until it has already happened.",
     accroche: "Our platform detects it automatically.",
     presentation:
-      "EduTech Bénin brings teachers, school principals and the Ministry of Education together around a shared goal: taking action before it is too late.",
+      "EduTech Bénin brings teachers, school principals and national oversight together around a shared goal: taking action before it is too late.",
     acceder: "Access the platform",
     chiffres: {
       eleves: "students monitored",
@@ -164,14 +173,14 @@ const en: Textes = {
     etapes: [
       { titre: "The teacher records a grade", description: "Results are recorded by term and by subject." },
       { titre: "The platform detects declines", description: "Averages are automatically compared from one term to the next." },
-      { titre: "The Ministry is alerted and can take action", description: "Alerts are escalated to the national level in real time." },
+      { titre: "The national level is alerted and can take action", description: "Alerts are escalated to the national level in real time." },
     ],
     titreEspaces: "A platform for every stakeholder",
     espaces: {
       etudiant: { titre: "Student", description: "Track your results and your progress" },
       enseignant: { titre: "Teacher", description: "Manage your students and record grades" },
       directeur: { titre: "School principal", description: "Oversee your school" },
-      ministere: { titre: "Ministry", description: "National overview of alerts and indicators" },
+      national: { titre: "National oversight", description: "National overview of alerts and indicators" },
     },
     titreAccessibilite: "Designed for everyone",
     accessibilite: {
@@ -180,7 +189,7 @@ const en: Textes = {
       lecture: "Read-aloud feature",
       langue: "Plain-language interface (in French)",
     },
-    piedDePage: "© 2026 EduTech Bénin — Ministry of Education",
+    piedDePage: "© 2026 EduTech Bénin",
   },
   connexion: {
     presentationPlateforme: "About the platform",
@@ -243,9 +252,9 @@ const en: Textes = {
   },
   metadonnees: {
     accueil: {
-      titre: "EduTech Bénin — Student Monitoring Platform",
+      titre: "EduTech Bénin — National Student Monitoring Platform",
       description:
-        "Automatically detect the risk of school dropout. A student monitoring platform for schools and the Ministry of Education of Benin.",
+        "Automatically detect the risk of school dropout. A national student monitoring platform for schools in Benin.",
     },
     connexion: {
       titre: "Sign in — EduTech Bénin",

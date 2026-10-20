@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { BlocIdentite, MentionChallenge } from "@/components/IdentitePlateforme";
 import { SelecteurLangue } from "@/components/SelecteurLangue";
 import { CHEMINS, type Langue } from "@/lib/i18n/langue";
 import { TEXTES } from "@/lib/i18n/textes";
@@ -115,7 +116,7 @@ const spaces = [
     ),
   },
   {
-    cle: "ministere",
+    cle: "national",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="3" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -187,12 +188,7 @@ export default function HomePage({ langue }: { langue: Langue }) {
                 priority
               />
             </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.16em] text-surface">
-                EduTech Bénin
-              </p>
-              <p className="text-xs text-surface/50">{t.commun.ministere}</p>
-            </div>
+            <BlocIdentite langue={langue} />
           </div>
           <div className="flex items-center gap-3">
             <SelecteurLangue page="accueil" langue={langue} />
@@ -344,9 +340,10 @@ export default function HomePage({ langue }: { langue: Langue }) {
                 width={24}
               />
             </div>
-            <p className="text-sm text-surface/60">
-              {a.piedDePage}
-            </p>
+            <div className="text-sm text-surface/60">
+              <p>{a.piedDePage}</p>
+              <MentionChallenge langue={langue} className="mt-1 text-xs text-surface/50" />
+            </div>
           </div>
           <Link
             href={connexion}

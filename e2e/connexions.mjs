@@ -5,7 +5,7 @@ const rapport = creerRapport("Connexions");
 const navigateur = await lancerNavigateur();
 
 const ROLES = [
-  { role: "admin", accueil: "/admin", titre: "Dashboard Ministère", nav: "Navigation administration", cible: "/admin/alertes" },
+  { role: "admin", accueil: "/admin", titre: "Tableau de bord national", nav: "Navigation administration", cible: "/admin/alertes" },
   { role: "directeur", accueil: "/directeur", titre: null, nav: "Navigation directeur", cible: "/directeur/alertes" },
   { role: "enseignant", accueil: "/enseignant", titre: "Espace Enseignant", nav: "Navigation enseignant", cible: "/enseignant/alertes" },
   { role: "etudiant", accueil: "/etudiant", titre: "Bonjour", nav: null },

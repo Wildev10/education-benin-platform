@@ -14,14 +14,14 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://education-benin-platform.vercel.app"),
-  title: "EduTech Bénin — Plateforme de suivi scolaire",
+  title: "EduTech Bénin — Plateforme nationale de suivi scolaire",
   description:
-    "Détectez automatiquement les risques de décrochage scolaire. Plateforme de suivi des élèves pour les établissements et le Ministère de l'Éducation du Bénin.",
+    "Détectez automatiquement les risques de décrochage scolaire. Plateforme nationale de suivi des élèves pour les établissements scolaires du Bénin.",
   robots: "noindex, nofollow",
   openGraph: {
-    title: "EduTech Bénin — Plateforme de suivi scolaire",
+    title: "EduTech Bénin — Plateforme nationale de suivi scolaire",
     description:
-      "Détectez automatiquement les risques de décrochage scolaire. Plateforme de suivi des élèves pour les établissements et le Ministère de l'Éducation du Bénin.",
+      "Détectez automatiquement les risques de décrochage scolaire. Plateforme nationale de suivi des élèves pour les établissements scolaires du Bénin.",
     type: "website",
     url: "https://education-benin-platform.vercel.app",
   },

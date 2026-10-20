@@ -6,7 +6,7 @@ import { AppNav } from "@/components/AppNav";
 import { countDemandesEnAttente } from "@/lib/reset-requests";
 
 export const metadata: Metadata = {
-  title: "Espace Ministère — EduTech Bénin",
+  title: "Espace national — EduTech Bénin",
 };
 
 const navItems = [
@@ -42,7 +42,7 @@ export default async function AdminLayout({
         name={session.user.name ?? session.user.email ?? "Administrateur"}
         email={session.user.email ?? ""}
         role={session.user.role}
-        spaceLabel="Espace Ministère"
+        spaceLabel="Espace national"
       />
       <AppNav items={items} ariaLabel="Navigation administration" />
       {children}

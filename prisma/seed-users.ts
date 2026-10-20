@@ -10,14 +10,14 @@ const prisma = creerClientPrisma();
 async function main() {
   const password = await bcrypt.hash("password123", 10);
 
-  // Admin/ministère
+  // Admin (pilotage national)
   await prisma.user.upsert({
     where: { email: "admin@edutech.bj" },
     update: {},
     create: {
       email: "admin@edutech.bj",
       passwordHash: password,
-      nom: "Ministère",
+      nom: "Administration",
       prenom: "Admin",
       role: "admin",
     },

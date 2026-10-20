@@ -1,9 +1,11 @@
-# EduTech Bénin — Plateforme de suivi scolaire national
+# EduTech Bénin — Plateforme nationale de suivi scolaire
 
 > « Personne ne voit un décrochage venir avant qu'il soit acté.
 > Notre plateforme le détecte automatiquement. »
 
 🔗 **En ligne :** [https://education-benin-platform.vercel.app](https://education-benin-platform.vercel.app)
+
+Projet sélectionné dans le cadre du challenge du Ministère de la Transformation Digitale et de l’Innovation. EduTech Bénin est un projet indépendant : ce n'est pas un service officiel d'un ministère.
 
 ---
 
@@ -13,7 +15,7 @@ Les enseignants et les directeurs n'ont pas d'outil simple pour repérer les él
 
 ## La solution
 
-EduTech Bénin détecte automatiquement les baisses de résultats et les absences excessives. Les alertes remontent en temps réel jusqu'au niveau national, pour que l'établissement et le ministère puissent agir pendant qu'il en est encore temps.
+EduTech Bénin détecte automatiquement les baisses de résultats et les absences excessives. Les alertes remontent en temps réel jusqu'au niveau national, pour que les établissements et le pilotage national puissent agir pendant qu'il en est encore temps.
 
 ---
 
@@ -28,7 +30,7 @@ Quatre espaces, avec des permissions strictes par rôle :
 | **Étudiant** | Sa propre fiche | Consulter ses notes, ses moyennes et leur évolution |
 | **Enseignant** | Son établissement | Consulter les élèves, saisir notes et absences, importer des notes (CSV), traiter les alertes |
 | **Directeur** | Son établissement | Consulter les élèves, saisir notes et absences |
-| **Admin / Ministère** | National | Vue complète, gestion des comptes, historique, statistiques, exports |
+| **Admin (pilotage national)** | National | Vue complète, gestion des comptes, historique, statistiques, exports |
 
 ### Détection automatique du décrochage
 
@@ -90,7 +92,7 @@ Les règles s'appliquent à chaque saisie de note ou d'absence :
 
 | Rôle | Email | Mot de passe |
 |---|---|---|
-| Admin / Ministère | `admin@edutech.bj` | `password123` |
+| Admin (pilotage national) | `admin@edutech.bj` | `password123` |
 | Enseignant | `enseignant@edutech.bj` | `password123` |
 | Étudiant | `etudiant@edutech.bj` | `password123` |
 | Directeur | À créer depuis `/admin/utilisateurs` | — |

@@ -62,7 +62,8 @@ export const styles = StyleSheet.create({
   },
   marque: { fontFamily: "Helvetica-Bold", fontSize: 14, letterSpacing: 1.5 },
   marqueAccent: { color: couleurs.orange },
-  ministere: { fontSize: 9, color: couleurs.gris, marginTop: 2 },
+  pays: { fontSize: 7, color: couleurs.gris, letterSpacing: 1.2, marginBottom: 2 },
+  intitule: { fontSize: 9, color: couleurs.gris, marginTop: 2 },
   dateEntete: { fontSize: 9, color: couleurs.gris, textAlign: "right" },
   titre: { fontFamily: "Helvetica-Bold", fontSize: 18, marginTop: 18 },
   sousTitre: { fontSize: 10, color: couleurs.gris, marginTop: 4 },
@@ -113,10 +114,11 @@ export function EntetePdf({ genereLe }: { genereLe: Date }) {
   return (
     <View style={styles.entete} fixed>
       <View>
+        <Text style={styles.pays}>RÉPUBLIQUE DU BÉNIN</Text>
         <Text style={styles.marque}>
           EDUTECH <Text style={styles.marqueAccent}>BÉNIN</Text>
         </Text>
-        <Text style={styles.ministere}>Ministère de l&apos;Éducation</Text>
+        <Text style={styles.intitule}>Plateforme nationale de suivi scolaire</Text>
       </View>
       <Text style={styles.dateEntete}>Généré le {formatDateHeure(genereLe)}</Text>
     </View>

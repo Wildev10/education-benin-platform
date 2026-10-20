@@ -2,7 +2,8 @@
 
 # EduTech Bénin — consignes pour Claude Code
 
-Plateforme de suivi scolaire pour le Ministère de l'Éducation du Bénin : notes, absences, alertes de décrochage, quatre espaces (admin, directeur, enseignant, étudiant).
+Plateforme nationale de suivi scolaire pour les établissements du Bénin : notes, absences, alertes de décrochage, quatre espaces (admin, directeur, enseignant, étudiant).
+Projet indépendant : ne jamais le présenter comme le service d'un ministère. Intitulé neutre : « République du Bénin » au-dessus de « Plateforme nationale de suivi scolaire ». Seule mention d'un ministère : celle du challenge (`NOM_MINISTERE_CHALLENGE` dans `src/lib/i18n/textes.ts`, recopiée exactement).
 Stack : Next.js 16 (App Router), Prisma 7 (driver adapter `pg`), PostgreSQL Neon, Auth.js v5, Tailwind 4, Node 24, déployé sur Vercel.
 Le détail (fonctionnalités, installation, comptes de démo, options de `npm run e2e`) est dans le README : s'y reporter plutôt que de le recopier ici.
 

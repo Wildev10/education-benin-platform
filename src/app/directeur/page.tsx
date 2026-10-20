@@ -43,7 +43,7 @@ function SansEtablissement() {
         </h1>
         <p className="mt-3 text-lg text-amber-900">
           Votre tableau de bord de directeur s&apos;affichera dès que votre compte sera rattaché à un
-          établissement. Contactez l&apos;administrateur du Ministère pour effectuer ce rattachement.
+          établissement. Contactez l&apos;administrateur de la plateforme pour effectuer ce rattachement.
         </p>
       </div>
     </main>

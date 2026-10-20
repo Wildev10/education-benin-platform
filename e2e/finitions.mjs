@@ -78,8 +78,8 @@ await anonyme.close();
 const admin = await session(COMPTES.admin);
 const ens = await session(COMPTES.enseignant);
 const etabEns = (await lireOk(ens, "/api/etudiants?page=1")).elements[0].etablissement;
-const autreEtab = (await getJson(admin, "/api/etablissements")).corps.find((e) => e.id !== etabEns.id);
-const eleveAutre = (await getJson(admin, `/api/etudiants?page=1&etablissement=${autreEtab.id}`)).corps.elements[0];
+const autreEtab = (await lireOk(admin, "/api/etablissements")).find((e) => e.id !== etabEns.id);
+const eleveAutre = (await lireOk(admin, `/api/etudiants?page=1&etablissement=${autreEtab.id}`)).elements[0];
 const horsPerimetre = await page404(ens, `/enseignant/etudiants/${eleveAutre.id}`);
 const inexistante = await page404(ens, "/enseignant/etudiants/cl-inexistant-000000000000");
 check("Enseignant, fiche d'un autre établissement : page 404 sans le nom de l'élève",
@@ -92,9 +92,9 @@ check("Admin, fiche inexistante : même page 404, bouton vers /admin", adminInex
 
 if (COMPTES.directeur) {
   const dir = await session(COMPTES.directeur);
-  const etabDir = (await getJson(dir, "/api/etudiants?page=1")).corps.elements[0]?.etablissement;
-  const autreDir = (await getJson(admin, "/api/etablissements")).corps.find((e) => e.id !== etabDir?.id);
-  const eleveHorsDir = (await getJson(admin, `/api/etudiants?page=1&etablissement=${autreDir.id}`)).corps.elements[0];
+  const etabDir = (await lireOk(dir, "/api/etudiants?page=1")).elements[0]?.etablissement;
+  const autreDir = (await lireOk(admin, "/api/etablissements")).find((e) => e.id !== etabDir?.id);
+  const eleveHorsDir = (await lireOk(admin, `/api/etudiants?page=1&etablissement=${autreDir.id}`)).elements[0];
   const pDir = await page404(dir, `/enseignant/etudiants/${eleveHorsDir.id}`);
   check("Directeur, fiche d'un autre établissement : page 404, bouton vers /directeur",
     pDir.titre === "Page introuvable" && pDir.bouton.href === "/directeur" && !pDir.texte.includes(eleveHorsDir.nom));
@@ -216,7 +216,7 @@ await capture(ens, "fiche-enseignant-1280");
 
 if (COMPTES.directeur) {
   const dir = await session(COMPTES.directeur);
-  const eleveDir = (await getJson(dir, "/api/etudiants?page=1")).corps.elements[0];
+  const eleveDir = (await lireOk(dir, "/api/etudiants?page=1")).elements[0];
   const ficheDir = (await getJson(dir, `/api/etudiants/${eleveDir.id}`)).corps;
   await ouvrir(dir, `/enseignant/etudiants/${eleveDir.id}`);
   await verifierAccordeon(dir, "Fiche directeur", ficheDir.notes);

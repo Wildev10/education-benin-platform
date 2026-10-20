@@ -61,7 +61,8 @@ const largeurPage = (page) => page.evaluate(() => document.documentElement.scrol
 const texteVisible = (page) =>
   page.evaluate(() => {
     const clone = document.body.cloneNode(true);
-    clone.querySelectorAll("[data-selecteur-langue], script, style").forEach((n) => n.remove());
+    // Sans le sélecteur ni les passages volontairement en français (nom du ministère du challenge)
+    clone.querySelectorAll('[data-selecteur-langue], [lang="fr"], script, style').forEach((n) => n.remove());
     return clone.innerText.replace(/\s+/g, " ");
   });
 const MOTS_FRANCAIS = /\b(Se connecter|Connexion|Mot de passe|Ministère|élèves|établissements|Comment ça marche|Conçu pour tous|Contraste|Lire|Accédez|Problème)\b/;
@@ -94,18 +95,32 @@ check("Accueil FR : canonique, hreflang fr / en / x-default, Open Graph fr_FR",
   sansBarre(alternatives.fr) === ORIGINE && sansBarre(alternatives.en) === `${ORIGINE}/en` && sansBarre(alternatives["x-default"]) === ORIGINE &&
   sansBarre(alternatives.canonique) === ORIGINE && alternatives.ogLocale === "fr_FR", JSON.stringify(alternatives));
 
+check("Accueil FR : « République du Bénin » au-dessus de « Plateforme nationale de suivi scolaire », armoiries présentes",
+  (await p.locator("header [data-identite]").innerText()).replace(/\s+/g, " ").trim() === "RÉPUBLIQUE DU BÉNIN EDUTECH BÉNIN Plateforme nationale de suivi scolaire" &&
+  (await p.locator("header").getByRole("img", { name: "Armoiries du Bénin" }).count()) === 1 &&
+  !/Ministère de l.Éducation/.test(await p.locator("body").innerText()));
+check("Accueil FR : mention du challenge recopiée exactement (apostrophe typographique)",
+  (await p.locator("footer [data-mention-challenge]").innerText()).trim() ===
+    "Projet sélectionné dans le cadre du challenge du Ministère de la Transformation Digitale et de l’Innovation");
+
 await selecteur(p).getByRole("link", { name: /EN/ }).click();
 await p.waitForURL(`${BASE}/en`);
 check("Clic sur EN : /en, lang=en, cookie langue=en", chemin(p) === "/en" && (await lang(p)) === "en" && (await cookieLangue(p)) === "en");
 check("Accueil EN : titre, description et Open Graph en anglais",
-  (await p.title()) === "EduTech Bénin — Student Monitoring Platform" &&
+  (await p.title()) === "EduTech Bénin — National Student Monitoring Platform" &&
   (await meta(p, 'meta[name="description"]')).startsWith("Automatically detect") &&
   (await meta(p, 'meta[property="og:locale"]')) === "en_US" &&
-  (await meta(p, 'meta[property="og:title"]')) === "EduTech Bénin — Student Monitoring Platform");
+  (await meta(p, 'meta[property="og:title"]')) === "EduTech Bénin — National Student Monitoring Platform");
 check("Accueil EN : lien EN marqué comme courant", (await selecteur(p).getByRole("link", { name: /EN/ }).getAttribute("aria-current")) === "true");
 const texteAccueil = await texteVisible(p);
 check("Accueil EN : aucun texte français visible", !MOTS_FRANCAIS.test(texteAccueil), texteAccueil.match(MOTS_FRANCAIS)?.[0] ?? "");
-check("Accueil EN : nom du ministère traduit", texteAccueil.includes("Ministry of Education"));
+check("Accueil EN : intitulé neutre « Republic of Benin » / « National student monitoring platform », plus aucun ministère de l'Éducation",
+  (await p.locator("header [data-identite]").innerText()).replace(/\s+/g, " ").trim() === "REPUBLIC OF BENIN EDUTECH BÉNIN National student monitoring platform" &&
+  !/Ministry of Education|Ministère de l.Éducation/.test(await p.locator("body").innerText()));
+const mentionEn = p.locator("footer [data-mention-challenge]");
+check("Accueil EN : mention du challenge exacte, nom du ministère gardé en français (lang=fr)",
+  (await mentionEn.innerText()).trim() === "Project selected as part of the challenge organized by the Ministère de la Transformation Digitale et de l’Innovation" &&
+  (await mentionEn.locator('span[lang="fr"]').innerText()) === "Ministère de la Transformation Digitale et de l’Innovation");
 await p.screenshot({ path: path.join(CAPTURES, "accueil-en-1280.png"), fullPage: true });
 
 await p.goto(`${BASE}/`);
@@ -165,6 +180,10 @@ await selecteur(p).getByRole("link", { name: /FR/ }).click();
 await p.waitForURL(`${BASE}/login`);
 check("Clic sur FR : /login, lang=fr, cookie langue=fr, textes français",
   (await lang(p)) === "fr" && (await cookieLangue(p)) === "fr" && (await p.locator("h2").first().textContent()) === "Connexion");
+check("Connexion FR : mention du challenge exacte en pied de page, intitulé neutre",
+  (await p.locator("footer [data-mention-challenge]").innerText()).trim() ===
+    "Projet sélectionné dans le cadre du challenge du Ministère de la Transformation Digitale et de l’Innovation" &&
+  (await p.locator("main [data-identite]").first().innerText()).includes("RÉPUBLIQUE DU BÉNIN"));
 await p.getByRole("button", { name: "Lire" }).click();
 check("Lecture vocale : voix française (fr-FR) sur la page française", (await p.evaluate(() => window.__lectures.at(-1))) === "fr-FR");
 await p.goto(`${BASE}/`);
@@ -180,7 +199,7 @@ await c.click('button[type="submit"]');
 await c.waitForURL((u) => u.pathname === "/admin", { timeout: 60000 });
 await c.locator("main h1").first().waitFor();
 check("Connexion depuis /en/login : arrivée sur /admin en français (lang=fr), malgré le cookie en",
-  (await lang(c)) === "fr" && (await c.locator("main h1").first().textContent()).includes("Dashboard Ministère") && (await cookieLangue(c)) === "en");
+  (await lang(c)) === "fr" && (await c.locator("main h1").first().textContent()).includes("Tableau de bord national") && (await cookieLangue(c)) === "en");
 await c.goto(`${BASE}/`);
 await c.waitForURL((u) => u.pathname === "/admin", { timeout: 30000 });
 check("Connecté avec le cookie en : / mène à l'espace, pas à /en", chemin(c) === "/admin");

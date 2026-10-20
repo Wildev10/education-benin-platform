@@ -5,7 +5,8 @@ import { NextRequest, type NextFetchEvent } from "next/server";
 // Proxy : auth(fn) renvoie fn, la session est posée sur la requête
 vi.mock("@/auth", () => ({ auth: (arg?: unknown) => (typeof arg === "function" ? arg : null) }));
 
-const { TEXTES, TEXTES_FR } = await import("@/lib/i18n/textes");
+const { TEXTES, TEXTES_FR, NOM_MINISTERE_CHALLENGE } = await import("@/lib/i18n/textes");
+const { BlocIdentite, MentionChallenge } = await import("@/components/IdentitePlateforme");
 const langue = await import("@/lib/i18n/langue");
 const { metadonneesPage } = await import("@/lib/i18n/metadonnees");
 const { SelecteurLangue } = await import("@/components/SelecteurLangue");
@@ -29,6 +30,7 @@ const IDENTIQUES = new Set([
   "selecteurLangue.en",
   "accueil.chiffres.accessible",
   "connexion.email",
+  "accueil.piedDePage", // « © 2026 EduTech Bénin »
 ]);
 
 describe("dictionnaire", () => {
@@ -53,9 +55,26 @@ describe("dictionnaire", () => {
     expect(fautifs).toEqual([]);
   });
 
-  it("nom du ministère : celui déjà affiché sur le site, traduit fidèlement", () => {
-    expect(TEXTES.fr.commun.ministere).toBe("Ministère de l'Éducation");
-    expect(TEXTES.en.commun.ministere).toBe("Ministry of Education");
+  it("intitulé neutre : « République du Bénin » et « Plateforme nationale de suivi scolaire »", () => {
+    expect(TEXTES.fr.commun).toMatchObject({ pays: "République du Bénin", intitule: "Plateforme nationale de suivi scolaire" });
+    expect(TEXTES.en.commun).toMatchObject({ pays: "Republic of Benin", intitule: "National student monitoring platform" });
+  });
+
+  it("mention du challenge recopiée exactement, apostrophe typographique comprise, nom gardé en français", () => {
+    expect(NOM_MINISTERE_CHALLENGE).toBe("Ministère de la Transformation Digitale et de l’Innovation");
+    expect(`${TEXTES.fr.commun.mentionChallenge} ${NOM_MINISTERE_CHALLENGE}`).toBe(
+      "Projet sélectionné dans le cadre du challenge du Ministère de la Transformation Digitale et de l’Innovation"
+    );
+    expect(`${TEXTES.en.commun.mentionChallenge} ${NOM_MINISTERE_CHALLENGE}`).toBe(
+      "Project selected as part of the challenge organized by the Ministère de la Transformation Digitale et de l’Innovation"
+    );
+  });
+
+  it("aucun texte ne présente la plateforme comme le service d'un ministère", () => {
+    const tout = JSON.stringify(TEXTES);
+    expect(tout).not.toMatch(/Ministère de l'Éducation|Ministry of Education|\bMinistry\b|Le ministère/);
+    // Le seul ministère cité est celui du challenge, hors du dictionnaire
+    expect(tout).not.toMatch(/Ministère/);
   });
 
   it("le français reprend les textes d'origine (messages de connexion, blocage, mot de passe oublié)", () => {
@@ -143,6 +162,41 @@ describe("SelecteurLangue", () => {
 
   it("en français : libellé du groupe en français", () => {
     expect(renderToStaticMarkup(<SelecteurLangue page="accueil" langue="fr" />)).toContain('aria-label="Choix de la langue"');
+  });
+});
+
+describe("identité de la plateforme", () => {
+  it("bloc : « République du Bénin » au-dessus du nom puis de l'intitulé", () => {
+    const html = renderToStaticMarkup(<BlocIdentite langue="fr" />);
+    const ordre = ["République du Bénin", "EduTech Bénin", "Plateforme nationale de suivi scolaire"].map((t) => html.indexOf(t));
+    expect(ordre.every((i) => i >= 0)).toBe(true);
+    expect([...ordre].sort((a, b) => a - b)).toEqual(ordre);
+  });
+
+  it("mention en anglais : le nom du ministère balisé lang=fr pour les lecteurs d'écran", () => {
+    const html = renderToStaticMarkup(<MentionChallenge langue="en" />);
+    expect(html).toContain(`Project selected as part of the challenge organized by the <span lang="fr">${NOM_MINISTERE_CHALLENGE}</span>`);
+  });
+});
+
+describe("garde-fou : plus de « ministère de l'Éducation » dans le code", () => {
+  it("aucun fichier de src/ ne le mentionne (ni « Dashboard Ministère »)", async () => {
+    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const path = await import("node:path");
+    const racine = path.join(import.meta.dirname, "..");
+    const fichiers: string[] = [];
+    const parcourir = (dossier: string) => {
+      for (const nom of readdirSync(dossier)) {
+        const chemin = path.join(dossier, nom);
+        if (nom === "generated" || nom === "__tests__") continue;
+        if (statSync(chemin).isDirectory()) parcourir(chemin);
+        else if (/\.(tsx?|mjs|css)$/.test(nom)) fichiers.push(chemin);
+      }
+    };
+    parcourir(racine);
+    const fautifs = fichiers.filter((f) => /Ministère de l(&apos;|'|’)Éducation|Ministry of Education|Dashboard Ministère|Espace Ministère/.test(readFileSync(f, "utf8")));
+    expect(fichiers.length).toBeGreaterThan(50);
+    expect(fautifs.map((f) => path.relative(racine, f))).toEqual([]);
   });
 });
 

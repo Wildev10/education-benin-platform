@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import AccessibilityControls from "@/components/AccessibilityControls";
 import { Swal, Toast } from "@/lib/swal";
 import { viderCachesPwa } from "@/lib/pwa";
+import { BlocIdentite, MentionChallenge } from "@/components/IdentitePlateforme";
 import { SelecteurLangue } from "@/components/SelecteurLangue";
 import type { Langue } from "@/lib/i18n/langue";
 import { TEXTES, type Textes } from "@/lib/i18n/textes";
@@ -130,12 +131,7 @@ export default function LoginPageClient({ langue }: { langue: Langue }) {
               priority
             />
           </div>
-          <div>
-            <p className="text-base font-bold uppercase tracking-[0.16em] text-surface">
-              EduTech Bénin
-            </p>
-            <p className="text-xs text-surface/50">{textes.commun.ministere}</p>
-          </div>
+          <BlocIdentite langue={langue} taille="base" />
         </div>
 
         {/* Pitch */}
@@ -194,12 +190,7 @@ export default function LoginPageClient({ langue }: { langue: Langue }) {
                 width={36}
                 className="shrink-0"
               />
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.16em] text-ink">
-                  EduTech Bénin
-                </p>
-                <p className="text-xs text-ink-secondary">{textes.commun.sousTitrePlateforme}</p>
-              </div>
+              <BlocIdentite langue={langue} variante="clair" />
             </div>
 
             <div className="rounded-2xl border border-border bg-surface p-8 shadow-sm">
@@ -307,6 +298,10 @@ export default function LoginPageClient({ langue }: { langue: Langue }) {
             </p>
           </div>
         </div>
+
+        <footer className="border-t border-border py-5 text-center">
+          <MentionChallenge langue={langue} className="text-xs text-ink-secondary" />
+        </footer>
       </div>
     </main>
   );
