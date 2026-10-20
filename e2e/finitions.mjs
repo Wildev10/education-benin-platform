@@ -1,0 +1,448 @@
+// Finitions visuelles : page 404 (rôles, fiches hors périmètre), notes par
+// trimestre en accordéon (souris, clavier, ARIA), squelettes de chargement
+// (forme, animation réduite, contraste élevé) et stabilité de la mise en page
+// (CLS mesuré dans le navigateur) à 375 px et 1280 px.
+// Captures dans e2e/resultats/captures/finitions. Aucune écriture en base.
+import path from "node:path";
+import { BASE, COMPTES, connecter, creerRapport, dossierResultats, getJson, lancerNavigateur, ouvrir } from "./commun.mjs";
+
+const rapport = creerRapport("Finitions visuelles");
+const { check } = rapport;
+const CAPTURES = dossierResultats("captures", "finitions");
+const navigateur = await lancerNavigateur();
+const erreursJs = [];
+const MOBILE = { largeur: 375, hauteur: 812 };
+
+async function session(compte, options) {
+  const page = await connecter(navigateur, compte, options);
+  page.on("pageerror", (e) => erreursJs.push(`${compte.email} : ${e.message}`));
+  return page;
+}
+
+const capture = (page, nom) => page.screenshot({ path: path.join(CAPTURES, `${nom}.png`), fullPage: true });
+const normaliser = (t) => (t ?? "").replace(/\s+/g, " ").trim();
+const largeurPage = (page) => page.evaluate(() => document.documentElement.scrollWidth);
+const moyenne = (notes) => notes.reduce((t, n) => t + n.valeur, 0) / notes.length;
+const TRIMESTRES = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
+
+/** Trimestre ouvert attendu : le plus récent qui a des notes, sinon le dernier. */
+function ouvertAttendu(notes) {
+  const avecNotes = TRIMESTRES.filter((t) => notes.some((n) => n.periode === t));
+  return avecNotes.at(-1) ?? TRIMESTRES.at(-1);
+}
+
+// ══ 1. PAGE 404 ══════════════════════════════════════════════════════════════
+
+/** Contenu de la page 404 affichée par `chemin`. */
+async function page404(page, chemin) {
+  const reponse = await page.goto(`${BASE}${chemin}`);
+  await page.waitForLoadState("networkidle");
+  await page.locator("main h1").first().waitFor({ timeout: 30000 });
+  const main = page.locator("main").last();
+  const bouton = main.getByRole("link", { name: /Retour/ });
+  return {
+    statut: reponse?.status(),
+    titre: normaliser(await page.locator("main h1").first().textContent()),
+    texte: normaliser(await main.textContent()),
+    armoiries: await main.getByRole("img", { name: "Armoiries du Bénin" }).isVisible(),
+    bouton: { href: await bouton.getAttribute("href"), libelle: normaliser(await bouton.textContent()) },
+  };
+}
+
+const ACCUEILS = { admin: "/admin", directeur: "/directeur", enseignant: "/enseignant", etudiant: "/etudiant" };
+for (const [role, accueil] of Object.entries(ACCUEILS)) {
+  const compte = COMPTES[role];
+  if (!compte) {
+    rapport.ignorer(`404 ${role}`, "E2E_DIRECTEUR_EMAIL et E2E_DIRECTEUR_MOT_DE_PASSE non définis");
+    continue;
+  }
+  const page = await session(compte);
+  const p = await page404(page, `${accueil}/page-qui-n-existe-pas`);
+  check(`404 ${role} : « Page introuvable », armoiries, statut 404, bouton vers ${accueil}`,
+    p.titre === "Page introuvable" && p.armoiries && p.statut === 404 && p.bouton.href === accueil && p.bouton.libelle === "Retour à mon espace",
+    `${p.statut} « ${p.titre} » → ${p.bouton.href}`);
+  await page.locator("main").last().getByRole("link", { name: /Retour/ }).click();
+  await page.waitForURL((u) => u.pathname === accueil, { timeout: 30000 }).catch(() => {});
+  check(`404 ${role} : le bouton ramène à l'accueil de l'espace`, new URL(page.url()).pathname === accueil, new URL(page.url()).pathname);
+  await page.context().close();
+}
+
+const anonyme = await navigateur.newContext();
+const pAnonyme = await anonyme.newPage();
+await pAnonyme.goto(`${BASE}/page-qui-n-existe-pas`);
+check("Non connecté : une adresse inconnue renvoie vers la connexion (proxy)", new URL(pAnonyme.url()).pathname === "/login");
+rapport.ignorer("404 non connecté, bouton vers /", "le proxy redirige vers /login avant la page 404 ; couvert par les tests unitaires");
+await anonyme.close();
+
+// Fiche hors périmètre et fiche inexistante : exactement la même page
+const admin = await session(COMPTES.admin);
+const ens = await session(COMPTES.enseignant);
+const etabEns = (await getJson(ens, "/api/etudiants?page=1")).corps.elements[0].etablissement;
+const autreEtab = (await getJson(admin, "/api/etablissements")).corps.find((e) => e.id !== etabEns.id);
+const eleveAutre = (await getJson(admin, `/api/etudiants?page=1&etablissement=${autreEtab.id}`)).corps.elements[0];
+const horsPerimetre = await page404(ens, `/enseignant/etudiants/${eleveAutre.id}`);
+const inexistante = await page404(ens, "/enseignant/etudiants/cl-inexistant-000000000000");
+check("Enseignant, fiche d'un autre établissement : page 404 sans le nom de l'élève",
+  horsPerimetre.titre === "Page introuvable" && !horsPerimetre.texte.includes(eleveAutre.nom) && !horsPerimetre.texte.includes(eleveAutre.prenom));
+check("Fiche hors périmètre et fiche inexistante : même statut, même texte, même bouton",
+  horsPerimetre.statut === inexistante.statut && horsPerimetre.texte === inexistante.texte && horsPerimetre.bouton.href === inexistante.bouton.href,
+  `statuts ${horsPerimetre.statut} / ${inexistante.statut}`);
+const adminInexistante = await page404(admin, "/admin/etudiants/cl-inexistant-000000000000");
+check("Admin, fiche inexistante : même page 404, bouton vers /admin", adminInexistante.titre === "Page introuvable" && adminInexistante.bouton.href === "/admin");
+
+if (COMPTES.directeur) {
+  const dir = await session(COMPTES.directeur);
+  const etabDir = (await getJson(dir, "/api/etudiants?page=1")).corps.elements[0]?.etablissement;
+  const autreDir = (await getJson(admin, "/api/etablissements")).corps.find((e) => e.id !== etabDir?.id);
+  const eleveHorsDir = (await getJson(admin, `/api/etudiants?page=1&etablissement=${autreDir.id}`)).corps.elements[0];
+  const pDir = await page404(dir, `/enseignant/etudiants/${eleveHorsDir.id}`);
+  check("Directeur, fiche d'un autre établissement : page 404, bouton vers /directeur",
+    pDir.titre === "Page introuvable" && pDir.bouton.href === "/directeur" && !pDir.texte.includes(eleveHorsDir.nom));
+  await dir.context().close();
+}
+
+const etu = await session(COMPTES.etudiant);
+const pEtu = await page404(etu, `/admin/etudiants/${eleveAutre.id}`);
+check("Étudiant qui force une URL de fiche : page 404, bouton vers /etudiant", pEtu.titre === "Page introuvable" && pEtu.bouton.href === "/etudiant");
+await etu.context().close();
+
+const mobile404 = await session(COMPTES.enseignant, MOBILE);
+await page404(mobile404, `/enseignant/etudiants/${eleveAutre.id}`);
+const boite404 = await mobile404.locator("main").last().getByRole("link", { name: /Retour/ }).boundingBox();
+check("404 à 375 px : pas de défilement horizontal, bouton ≥ 44 px dans l'écran",
+  (await largeurPage(mobile404)) <= 375 && boite404.height >= 44 && boite404.x >= 0 && boite404.x + boite404.width <= 375);
+await capture(mobile404, "404-375");
+await mobile404.context().close();
+await page404(admin, "/admin/page-qui-n-existe-pas");
+await capture(admin, "404-1280");
+
+// ══ 2. NOTES PAR TRIMESTRE EN ACCORDÉON ══════════════════════════════════════
+
+const entetes = (page) => page.locator("[data-entete-trimestre]");
+
+/** État lu dans le DOM : pour chaque en-tête, son libellé, aria-expanded et la visibilité de son panneau. */
+const etatAccordeon = (page) =>
+  entetes(page).evaluateAll((boutons) =>
+    boutons.map((b) => {
+      const panneau = document.getElementById(b.getAttribute("aria-controls"));
+      return {
+        texte: b.textContent.replace(/\s+/g, " ").trim(),
+        ouvert: b.getAttribute("aria-expanded") === "true",
+        panneauExiste: !!panneau,
+        panneauVisible: !!panneau && !panneau.hidden && panneau.offsetHeight > 0,
+        etiquette: panneau?.getAttribute("aria-labelledby") === b.id,
+        type: b.getAttribute("type"),
+        dansH3: b.parentElement.tagName === "H3",
+      };
+    })
+  );
+
+async function verifierAccordeon(page, nom, notes) {
+  const etat = await etatAccordeon(page);
+  check(`${nom} : 3 trimestres, boutons dans un h3, aria-controls → panneau étiqueté`,
+    etat.length === 3 && etat.every((e) => e.type === "button" && e.dansH3 && e.panneauExiste && e.etiquette));
+  check(`${nom} : aria-expanded cohérent avec le panneau affiché`, etat.every((e) => e.ouvert === e.panneauVisible));
+
+  if (notes) {
+    const attendu = ouvertAttendu(notes);
+    check(`${nom} : seul le trimestre le plus récent (${attendu}) est ouvert`,
+      etat.filter((e) => e.ouvert).length === 1 && etat.find((e) => e.ouvert)?.texte.startsWith(attendu), etat.map((e) => `${e.ouvert ? "▼" : "▶"} ${e.texte}`).join(" | "));
+    const moyennesOk = TRIMESTRES.every((t, i) => {
+      const duT = notes.filter((n) => n.periode === t);
+      return duT.length === 0 ? etat[i].texte.includes("Pas de moyenne") : etat[i].texte.includes(`${moyenne(duT).toFixed(1)}/20`) && etat[i].texte.includes(`${duT.length} note`);
+    });
+    check(`${nom} : chaque en-tête affiche sa moyenne et son nombre de notes, même replié`, moyennesOk);
+  } else {
+    const ouverts = etat.filter((e) => e.ouvert);
+    const avecNotes = etat.filter((e) => !e.texte.includes("Pas de moyenne"));
+    check(`${nom} : un seul trimestre ouvert, le plus récent qui a des notes`,
+      ouverts.length === 1 && ouverts[0].texte === (avecNotes.at(-1) ?? etat.at(-1)).texte, etat.map((e) => `${e.ouvert ? "▼" : "▶"} ${e.texte}`).join(" | "));
+  }
+
+  // Souris : ouvrir puis replier le premier trimestre
+  const premier = entetes(page).first();
+  const avant = (await etatAccordeon(page))[0].ouvert;
+  await premier.click();
+  const apresClic = (await etatAccordeon(page))[0];
+  await premier.click();
+  check(`${nom} : un clic ouvre ou replie le trimestre`, apresClic.ouvert === !avant && apresClic.panneauVisible === !avant && (await etatAccordeon(page))[0].ouvert === avant);
+
+  // Clavier : Entrée, Espace, flèches, Début, Fin
+  await premier.focus();
+  await page.keyboard.press("Enter");
+  const apresEntree = (await etatAccordeon(page))[0].ouvert;
+  await page.keyboard.press("Space");
+  const apresEspace = (await etatAccordeon(page))[0].ouvert;
+  const focusIndex = () => page.evaluate(() => [...document.querySelectorAll("[data-entete-trimestre]")].indexOf(document.activeElement));
+  await page.keyboard.press("ArrowDown");
+  const bas = await focusIndex();
+  await page.keyboard.press("End");
+  const fin = await focusIndex();
+  await page.keyboard.press("ArrowDown");
+  const boucle = await focusIndex();
+  await page.keyboard.press("Home");
+  const debut = await focusIndex();
+  check(`${nom} : clavier — Entrée et Espace basculent, flèches/Début/Fin déplacent le focus`,
+    apresEntree === !avant && apresEspace === avant && bas === 1 && fin === 2 && boucle === 0 && debut === 0, `${bas},${fin},${boucle},${debut}`);
+}
+
+// Fiche admin : comparée aux données de l'API
+const elevesEns = (await getJson(admin, `/api/etudiants?page=1&etablissement=${etabEns.id}`)).corps.elements;
+let eleve = null;
+for (const e of elevesEns.slice(0, 10)) {
+  const fiche = (await getJson(admin, `/api/etudiants/${e.id}`)).corps;
+  if (new Set(fiche.notes.map((n) => n.periode)).size >= 2) {
+    eleve = fiche;
+    break;
+  }
+}
+eleve ??= (await getJson(admin, `/api/etudiants/${elevesEns[0].id}`)).corps;
+console.log(`   Fiche testée : ${eleve.notes.length} notes, trimestre ouvert attendu ${ouvertAttendu(eleve.notes)}`);
+
+await ouvrir(admin, `/admin/etudiants/${eleve.id}`);
+await verifierAccordeon(admin, "Fiche admin", eleve.notes);
+await capture(admin, "fiche-admin-1280");
+
+await ouvrir(ens, `/enseignant/etudiants/${eleve.id}`);
+await verifierAccordeon(ens, "Fiche enseignant", eleve.notes);
+await capture(ens, "fiche-enseignant-1280");
+
+if (COMPTES.directeur) {
+  const dir = await session(COMPTES.directeur);
+  const eleveDir = (await getJson(dir, "/api/etudiants?page=1")).corps.elements[0];
+  const ficheDir = (await getJson(dir, `/api/etudiants/${eleveDir.id}`)).corps;
+  await ouvrir(dir, `/enseignant/etudiants/${eleveDir.id}`);
+  await verifierAccordeon(dir, "Fiche directeur", ficheDir.notes);
+  await dir.context().close();
+}
+
+const etudiant = await session(COMPTES.etudiant);
+await ouvrir(etudiant, "/etudiant");
+await verifierAccordeon(etudiant, "Espace étudiant", null);
+await capture(etudiant, "etudiant-1280");
+await etudiant.context().close();
+
+// 375 px : en-têtes lisibles, pas de débordement
+for (const [compte, chemin, nom] of [
+  [COMPTES.etudiant, "/etudiant", "etudiant"],
+  [COMPTES.admin, `/admin/etudiants/${eleve.id}`, "fiche-admin"],
+  [COMPTES.enseignant, `/enseignant/etudiants/${eleve.id}`, "fiche-enseignant"],
+]) {
+  const page = await session(compte, MOBILE);
+  await ouvrir(page, chemin);
+  const boites = await entetes(page).evaluateAll((b) => b.map((x) => x.getBoundingClientRect()).map((r) => ({ x: r.x, droite: r.right, h: r.height })));
+  check(`375 px, ${nom} : pas de défilement horizontal, en-têtes dans l'écran et ≥ 44 px`,
+    (await largeurPage(page)) <= 375 && boites.every((b) => b.x >= 0 && b.droite <= 375 && b.h >= 44), `${await largeurPage(page)} px`);
+  await capture(page, `${nom}-375`);
+  await page.context().close();
+}
+
+// ══ 3. SQUELETTES DE CHARGEMENT ══════════════════════════════════════════════
+
+/**
+ * Attend la fin des préchargements de Next. Le squelette (loading.tsx) arrive
+ * avec le préchargement du lien : tant qu'il est en cours, une navigation
+ * garde l'ancienne page au lieu d'afficher le squelette. Sur mobile, les liens
+ * n'existent qu'une fois le menu ouvert, et Next les précharge un peu après.
+ */
+async function attendrePrechargements(page) {
+  if (!page.prechargements) {
+    page.prechargements = new Set();
+    const fin = (req) => page.prechargements.delete(req);
+    page.on("request", (req) => req.headers()["next-router-prefetch"] && page.prechargements.add(req));
+    page.on("requestfinished", fin);
+    page.on("requestfailed", fin);
+  }
+  // Calme pendant 500 ms d'affilée : les préchargements différés ont eu le temps de partir
+  for (let calme = 0, essais = 0; calme < 2 && essais < 60; essais++) {
+    await page.waitForTimeout(250);
+    calme = page.prechargements.size === 0 ? calme + 1 : 0;
+  }
+}
+
+/**
+ * Ralentit les requêtes RSC des navigations (pas des préchargements) pour
+ * laisser le temps d'observer le squelette, puis navigue via le lien et capture.
+ */
+async function observerSquelette(page, lien, nom) {
+  await attendrePrechargements(page); // écoute installée avant le survol
+  await lien.hover(); // préchargement « d'intention », comme un utilisateur réel
+  await attendrePrechargements(page);
+  let ralentir = true;
+  await page.route("**/*", async (route) => {
+    const req = route.request();
+    const rsc = req.headers()["rsc"] === "1" || req.url().includes("_rsc=");
+    if (ralentir && rsc && !req.headers()["next-router-prefetch"]) await new Promise((r) => setTimeout(r, 2500));
+    await route.continue().catch(() => {});
+  });
+  await lien.click();
+  const squelette = page.locator('main[aria-busy="true"]');
+  const vu = await squelette.waitFor({ timeout: 5000 }).then(() => true, () => false);
+  let infos = null;
+  if (vu) {
+    infos = await squelette.evaluate((m) => ({
+      statut: m.querySelector('[role="status"]')?.textContent ?? "",
+      blocs: m.querySelectorAll(".squelette").length,
+      blocsCaches: [...m.querySelectorAll(".squelette")].every((b) => b.getAttribute("aria-hidden") === "true"),
+      titres: m.querySelectorAll("h1, h2, h3").length,
+      animation: getComputedStyle(m.querySelector(".squelette")).animationName,
+      fond: getComputedStyle(m.querySelector(".squelette")).backgroundColor,
+      spinner: !!m.querySelector(".animate-spin"),
+      largeur: document.documentElement.scrollWidth,
+    }));
+    await capture(page, `squelette-${nom}`);
+  }
+  ralentir = false;
+  await page.locator("main h1").first().waitFor({ timeout: 30000 });
+  await page.unroute("**/*");
+  return { vu, ...infos };
+}
+
+const NAV = {
+  admin: "Navigation administration",
+  enseignant: "Navigation enseignant",
+};
+const lienNav = (page, nav, libelle) =>
+  page.locator(`nav[aria-label="${nav}"] a`, { hasText: new RegExp(`^\\s*${libelle}(\\s|\\d|$)`) }).filter({ visible: true }).first();
+
+for (const [largeur, options] of [["1280", undefined], ["375", MOBILE]]) {
+  const page = await session(COMPTES.admin, options);
+  // Sur mobile, la navigation est dans un menu repliable
+  const ouvrirMenu = async () => {
+    const menu = page.locator(`nav[aria-label="${NAV.admin}"] button[aria-expanded="false"]`).first();
+    if (await menu.isVisible().catch(() => false)) await menu.click();
+  };
+  for (const [libelle, nom] of [["Étudiants", "eleves"], ["Alertes", "alertes"], ["Absences", "absences"], ["Historique", "historique"], ["Utilisateurs", "utilisateurs"], ["Dashboard", "admin"]]) {
+    await ouvrirMenu();
+    const s = await observerSquelette(page, lienNav(page, NAV.admin, libelle), `${nom}-${largeur}`);
+    check(`Squelette ${nom} (${largeur} px) : affiché pendant le chargement, annoncé, sans titre ni spinner`,
+      s.vu && s.statut.startsWith("Chargement") && s.blocs > 10 && s.blocsCaches && s.titres === 0 && !s.spinner,
+      s.vu ? `${s.blocs} blocs, « ${s.statut} »` : "non observé");
+    if (largeur === "375" && s.vu) check(`Squelette ${nom} (375 px) : pas de défilement horizontal`, s.largeur <= 375, `${s.largeur} px`);
+    if (nom === "eleves" && largeur === "1280" && s.vu) check("Squelette animé par défaut (squelette-pulsation)", s.animation === "squelette-pulsation", s.animation);
+  }
+  await page.context().close();
+}
+
+// Fiche élève et tableau de bord enseignant
+const ensSq = await session(COMPTES.enseignant);
+await ouvrir(ensSq, "/enseignant/alertes");
+const sFiche = await observerSquelette(ensSq, ensSq.locator("main a[href^='/enseignant/etudiants/']").first(), "fiche-1280");
+check("Squelette fiche élève : affiché, forme de l'accordéon (3 en-têtes)", sFiche.vu && sFiche.titres === 0 && sFiche.blocs > 10);
+const sEns = await observerSquelette(ensSq, lienNav(ensSq, NAV.enseignant, "Étudiants"), "enseignant-1280");
+check("Squelette tableau de bord enseignant : affiché", sEns.vu && sEns.titres === 0);
+await ensSq.context().close();
+
+// prefers-reduced-motion : pas d'animation
+const reduit = await navigateur.newContext({ reducedMotion: "reduce", viewport: { width: 1280, height: 900 } });
+const pReduit = await reduit.newPage();
+await pReduit.goto(`${BASE}/login`);
+await pReduit.fill("#email", COMPTES.admin.email);
+await pReduit.fill("#password", COMPTES.admin.motDePasse);
+await pReduit.click('button[type="submit"]');
+await pReduit.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 60000 });
+await pReduit.locator("main h1").first().waitFor();
+const sReduit = await observerSquelette(pReduit, lienNav(pReduit, NAV.admin, "Alertes"), "alertes-mouvement-reduit");
+check("prefers-reduced-motion : les squelettes ne sont pas animés", sReduit.vu && sReduit.animation === "none", sReduit.animation);
+
+// Contraste élevé : blocs gris sur fond noir
+await pReduit.evaluate(() => localStorage.setItem("accessibility-contrast", "high"));
+await pReduit.reload();
+await pReduit.waitForFunction(() => document.documentElement.dataset.theme === "high-contrast");
+const sContraste = await observerSquelette(pReduit, lienNav(pReduit, NAV.admin, "Absences"), "absences-contraste-eleve");
+check("Contraste élevé : blocs visibles (gris #8a8a8a sur noir), sans pulsation",
+  sContraste.vu && sContraste.fond === "rgb(138, 138, 138)" && sContraste.animation === "none", `${sContraste.fond}, ${sContraste.animation}`);
+await pReduit.evaluate(() => localStorage.setItem("accessibility-contrast", "default"));
+await reduit.close();
+
+// ══ 4. STABILITÉ DE LA MISE EN PAGE (CLS) ════════════════════════════════════
+
+/**
+ * Observateur des décalages de mise en page, injecté par addInitScript : il
+ * s'exécute dans chaque document avant le moindre script ou contenu de la
+ * page, et note l'état du document au moment de son installation (« loading »
+ * prouve qu'il était là avant le premier rendu). La somme de tous les
+ * décalages hors interaction est un majorant du CLS (qui ne garde que la pire
+ * fenêtre de 5 s).
+ */
+function observateurCls() {
+  window.__cls = { installe: false, etat: document.readyState, total: 0, decalages: 0, erreur: null };
+  try {
+    if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) throw new Error("layout-shift non pris en charge");
+    new PerformanceObserver((liste) => {
+      for (const e of liste.getEntries()) {
+        if (e.hadRecentInput) continue;
+        window.__cls.total += e.value;
+        window.__cls.decalages++;
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+    window.__cls.installe = true;
+  } catch (e) {
+    window.__cls.erreur = String(e);
+  }
+}
+
+/** Charge la page (navigation complète) et renvoie la mesure ; null si l'observateur n'était pas installé avant le rendu. */
+async function mesurerCls(page, chemin) {
+  await page.goto(`${BASE}${chemin}`);
+  await page.waitForLoadState("networkidle");
+  await page.locator("main h1").first().waitFor({ timeout: 30000 });
+  await page.waitForTimeout(1500); // graphiques chargés côté client
+  const mesure = await page.evaluate(() => window.__cls ?? null);
+  return mesure?.installe && mesure.etat === "loading" ? mesure : null;
+}
+
+const PAGES_CLS = [
+  [COMPTES.admin, "/admin"],
+  [COMPTES.admin, "/admin/etudiants"],
+  [COMPTES.admin, "/admin/alertes"],
+  [COMPTES.admin, "/admin/absences"],
+  [COMPTES.admin, "/admin/historique"],
+  [COMPTES.admin, "/admin/utilisateurs"],
+  [COMPTES.admin, `/admin/etudiants/${eleve.id}`],
+  [COMPTES.enseignant, "/enseignant"],
+  [COMPTES.enseignant, `/enseignant/etudiants/${eleve.id}`],
+  [COMPTES.etudiant, "/etudiant"],
+  ...(COMPTES.directeur ? [[COMPTES.directeur, "/directeur"]] : []),
+];
+const court = (chemin) => chemin.replace(/[a-z0-9]{20,}/, ":id");
+for (const [nomLargeur, options] of [["1280", undefined], ["375", MOBILE]]) {
+  const pages = new Map();
+  const resultats = [];
+  for (const [compte, chemin] of PAGES_CLS) {
+    if (!pages.has(compte)) {
+      const page = await session(compte, options);
+      await page.addInitScript(observateurCls);
+      pages.set(compte, page);
+    }
+    resultats.push([chemin, await mesurerCls(pages.get(compte), chemin)]);
+  }
+
+  const absents = resultats.filter(([, m]) => m === null).map(([c]) => court(c));
+  check(`CLS ${nomLargeur} px : observateur installé avant le rendu sur les ${resultats.length} pages`, absents.length === 0, absents.join(", "));
+
+  // Témoin : un décalage provoqué sans interaction doit être compté, sinon la mesure ne prouve rien
+  const temoin = pages.get(COMPTES.admin);
+  const avant = await temoin.evaluate(() => window.__cls.total);
+  await temoin.evaluate(() => {
+    const bloc = document.createElement("div");
+    bloc.style.height = "240px";
+    document.querySelector("main").prepend(bloc);
+  });
+  await temoin.waitForTimeout(500);
+  const apres = await temoin.evaluate(() => window.__cls.total);
+  check(`CLS ${nomLargeur} px : témoin — un décalage provoqué est bien mesuré`, apres > avant, `${avant.toFixed(3)} → ${apres.toFixed(3)}`);
+  for (const p of pages.values()) await p.context().close();
+
+  const mesures = resultats.filter(([, m]) => m !== null);
+  if (mesures.length === 0) continue;
+  const pire = mesures.reduce((a, b) => (b[1].total > a[1].total ? b : a));
+  console.log(`   CLS ${nomLargeur} px : ${mesures.map(([c, m]) => `${court(c)} ${m.total.toFixed(3)} (${m.decalages})`).join(", ")}`);
+  check(`CLS < 0,1 sur les pages mesurées à ${nomLargeur} px`, pire[1].total < 0.1, `pire : ${court(pire[0])} ${pire[1].total.toFixed(3)}`);
+}
+
+await admin.context().close();
+await ens.context().close();
+await navigateur.close();
+check("Aucune erreur JS", erreursJs.length === 0, erreursJs.slice(0, 3).join(" ; "));
+rapport.terminer();

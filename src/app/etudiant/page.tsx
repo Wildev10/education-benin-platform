@@ -1,20 +1,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ExportExcelButton } from "@/components/ExportPdfButton";
-
-type Note = {
-  id: string;
-  matiere: string;
-  valeur: number;
-  periode: string;
-};
-
-const periodes = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
-
-function moyenne(notes: Note[]) {
-  if (notes.length === 0) return null;
-  return notes.reduce((total, note) => total + note.valeur, 0) / notes.length;
-}
+import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
+import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
 
 function tendance(
   anciennesMoyenne: number,
@@ -93,10 +81,7 @@ export default async function EtudiantPage() {
     );
   }
 
-  const groupes = periodes.map((periode) => {
-    const notes = etudiant.notes.filter((note) => note.periode === periode);
-    return { periode, notes, moyenne: moyenne(notes) };
-  });
+  const groupes = grouperNotesParTrimestre(etudiant.notes);
   const groupesAvecNotes = groupes.filter((groupe) => groupe.moyenne !== null);
   const derniere = groupesAvecNotes.at(-1);
   const avantDerniere = groupesAvecNotes.at(-2);
@@ -196,31 +181,8 @@ export default async function EtudiantPage() {
           </div>
           <p className="text-sm text-ink-secondary">{etudiant.notes.length} note{etudiant.notes.length > 1 ? "s" : ""}</p>
         </div>
-        <div className="mt-5 grid gap-5 lg:grid-cols-3">
-          {groupes.map((groupe) => (
-            <section key={groupe.periode} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-              <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-4">
-                <h3 className="font-semibold text-surface">{groupe.periode}</h3>
-                {groupe.moyenne !== null && (
-                  <span className="rounded-full bg-brand px-3 py-1 text-sm font-bold text-ink tabular-nums">
-                    {groupe.moyenne.toFixed(1)}/20
-                  </span>
-                )}
-              </div>
-              {groupe.notes.length > 0 ? (
-                <div className="divide-y divide-border">
-                  {groupe.notes.map((note) => (
-                    <div key={note.id} className="flex items-center justify-between gap-4 px-5 py-3">
-                      <span className="font-medium text-ink-secondary">{note.matiere}</span>
-                      <span className="font-semibold text-ink">{note.valeur}/20</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="px-5 py-5 text-ink-secondary">Aucune note pour cette période.</p>
-              )}
-            </section>
-          ))}
+        <div className="mt-5">
+          <AccordeonTrimestres groupes={groupes} notesColorees={false} />
         </div>
       </section>
     </main>

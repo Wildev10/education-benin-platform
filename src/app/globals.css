@@ -63,6 +63,57 @@ html[data-theme="high-contrast"] :focus-visible {
   outline-color: #fff;
 }
 
+/* ── Squelettes de chargement (components/ui/Squelette.tsx) ── */
+@keyframes squelette-pulsation {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.squelette {
+  background-color: var(--color-border);
+  animation: squelette-pulsation 1.6s ease-in-out infinite;
+}
+
+/* Sur fond sombre (en-têtes de tableau, trimestres) */
+.squelette-sombre {
+  background-color: rgb(255 255 255 / 0.22);
+}
+
+.squelette-trace {
+  animation: squelette-pulsation 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .squelette,
+  .squelette-trace {
+    animation: none;
+  }
+}
+
+/* Contraste élevé : tout passe en noir ; les blocs restent visibles en gris
+   (6:1 sur le noir) et ne pulsent pas, pour ne pas faire varier le contraste. */
+html[data-theme="high-contrast"] .squelette {
+  background-color: #8a8a8a !important;
+  animation: none;
+}
+
+html[data-theme="high-contrast"] .squelette-trace {
+  animation: none;
+}
+
+@media (forced-colors: active) {
+  .squelette {
+    forced-color-adjust: none;
+    background-color: GrayText;
+    animation: none;
+  }
+}
+
 .swal-toast-custom {
   font-family: inherit !important;
 }

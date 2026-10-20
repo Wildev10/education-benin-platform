@@ -2,14 +2,8 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { accueilDuRole } from "@/lib/accueil";
 import { empreinteUtilisateur, messageServiceWorker } from "@/lib/pwa";
-
-const ACCUEIL_PAR_ROLE: Record<string, string> = {
-  admin: "/admin",
-  directeur: "/directeur",
-  enseignant: "/enseignant",
-  etudiant: "/etudiant",
-};
 
 /**
  * Rendu dans l'en-tête des pages connectées :
@@ -32,7 +26,7 @@ export function SynchroUtilisateurPwa({ identifiant, role }: { identifiant: stri
       // Premier rendu : identification, puis mémorisation de la page courante
       identifie.current = true;
       void messageServiceWorker(
-        { type: "UTILISATEUR", id: empreinte, url, accueil: role ? ACCUEIL_PAR_ROLE[role] : undefined },
+        { type: "UTILISATEUR", id: empreinte, url, accueil: accueilDuRole(role) ?? undefined },
         { attendre: true }
       );
       return;

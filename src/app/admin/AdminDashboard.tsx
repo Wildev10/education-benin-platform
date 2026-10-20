@@ -10,11 +10,13 @@ import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton
 import { Toast, Confirm } from "@/lib/swal";
 import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
+import { SqueletteGraphiqueBarres } from "@/components/ui/Squelette";
+import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 import type { StatsEtablissement } from "@/lib/stats-etablissements";
 
 const AlertesEtablissementChart = dynamic(() => import("./AlertesEtablissementChart"), {
   ssr: false,
-  loading: () => <div className="h-64 w-full animate-pulse rounded-xl bg-page" aria-busy="true" />,
+  loading: () => <SqueletteGraphiqueBarres className="h-full" />,
 });
 
 function moyenneCls(moyenne: number) {
@@ -435,7 +437,7 @@ export default function AdminDashboard({
 
         <div className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-6">
           <h3 className="text-lg font-bold text-ink">Alertes actives par établissement</h3>
-          <div className="mt-4">
+          <div className="mt-4" style={{ height: hauteurGraphiqueBarres(statsEtablissements.length) }}>
             <AlertesEtablissementChart
               data={[...statsEtablissements].sort((a, b) => b.nbAlertesActives - a.nbAlertesActives)}
             />

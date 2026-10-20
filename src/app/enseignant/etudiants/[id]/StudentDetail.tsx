@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { Toast, Confirm } from "@/lib/swal";
 import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { MessageEcritureHorsLigne, TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
+import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
+import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
 
 type Note = {
   id: string;
@@ -31,8 +33,6 @@ const matieres = [
   "Anglais",
   "Histoire-Géo",
 ];
-
-const periodes = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
@@ -61,25 +61,23 @@ export default function StudentDetail({
   const [notes, setNotes] = useState(initialNotes);
   const [matiere, setMatiere] = useState(matieres[0]);
   const [valeur, setValeur] = useState("");
-  const [periode, setPeriode] = useState(periodes[0]);
+  const [periode, setPeriode] = useState<string>(periodes[0]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [alerteCreee, setAlerteCreee] = useState(false);
+  const [derniereSaisie, setDerniereSaisie] = useState<{ id: string; periode: string } | null>(null);
 
   const [absences, setAbsences] = useState(initialAbsences);
   const [absDate, setAbsDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [absMotif, setAbsMotif] = useState("injustifiee");
-  const [absPeriode, setAbsPeriode] = useState(periodes[0]);
+  const [absPeriode, setAbsPeriode] = useState<string>(periodes[0]);
   const [absLoading, setAbsLoading] = useState(false);
   const [absMessage, setAbsMessage] = useState("");
   const [absError, setAbsError] = useState("");
   const [absAlerteCreee, setAbsAlerteCreee] = useState(false);
 
-  const notesParPeriode = useMemo(
-    () => periodes.map((nom) => ({ nom, notes: notes.filter((n) => n.periode === nom) })),
-    [notes]
-  );
+  const notesParPeriode = useMemo(() => grouperNotesParTrimestre(notes), [notes]);
 
   const absencesParPeriode = useMemo(
     () => periodes.map((nom) => ({ nom, absences: absences.filter((a) => a.periode === nom) })),
@@ -109,6 +107,7 @@ export default function StudentDetail({
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Impossible d'enregistrer la note.");
       setNotes((current) => [data, ...current]);
+      setDerniereSaisie({ id: data.id, periode: data.periode });
       setMessage(`Note de ${data.valeur}/20 enregistrée en ${data.matiere}.`);
       setAlerteCreee(data.alerteCreee === true);
       setValeur("");
@@ -203,42 +202,12 @@ export default function StudentDetail({
               {notes.length} note{notes.length > 1 ? "s" : ""}
             </span>
           </div>
-          <div className="mt-5 space-y-4">
-            {notesParPeriode.map((groupe) => (
-              <section
-                key={groupe.nom}
-                className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
-              >
-                <h3 className="border-b border-border bg-ink px-5 py-3.5 font-semibold text-surface">
-                  {groupe.nom}
-                </h3>
-                {groupe.notes.length > 0 ? (
-                  <ul className="divide-y divide-border">
-                    {groupe.notes.map((note) => (
-                      <li
-                        key={note.id}
-                        className="flex items-center justify-between gap-4 px-5 py-3.5"
-                      >
-                        <span className="font-medium text-ink-secondary">{note.matiere}</span>
-                        <span
-                          className={`rounded-lg px-3 py-1 text-sm font-bold tabular-nums ${
-                            note.valeur >= 10
-                              ? "bg-emerald-50 text-emerald-800"
-                              : "bg-red-50 text-red-800"
-                          }`}
-                        >
-                          {note.valeur}/20
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="px-5 py-5 text-sm text-ink-secondary">
-                    Aucune note enregistrée.
-                  </p>
-                )}
-              </section>
-            ))}
+          <div className="mt-5">
+            <AccordeonTrimestres
+              groupes={notesParPeriode}
+              derniereSaisie={derniereSaisie}
+              libelleVide="Aucune note enregistrée."
+            />
           </div>
         </section>
 

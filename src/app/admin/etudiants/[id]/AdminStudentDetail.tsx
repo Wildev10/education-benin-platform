@@ -9,12 +9,13 @@ import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton
 import { Toast, Confirm } from "@/lib/swal";
 import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
+import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
+import { SqueletteGraphiqueLigne } from "@/components/ui/Squelette";
+import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
 
 const MoyenneChart = dynamic(() => import("./MoyenneChart"), {
   ssr: false,
-  loading: () => (
-    <div className="mt-6 h-72 w-full animate-pulse rounded-xl bg-page" aria-busy="true" />
-  ),
+  loading: () => <SqueletteGraphiqueLigne className="mt-6 h-72" />,
 });
 
 type Note = {
@@ -58,8 +59,6 @@ type Student = {
   absences: Absence[];
 };
 
-const periodes = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
-
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
 }
@@ -70,23 +69,10 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
   const horsLigne = useHorsLigne();
   const [error, setError] = useState("");
 
-  const groupedNotes = useMemo(
-    () =>
-      periodes.map((periode) => ({
-        periode,
-        notes: student.notes.filter((note) => note.periode === periode),
-      })),
-    [student.notes]
-  );
+  const groupedNotes = useMemo(() => grouperNotesParTrimestre(student.notes), [student.notes]);
 
   const chartData = groupedNotes
-    .map(({ periode, notes }) => ({
-      periode: periode.replace("Trimestre ", "T"),
-      moyenne:
-        notes.length > 0
-          ? notes.reduce((total, note) => total + note.valeur, 0) / notes.length
-          : null,
-    }))
+    .map(({ periode, moyenne }) => ({ periode: periode.replace("Trimestre ", "T"), moyenne }))
     .filter((item): item is { periode: string; moyenne: number } => item.moyenne !== null);
 
   async function markAsHandled(alertId: string) {
@@ -207,53 +193,8 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
         <h2 id="notes-title" className="mt-1 text-2xl font-bold text-ink">
           Notes par période et matière
         </h2>
-        <div className="mt-5 grid gap-5 lg:grid-cols-3">
-          {groupedNotes.map(({ periode, notes }) => {
-            const moy =
-              notes.length > 0
-                ? notes.reduce((t, n) => t + n.valeur, 0) / notes.length
-                : null;
-            return (
-              <section
-                key={periode}
-                className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
-              >
-                <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-4">
-                  <h3 className="font-semibold text-surface">{periode}</h3>
-                  {moy !== null && (
-                    <span className="rounded-full bg-brand px-2.5 py-0.5 text-sm font-bold text-ink tabular-nums">
-                      {moy.toFixed(1)}/20
-                    </span>
-                  )}
-                </div>
-                {notes.length > 0 ? (
-                  <ul className="divide-y divide-border">
-                    {notes.map((note) => (
-                      <li
-                        key={note.id}
-                        className="flex items-center justify-between gap-4 px-5 py-3"
-                      >
-                        <span className="font-medium text-ink-secondary">{note.matiere}</span>
-                        <span
-                          className={`rounded-lg px-3 py-0.5 text-sm font-bold tabular-nums ${
-                            note.valeur >= 10
-                              ? "bg-emerald-50 text-emerald-800"
-                              : "bg-red-50 text-red-800"
-                          }`}
-                        >
-                          {note.valeur}/20
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="px-5 py-5 text-sm text-ink-secondary">
-                    Aucune note pour cette période.
-                  </p>
-                )}
-              </section>
-            );
-          })}
+        <div className="mt-5">
+          <AccordeonTrimestres groupes={groupedNotes} />
         </div>
       </section>
 

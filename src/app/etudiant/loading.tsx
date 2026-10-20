@@ -1,36 +1,61 @@
+import {
+  Ligne,
+  PageSquelette,
+  SqueletteAccordeon,
+  SqueletteCarteTrimestre,
+  SqueletteEntete,
+} from "@/components/ui/Squelette";
+
+function TitreSection() {
+  return (
+    <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
+      <div>
+        <Ligne largeur="w-24" />
+        <Ligne hauteur="h-8" largeur="w-40" className="mt-1" />
+      </div>
+      <Ligne largeur="w-28" />
+    </div>
+  );
+}
+
 export default function EtudiantLoading() {
   return (
-    <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8" role="status" aria-label="Chargement">
-      <div className="max-w-3xl space-y-3">
-        <div className="h-4 w-28 animate-pulse rounded bg-border" />
-        <div className="h-10 w-56 animate-pulse rounded-lg bg-border" />
-        <div className="h-5 w-64 animate-pulse rounded bg-border" />
-      </div>
+    <PageSquelette libelle="Chargement de ton suivi">
+      <SqueletteEntete largeurTitre="w-64" bouton />
 
       <div className="mt-8 rounded-2xl border border-border bg-surface p-6 shadow-sm">
-        <div className="h-6 w-40 animate-pulse rounded-lg bg-border" />
+        <Ligne hauteur="h-7" largeur="w-40" />
         <div className="mt-5 grid gap-5 sm:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-4 w-24 animate-pulse rounded bg-border" />
-              <div className="h-6 w-32 animate-pulse rounded-lg bg-border" />
+          {["w-32", "w-48", "w-28"].map((largeur, i) => (
+            <div key={i}>
+              <Ligne largeur="w-24" />
+              <Ligne hauteur="h-7" largeur={largeur} className="mt-1" />
             </div>
           ))}
         </div>
       </div>
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-            <div className="h-14 animate-pulse bg-ink/10" />
-            <div className="space-y-3 p-5">
-              {[...Array(3)].map((_, j) => (
-                <div key={j} className="h-4 w-full animate-pulse rounded bg-border" />
-              ))}
-            </div>
-          </div>
-        ))}
+      <div className="mt-6 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+        <Ligne largeur="w-24" />
+        <Ligne hauteur="h-8" largeur="w-64" className="mt-1" />
+        <Ligne hauteur="h-7" largeur="w-80" className="mt-2" />
       </div>
-    </main>
+
+      <div className="mt-8">
+        <TitreSection />
+        <div className="mt-5 grid gap-5 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <SqueletteCarteTrimestre key={i} />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <TitreSection />
+        <div className="mt-5">
+          <SqueletteAccordeon />
+        </div>
+      </div>
+    </PageSquelette>
   );
 }

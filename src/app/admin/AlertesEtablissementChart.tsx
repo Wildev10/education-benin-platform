@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 
 type Point = { nom: string; nbAlertesActives: number };
 
@@ -18,7 +19,7 @@ export default function AlertesEtablissementChart({ data }: { data: Point[] }) {
     <div
       role="img"
       aria-label="Graphique du nombre d'alertes actives par établissement"
-      style={{ height: data.length * 52 + 48 }}
+      style={{ height: hauteurGraphiqueBarres(data.length) }}
       className="w-full"
     >
       <ResponsiveContainer width="100%" height="100%">

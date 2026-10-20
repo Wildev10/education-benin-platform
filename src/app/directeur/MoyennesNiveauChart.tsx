@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 import type { MoyenneNiveau } from "@/lib/tableau-de-bord-directeur";
 
 function couleur(moyenne: number) {
@@ -27,7 +28,7 @@ export default function MoyennesNiveauChart({ data }: { data: MoyenneNiveau[] })
       aria-label={`Moyenne par classe : ${data
         .map((d) => `${d.niveau} ${d.moyenne.toLocaleString("fr-FR")} sur 20`)
         .join(", ")}`}
-      style={{ height: data.length * 52 + 48 }}
+      style={{ height: hauteurGraphiqueBarres(data.length) }}
       className="w-full"
     >
       <ResponsiveContainer width="100%" height="100%">
