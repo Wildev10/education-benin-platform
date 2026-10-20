@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, riskVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +14,7 @@ import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import { SqueletteGraphiqueBarres } from "@/components/ui/Squelette";
 import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 import type { StatsEtablissement } from "@/lib/stats-etablissements";
+import type { CleRaccourci, Raccourci } from "@/lib/raccourcis-alertes";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 
 const AlertesEtablissementChart = dynamic(() => import("./AlertesEtablissementChart"), {
@@ -54,11 +56,12 @@ type Stats = {
   alertesEleve: number;
 };
 
-const filters = [
-  { value: "toutes", label: "Toutes" },
-  { value: "eleve", label: "Élevé" },
-  { value: "moyen", label: "Moyen" },
-];
+/** Repère de couleur de chaque accès direct (bordure gauche), cohérent avec les badges de risque. */
+const accentRaccourci: Record<CleRaccourci, string> = {
+  eleve: "border-l-red-600",
+  absences: "border-l-amber-500",
+  recentes: "border-l-ink",
+};
 
 const iconEtudiants = (
   <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
@@ -93,26 +96,22 @@ export default function AdminDashboard({
   initialAlerts,
   initialStats,
   initialStatsEtablissements,
+  raccourcis,
 }: {
   initialAlerts: Alert[];
   initialStats: Stats;
   initialStatsEtablissements: StatsEtablissement[];
+  /** Accès directs vers la page Alertes filtrée, comptés côté serveur */
+  raccourcis: Raccourci[];
 }) {
+  const router = useRouter();
   const [alerts, setAlerts] = useState(initialAlerts);
   const [stats, setStats] = useState(initialStats);
   const [statsEtablissements, setStatsEtablissements] = useState(initialStatsEtablissements);
-  const [filter, setFilter] = useState("toutes");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const horsLigne = useHorsLigne();
   const [error, setError] = useState("");
 
-  const visibleAlerts = useMemo(
-    () =>
-      filter === "toutes"
-        ? alerts
-        : alerts.filter((alert) => alert.niveauRisque === filter),
-    [alerts, filter]
-  );
 
   async function markAsHandled(alertId: string) {
     const result = await Confirm.fire({
@@ -149,6 +148,7 @@ export default function AdminDashboard({
             : current.alertesEleve,
       }));
       void Toast.fire({ icon: "success", title: "Alerte marquée comme traitée." });
+      router.refresh(); // compteurs des accès directs recalculés côté serveur
       void fetch("/api/admin/stats/etablissements")
         .then((res) => (res.ok ? res.json() : null))
         .then((data: StatsEtablissement[] | null) => data && setStatsEtablissements(data))
@@ -194,59 +194,65 @@ export default function AdminDashboard({
 
       {/* ── Alertes ────────────────────────────────────────────── */}
       <section aria-labelledby="alerts-title" className="mt-10">
-        <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end">
+        <div className="flex flex-col gap-4 border-b border-border pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-red-700">
               Détection précoce
             </p>
-            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-3">
-              <h2 id="alerts-title" className="flex items-center gap-3 text-2xl font-bold text-ink">
-                Alertes à examiner
-                {alerts.length > 0 && (
-                  <span
-                    aria-label={`${alerts.length} alerte${alerts.length > 1 ? "s" : ""}`}
-                    className="inline-flex items-center justify-center rounded-full bg-red-600 px-2.5 py-0.5 text-sm font-bold text-white"
-                  >
-                    {alerts.length}
-                  </span>
-                )}
-              </h2>
-              <ExportPdfButton
-                href="/api/alertes/pdf"
-                label="Exporter les alertes"
-                fichierParDefaut="alertes-actives.pdf"
-              />
-              <ExportExcelButton href="/api/alertes/xlsx" fichierParDefaut="alertes-actives.xlsx" />
-              <Link
-                href="/admin/alertes"
-                className="text-sm font-semibold text-brand-dark underline underline-offset-4 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark"
-              >
-                Filtres avancés →
-              </Link>
-            </div>
+            <h2 id="alerts-title" className="mt-1 flex items-center gap-3 text-2xl font-bold text-ink">
+              Alertes à examiner
+              {alerts.length > 0 && (
+                <span
+                  aria-label={`${alerts.length} alerte${alerts.length > 1 ? "s" : ""} active${alerts.length > 1 ? "s" : ""}`}
+                  className="inline-flex items-center justify-center rounded-full bg-red-600 px-2.5 py-0.5 text-sm font-bold text-white"
+                >
+                  {alerts.length}
+                </span>
+              )}
+            </h2>
             <p className="mt-2 max-w-2xl text-ink-secondary">
-              Les baisses de résultats qui méritent une attention avant qu&apos;elles ne deviennent un décrochage.
+              Baisses de résultats et absences répétées détectées dans tous les établissements, les plus graves en tête.
             </p>
           </div>
 
-          <div aria-label="Filtrer les alertes" className="flex flex-wrap gap-2" role="group">
-            {filters.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={filter === option.value}
-                onClick={() => setFilter(option.value)}
-                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 ${
-                  filter === option.value
-                    ? "border-brand bg-brand text-ink"
-                    : "border-border bg-surface text-ink-secondary hover:border-ink/30 hover:text-ink"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/alertes"
+              className="inline-flex min-h-[42px] items-center rounded-lg bg-ink px-4 text-sm font-semibold text-surface transition hover:bg-ink-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2"
+            >
+              Voir toutes les alertes
+            </Link>
+            <ExportPdfButton
+              href="/api/alertes/pdf"
+              label="Exporter en PDF"
+              fichierParDefaut="alertes-actives.pdf"
+            />
+            <ExportExcelButton href="/api/alertes/xlsx" fichierParDefaut="alertes-actives.xlsx" />
           </div>
         </div>
+
+        {/* Accès directs : la page Alertes déjà filtrée, avec le nombre d'alertes actives de chaque vue */}
+        <nav aria-label="Accès direct aux alertes" className="mt-5">
+          <ul className="grid gap-3 sm:grid-cols-3">
+            {raccourcis.map((r) => (
+              <li key={r.cle}>
+                <Link
+                  href={r.href}
+                  data-raccourci={r.cle}
+                  className={`group flex h-full items-center gap-4 rounded-xl border border-l-4 border-border bg-surface px-4 py-3 transition hover:bg-page focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2 ${accentRaccourci[r.cle]}`}
+                >
+                  <span className="min-w-10 text-3xl font-bold tabular-nums text-ink">{r.total}</span>
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-ink underline decoration-transparent underline-offset-4 group-hover:decoration-current">
+                      {r.libelle}
+                    </span>
+                    <span className="block text-sm text-ink-secondary">{r.precision}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
         {error && (
           <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 font-medium text-red-800">
@@ -260,13 +266,9 @@ export default function AdminDashboard({
             <p className="mt-3 text-xl font-bold text-emerald-900">Aucune alerte active</p>
             <p className="mt-2 text-emerald-800">Les indicateurs de suivi sont sous contrôle.</p>
           </div>
-        ) : visibleAlerts.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-border bg-surface p-8 text-center text-ink-secondary shadow-sm">
-            Aucune alerte de niveau {filter === "eleve" ? "élevé" : "moyen"}.
-          </div>
         ) : (
           <div className="mt-6 grid gap-4">
-            {visibleAlerts.map((alert) => (
+            {alerts.map((alert) => (
               <article
                 key={alert.id}
                 className="rounded-2xl border border-border bg-surface p-5 shadow-sm transition hover:border-brand/30 hover:shadow-md sm:p-6"

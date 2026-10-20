@@ -319,7 +319,7 @@ for (const [largeur, options] of [["1280", undefined], ["375", MOBILE]]) {
     const menu = page.locator(`nav[aria-label="${NAV.admin}"] button[aria-expanded="false"]`).first();
     if (await menu.isVisible().catch(() => false)) await menu.click();
   };
-  for (const [libelle, nom] of [["Étudiants", "eleves"], ["Alertes", "alertes"], ["Absences", "absences"], ["Historique", "historique"], ["Utilisateurs", "utilisateurs"], ["Dashboard", "admin"]]) {
+  for (const [libelle, nom] of [["Étudiants", "eleves"], ["Alertes", "alertes"], ["Absences", "absences"], ["Historique", "historique"], ["Utilisateurs", "utilisateurs"], ["Tableau de bord", "admin"]]) {
     await ouvrirMenu();
     const s = await observerSquelette(page, lienNav(page, NAV.admin, libelle), `${nom}-${largeur}`);
     check(`Squelette ${nom} (${largeur} px) : affiché pendant le chargement, annoncé, sans titre ni spinner`,
@@ -361,6 +361,58 @@ check("Contraste élevé : blocs visibles (gris #8a8a8a sur noir), sans pulsatio
   sContraste.vu && sContraste.fond === "rgb(138, 138, 138)" && sContraste.animation === "none", `${sContraste.fond}, ${sContraste.animation}`);
 await pReduit.evaluate(() => localStorage.setItem("accessibility-contrast", "default"));
 await reduit.close();
+
+// ══ Accès aux alertes depuis le tableau de bord national ════════════════════
+const tdb = await session(COMPTES.admin);
+await ouvrir(tdb, "/admin");
+const navTdb = (await tdb.locator(`nav[aria-label="${NAV.admin}"] a:visible`).allTextContents()).map((t) => t.trim());
+check("Navigation admin : « Tableau de bord », plus de « Dashboard »", navTdb.includes("Tableau de bord") && !navTdb.some((t) => /Dashboard/.test(t)), navTdb.join(", "));
+const voirTout = tdb.getByRole("link", { name: "Voir toutes les alertes" });
+check("Tableau de bord : bouton « Voir toutes les alertes » vers /admin/alertes, plus de « Filtres avancés » ni de filtre sur place",
+  (await voirTout.getAttribute("href")) === "/admin/alertes" &&
+  (await tdb.getByText(/Filtres avancés/).count()) === 0 && (await tdb.locator('[aria-label="Filtrer les alertes"]').count()) === 0);
+const accesDirects = tdb.locator('nav[aria-label="Accès direct aux alertes"] a');
+check("Tableau de bord : trois accès directs (risque élevé, absences, 7 derniers jours)",
+  JSON.stringify(await accesDirects.evaluateAll((a) => a.map((x) => x.dataset.raccourci))) === JSON.stringify(["eleve", "absences", "recentes"]));
+for (const cle of ["eleve", "absences", "recentes"]) {
+  await ouvrir(tdb, "/admin");
+  const lien = tdb.locator(`[data-raccourci="${cle}"]`);
+  const annonce = Number((await lien.locator("span").first().textContent()).trim());
+  const href = await lien.getAttribute("href");
+  await lien.focus();
+  const auClavier = await lien.evaluate((el) => document.activeElement === el);
+  await tdb.keyboard.press("Enter");
+  await tdb.waitForURL((u) => `${u.pathname}${u.search}` === href, { timeout: 20000 });
+  await tdb.locator("main h1", { hasText: /^Alertes$/ }).waitFor();
+  const total = Number((await tdb.locator('main p[role="status"]').first().textContent()).match(/\d+/)[0]);
+  check(`Accès direct « ${cle} » : atteint au clavier, compteur du tableau de bord = total de la page filtrée`, auClavier && annonce === total, `${annonce} / ${total} — ${href}`);
+}
+await tdb.context().close();
+
+const tdbMobile = await session(COMPTES.admin, MOBILE);
+await ouvrir(tdbMobile, "/admin");
+const boitesAcces = await tdbMobile.locator('nav[aria-label="Accès direct aux alertes"] a').evaluateAll((a) => a.map((x) => x.getBoundingClientRect()).map((r) => ({ x: r.x, droite: r.right, y: r.y })));
+check("375 px : accès directs empilés et dans l'écran, pas de défilement horizontal",
+  boitesAcces.every((b) => b.x >= 0 && b.droite <= 375) && boitesAcces[1].y > boitesAcces[0].y && (await largeurPage(tdbMobile)) <= 375);
+await tdbMobile.locator("#alerts-title").scrollIntoViewIfNeeded();
+await tdbMobile.screenshot({ path: path.join(CAPTURES, "acces-alertes-375.png") });
+// Contraste élevé : bordures et textes blancs sur noir, accès toujours lisibles
+await tdbMobile.evaluate(() => localStorage.setItem("accessibility-contrast", "high"));
+await tdbMobile.reload();
+await tdbMobile.waitForFunction(() => document.documentElement.dataset.theme === "high-contrast");
+const styleContraste = await tdbMobile.locator('[data-raccourci="eleve"]').evaluate((el) => {
+  const s = getComputedStyle(el);
+  return { bordure: s.borderLeftColor, texte: getComputedStyle(el.querySelector("span")).color, fond: s.backgroundColor };
+});
+check("Contraste élevé : accès directs en blanc sur noir, bordure visible",
+  styleContraste.bordure === "rgb(255, 255, 255)" && styleContraste.texte === "rgb(255, 255, 255)" && styleContraste.fond === "rgb(0, 0, 0)", JSON.stringify(styleContraste));
+await tdbMobile.evaluate(() => localStorage.setItem("accessibility-contrast", "default"));
+await tdbMobile.context().close();
+const tdbLarge = await session(COMPTES.admin);
+await ouvrir(tdbLarge, "/admin");
+await tdbLarge.locator("#alerts-title").scrollIntoViewIfNeeded();
+await tdbLarge.screenshot({ path: path.join(CAPTURES, "acces-alertes-1280.png") });
+await tdbLarge.context().close();
 
 // Préférences d'accessibilité : le bouton les enregistre, l'hydratation ne les écrase pas
 const acces = await session(COMPTES.enseignant);

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const navItems = [
-  { href: "/admin", label: "Dashboard", exact: true },
+  { href: "/admin", label: "Tableau de bord", exact: true },
   { href: "/admin/alertes", label: "Alertes" },
   { href: "/admin/absences", label: "Absences" },
   { href: "/admin/etudiants", label: "Étudiants" },

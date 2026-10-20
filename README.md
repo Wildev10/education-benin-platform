@@ -40,7 +40,7 @@ Une cloche, dans l'en-tête de l'admin et du directeur, signale les alertes **cr
 
 ### Tableaux de bord
 
-- **Tableau de bord national** (admin) : chiffres clés, alertes à examiner, statistiques par établissement (tableau et graphique).
+- **Tableau de bord national** (admin) : chiffres clés, alertes à examiner avec accès directs à la page Alertes déjà filtrée (risque élevé, absences répétées, 7 derniers jours, chacun avec son nombre d'alertes), statistiques par établissement (tableau et graphique).
 - **Tableau de bord de l'établissement** (directeur) : élèves, moyenne générale, alertes actives, absences injustifiées du mois, taux d'élèves en alerte, évolution de la moyenne par trimestre, moyenne par classe, élèves les plus à risque et dernières absences injustifiées.
 - **Espace enseignant** : statistiques de son établissement et liste de ses élèves.
 
@@ -113,8 +113,8 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **458 tests unitaires** (Vitest) : règles de détection, périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, connexion à la base.
-- **236 vérifications navigateur** (7 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire. À 375 px et à 1280 px.
+- **463 tests unitaires** (Vitest) : règles de détection, périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, connexion à la base.
+- **244 vérifications navigateur** (7 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---
@@ -207,7 +207,7 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ### Lancer les tests
 
 ```bash
-npm test          # 458 tests unitaires
+npm test          # 463 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
 npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits
