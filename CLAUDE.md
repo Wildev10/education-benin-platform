@@ -33,6 +33,7 @@ Le détail (fonctionnalités, installation, comptes de démo, options de `npm ru
 - Dépendances : version exacte, sans `^` ni `~`, pour toute dépendance ajoutée ou mise à jour. Jamais de `npm audit fix --force`.
 - Next 16 diffère des versions connues : lire le guide concerné dans `node_modules/next/dist/docs/` avant d'écrire du code (voir AGENTS.md).
 - Langues : seules l'accueil et la connexion sont bilingues (`/`, `/login` en français ; `/en`, `/en/login` en anglais). Tout texte de ces deux pages passe par `src/lib/i18n/textes.ts`, en français **et** en anglais ; le reste de l'application reste en français.
+- Dates : toute date ou heure affichée (pages, API, PDF, Excel, historique) utilise le fuseau `Africa/Porto-Novo`, via `FUSEAU_BENIN` de `src/lib/dates.ts` (`timeZone: FUSEAU_BENIN` dans `Intl.DateTimeFormat` et `toLocale…String`). Jour du Bénin au format AAAA-MM-JJ : `jourIsoAuBenin()`, jamais `toISOString().slice(0, 10)`. Le serveur Vercel est en UTC : sans fuseau fixe, une date peut changer de jour et le rendu serveur diffère du navigateur (erreur d’hydratation n° 418). Le scénario e2e `fuseaux` le vérifie.
 - Prisma 7 : importer `PrismaClient` et le type `Prisma` depuis `@/generated/prisma/client` (jamais `@prisma/client`) ; utiliser le client de `src/lib/prisma.ts`. Après `npx prisma db push` sur la base de dev, lancer `npx prisma generate` : `db push` ne régénère plus le client.
 
 ## Commandes
