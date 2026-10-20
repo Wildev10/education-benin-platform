@@ -27,6 +27,7 @@ Le détail (fonctionnalités, installation, comptes de démo, options de `npm ru
 - Avant tout commit : `npm test`, `npx tsc --noEmit`, `npm run lint` (le dépôt a déjà des erreurs anciennes : aucune nouvelle dans les fichiers modifiés), `npm run build`.
 - Tout changement visible : `npm run e2e` et vérification à 375 px et à 1280 px.
 - Données de test créées dans la base de dev : les supprimer à la fin. Serveurs lancés (`next dev`, `next start`) : les arrêter à la fin.
+- `git add`, `git commit` et `git push` : trois commandes séparées, jamais enchaînées avec `&&`, lancées depuis la racine du projet (sans `cd …` ni `git -C`). Lancer `node` sans variable d'environnement en préfixe (pas de `VAR=… node`). Ainsi elles correspondent aux autorisations de `.claude/settings.local.json` (fichier local, non suivi) et ne demandent pas de permission.
 - Après un push sur main, vérifier que le déploiement Vercel réussit (statut du commit : `gh api repos/Wildev10/education-benin-platform/commits/<sha>/status`).
 - Dépendances : version exacte, sans `^` ni `~`, pour toute dépendance ajoutée ou mise à jour. Jamais de `npm audit fix --force`.
 - Next 16 diffère des versions connues : lire le guide concerné dans `node_modules/next/dist/docs/` avant d'écrire du code (voir AGENTS.md).
