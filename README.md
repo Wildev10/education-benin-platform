@@ -175,6 +175,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
   - l'accueil et la connexion, en français comme en anglais, sont des pages **statiques** servies depuis le cache de Vercel. Deux mises en page racines fixent la langue (`src/app/(fr)` et `src/app/en`), et c'est le proxy qui envoie une personne connectée vers son espace ;
   - SweetAlert2 n'est téléchargé qu'au premier message affiché ;
   - côté navigateur, Sentry ne remonte que les erreurs : ni Session Replay, ni envoi d'une session à chaque page.
+- **Région.** La base Neon est dans l'Ohio (`us-east-2`) et les fonctions Vercel à Cleveland (`cle1`). Une migration vers l'Europe a été étudiée puis reportée (gain d'environ 100 ms par requête, hébergement des données à décider) : mesures et procédure complète dans [docs/migration-region.md](docs/migration-region.md).
 - **Évolution de schéma d'octobre 2026.** Colonne `Alerte.niveauModifieLe` (date de la dernière aggravation, nullable), ajoutée de façon purement additive : l'ancien code reste compatible.
 
 ### Lancer en local
