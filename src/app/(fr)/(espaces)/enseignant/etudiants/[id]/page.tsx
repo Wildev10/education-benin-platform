@@ -55,6 +55,7 @@ export default async function EtudiantPage({
       </div>
       <StudentDetail
         etudiantId={etudiant.id}
+        niveau={etudiant.niveau}
         anneeScolaire={anneeScolaire}
         periodeParDefaut={periodeParDefaut}
         peutSupprimerAbsence={peutSupprimerAbsence(session.user.role)}

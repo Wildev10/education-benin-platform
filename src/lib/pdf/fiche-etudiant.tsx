@@ -11,12 +11,12 @@ import {
 } from "@/lib/pdf/commun";
 import { messageAucun, titreRecapitulatif, type AnneeExport } from "@/lib/annee-export";
 import { libellePeriode } from "@/lib/notes-trimestres";
+import { comparerMatieres } from "@/lib/programme";
 
 type NotePdf = { matiere: string; valeur: number; periode: string; anneeScolaire: string };
 type AbsencePdf = { motif: string; periode: string; anneeScolaire: string };
 
 const PERIODES = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
-const ORDRE_MATIERES = ["Mathématiques", "Physique-Chimie", "SVT", "Français", "Anglais", "Histoire-Géo"];
 
 export type DonneesFicheEtudiant = {
   etudiant: {
@@ -92,11 +92,7 @@ function SectionAnnee<T>({
 }
 
 function TableauNotes({ notes, annee }: { notes: NotePdf[]; annee: string }) {
-  const matieres = [...new Set(notes.map((n) => n.matiere))].sort((a, b) => {
-    const ia = ORDRE_MATIERES.indexOf(a);
-    const ib = ORDRE_MATIERES.indexOf(b);
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b, "fr");
-  });
+  const matieres = [...new Set(notes.map((n) => n.matiere))].sort(comparerMatieres);
   return (
     <View style={styles.table} wrap={false}>
       <View style={styles.ligneEntete}>

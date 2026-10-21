@@ -118,7 +118,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **526 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base.
+- **584 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base, données de démonstration (cas de la démo à chaque trimestre).
 - **1 855 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, réactivation, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
@@ -130,7 +130,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 - **Notifications dans l'application uniquement**, sans SMS ni email.
 - **Assistant avec mode de secours.** Le quota gratuit de Gemini est limité ; une fois dépassé, l'assistant répond sans IA, à partir de requêtes structurées.
 - **Mot de passe oublié traité par l'admin.** Aucun serveur email n'est configuré : l'admin génère un mot de passe temporaire et le communique.
-- **Données de démonstration fictives**, générées avec Faker.
+- **Données de démonstration fictives** : 9 établissements aux noms inventés (aucun établissement connu ne les porte), environ 300 élèves aux noms béninois, notes et absences de l'année scolaire précédente et de l'année en cours jusqu'au jour du seed. Les alertes suivent les règles de l'application. Générées par `src/lib/demo/generer.ts`.
 - **Limitation des tentatives par instance de serveur** : le compteur est gardé en mémoire.
 - **Site non référencé par les moteurs de recherche** (`noindex`) pendant la démonstration ; les balises `hreflang` et Open Graph sont prêtes.
 
@@ -138,12 +138,24 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Comptes de démonstration
 
-| Rôle | Email | Mot de passe |
+| Rôle | Nom | Email | Mot de passe |
+|---|---|---|---|
+| Admin (pilotage national) | Arsène Kpadonou | `admin@edutech.bj` | `password123` |
+| Enseignant, CEG Zopah | Fulbert Gbaguidi | `enseignant@edutech.bj` | `password123` |
+| Étudiant, CEG Zopah | Prudence Ahouansou (Terminale D) | `etudiant@edutech.bj` | `password123` |
+| Directeur, CEG Zopah | Bernadette Sossou | à créer depuis `/admin/utilisateurs`, puis relancer le seed | — |
+
+### Cas préparés pour la démonstration (CEG Zopah)
+
+| Élève | Classe | Situation |
 |---|---|---|
-| Admin (pilotage national) | `admin@edutech.bj` | `password123` |
-| Enseignant | `enseignant@edutech.bj` | `password123` |
-| Étudiant | `etudiant@edutech.bj` | `password123` |
-| Directeur | À créer depuis `/admin/utilisateurs` | — |
+| Rodrigue Agossou | Première D | moyenne de 12,75 à 7,5 : alerte notes **Élevé** |
+| Adéola Akanni | Terminale C | moyenne de 14,5 à 12 : alerte notes **Moyen** |
+| Inoussa Maïga | 3ème | 7 absences injustifiées ce trimestre, surtout le lundi : alerte absences **Moyen** |
+| Sèna Dossou | Seconde D | 6 notes à 11 de moyenne contre 13,5 : alerte **Moyen**, qui s'aggrave pendant la démo |
+| Nafissatou Gounou | 6ème | arrivée ce trimestre : « Pas encore de période de comparaison » |
+
+Pour Sèna Dossou, saisir deux notes dans le trimestre proposé, par exemple **6 puis 6** (ou 5 puis 7). La première affiche « Note enregistrée » ; la seconde, « Alerte aggravée : Moyen → Élevé ». Règle : première note d'au moins 4, et les deux font moins de 14. Les autres élèves du CEG Zopah n'ont aucune alerte. Le seed calcule les périodes à partir du jour où il est lancé : le relancer la veille de la démo.
 
 ---
 
@@ -206,8 +218,8 @@ Créez un fichier `.env` à partir de `.env.example` :
 ```bash
 npx prisma generate                # client dans src/generated/prisma (aussi lancé par npm install)
 npx prisma db push                 # crée les tables (ne régénère plus le client depuis Prisma 7)
-npx prisma db seed                 # établissements, élèves, notes de démonstration
-npx tsx prisma/seed-users.ts       # comptes de démonstration (admin, enseignant, étudiant)
+npx tsx prisma/seed.ts             # simulation : affiche ce qui sera supprimé et créé
+npx tsx prisma/seed.ts --execute --hote=<hôte affiché>   # données et comptes de démonstration
 npm run dev
 ```
 
@@ -219,7 +231,7 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ### Lancer les tests
 
 ```bash
-npm test          # 526 tests unitaires
+npm test          # 584 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
 npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits

@@ -1,5 +1,6 @@
 import { messageAucun, titreRecapitulatif, type AnneeExport } from "@/lib/annee-export";
 import { libellePeriode } from "@/lib/notes-trimestres";
+import { comparerMatieres } from "@/lib/programme";
 import { slugFichier } from "@/lib/pdf/commun";
 import {
   FORMAT_DATE,
@@ -19,7 +20,6 @@ import {
 } from "./commun";
 
 const PERIODES = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
-const ORDRE_MATIERES = ["Mathématiques", "Physique-Chimie", "SVT", "Français", "Anglais", "Histoire-Géo"];
 
 export type DonneesFicheExcel = {
   etudiant: {
@@ -125,11 +125,7 @@ export function classeurFicheEleve(d: DonneesFicheExcel) {
       { titre: "Moyenne annuelle", cle: "annuelle", largeur: 18, format: FORMAT_NOTE, alignement: "right" as const },
     ],
   });
-  const matieres = [...new Set(notesAnnee.map((n) => n.matiere))].sort((a, b) => {
-    const ia = ORDRE_MATIERES.indexOf(a);
-    const ib = ORDRE_MATIERES.indexOf(b);
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b, "fr");
-  });
+  const matieres = [...new Set(notesAnnee.map((n) => n.matiere))].sort(comparerMatieres);
   const moyennePour = (filtre: (n: (typeof notesAnnee)[number]) => boolean) =>
     arrondi2(moyenne(notesAnnee.filter(filtre).map((n) => n.valeur)));
   matieres.forEach((matiere, i) => {

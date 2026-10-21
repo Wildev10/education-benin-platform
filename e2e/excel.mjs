@@ -107,16 +107,18 @@ const admin = await session(COMPTES.admin);
 const etablissements = (await getJson(admin, "/api/etablissements")).corps;
 
 let dir = null;
-let ETAB_AUTRE;
+let listeDir = null;
 if (COMPTES.directeur) {
   dir = await session(COMPTES.directeur);
-  ETAB_AUTRE = (await elevesDe(dir)).elements[0].etablissement;
-} else {
-  ETAB_AUTRE = etablissements.find((e) => e.id !== ETAB_ENS.id);
+  listeDir = await elevesDe(dir);
 }
+const ELEVE_DIR = listeDir?.elements[0];
+const ETAB_DIR = ELEVE_DIR?.etablissement;
+// Ni celui de l'enseignant, ni celui du directeur (les deux peuvent être le même)
+const ETAB_AUTRE = etablissements.find((e) => e.id !== ETAB_ENS.id && e.id !== ETAB_DIR?.id);
 const listeAutre = await elevesDe(admin, ETAB_AUTRE.id);
 const ELEVE_AUTRE = listeAutre.elements[0];
-console.log(`   Enseignant : ${ETAB_ENS.nom} · autre établissement : ${ETAB_AUTRE.nom}`);
+console.log(`   Enseignant : ${ETAB_ENS.nom}${ETAB_DIR ? ` · directeur : ${ETAB_DIR.nom}` : ""} · autre établissement : ${ETAB_AUTRE.nom}`);
 
 // ══ ADMIN ═════════════════════════════════════════════════════════════════════
 let f = await telecharger(admin, admin.getByRole("button", { name: "Excel" }).first());
@@ -207,21 +209,21 @@ if (!dir) {
   feuille = f.classeur.getWorksheet("Élèves");
   lignes = lignesDonnees(feuille, "Nom");
   check("Directeur, tableau de bord : liste des élèves de son établissement",
-    feuille.getCell("A3").value === `Établissement : ${ETAB_AUTRE.nom}` && lignes.length === listeAutre.total, `${lignes.length} élèves — ${f.nom}`);
+    feuille.getCell("A3").value === `Établissement : ${ETAB_DIR.nom}` && lignes.length === listeDir.total, `${lignes.length} élèves — ${f.nom}`);
   await ouvrir(dir, "/directeur/alertes?statut=toutes");
   f = await telecharger(dir, dir.getByRole("button", { name: "Excel" }));
   lignes = lignesDonnees(f.classeur.getWorksheet("Alertes"), "Nom");
-  check("Directeur, page Alertes : uniquement son établissement", lignes.every((r) => r.getCell(4).value === ETAB_AUTRE.nom), `${lignes.length} alertes`);
-  await ouvrir(dir, `/enseignant/etudiants/${ELEVE_AUTRE.id}`);
+  check("Directeur, page Alertes : uniquement son établissement", lignes.every((r) => r.getCell(4).value === ETAB_DIR.nom), `${lignes.length} alertes`);
+  await ouvrir(dir, `/enseignant/etudiants/${ELEVE_DIR.id}`);
   f = await telecharger(dir, dir.getByRole("button", { name: "Excel" }));
   check("Directeur, fiche d'un élève de son établissement",
-    f.classeur.getWorksheet("Identité").getCell("A2").value === `Fiche de suivi — ${ELEVE_AUTRE.prenom} ${ELEVE_AUTRE.nom}`, f.nom);
-  check("Directeur, forçage : liste des élèves d'un autre établissement → 404", (await statut(dir, `/api/etablissements/${ETAB_ENS.id}/eleves/xlsx`)) === 404);
-  check("Directeur, forçage : fiche Excel d'un élève d'un autre établissement → 404", (await statut(dir, `/api/etudiants/${ELEVE_ENS.id}/xlsx`)) === 404);
-  const force = await telechargerUrl(dir, `/api/alertes/xlsx?statut=toutes&etablissement=${ETAB_ENS.id}`, "alertes-force.xlsx");
+    f.classeur.getWorksheet("Identité").getCell("A2").value === `Fiche de suivi — ${ELEVE_DIR.prenom} ${ELEVE_DIR.nom}`, f.nom);
+  check("Directeur, forçage : liste des élèves d'un autre établissement → 404", (await statut(dir, `/api/etablissements/${ETAB_AUTRE.id}/eleves/xlsx`)) === 404);
+  check("Directeur, forçage : fiche Excel d'un élève d'un autre établissement → 404", (await statut(dir, `/api/etudiants/${ELEVE_AUTRE.id}/xlsx`)) === 404);
+  const force = await telechargerUrl(dir, `/api/alertes/xlsx?statut=toutes&etablissement=${ETAB_AUTRE.id}`, "alertes-force.xlsx");
   const lignesForce = lignesDonnees(force.getWorksheet("Alertes"), "Nom");
   check("Directeur, forçage : ?etablissement= d'un autre dans l'export des alertes → uniquement le sien",
-    lignesForce.every((r) => r.getCell(4).value === ETAB_AUTRE.nom), `${lignesForce.length} alertes`);
+    lignesForce.every((r) => r.getCell(4).value === ETAB_DIR.nom), `${lignesForce.length} alertes`);
   await dir.context().close();
 }
 

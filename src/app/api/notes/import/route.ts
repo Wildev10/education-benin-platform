@@ -5,17 +5,11 @@ import { ROLES_IMPORT_NOTES } from "@/lib/perimetre";
 import { alerteSaisie, detecterAlerte } from "@/lib/detection-alerte";
 import type { AlerteSaisie } from "@/lib/message-saisie";
 import { prisma } from "@/lib/prisma";
+import { MATIERES } from "@/lib/programme";
 
 const TAILLE_MAX = 1 * 1024 * 1024; // 1 Mo
 
-const MATIERES_VALIDES = new Set([
-  "Mathématiques",
-  "Physique-Chimie",
-  "SVT",
-  "Français",
-  "Anglais",
-  "Histoire-Géo",
-]);
+const MATIERES_VALIDES = new Set(MATIERES);
 
 const PERIODES_VALIDES = new Set(["Trimestre 1", "Trimestre 2", "Trimestre 3"]);
 

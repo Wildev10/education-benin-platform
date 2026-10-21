@@ -1,7 +1,9 @@
 // Filtres de la liste des élèves, partagés entre le formulaire (client) et les
 // requêtes (eleves-server.ts). Aucune dépendance serveur ici.
 
-export const NIVEAUX = ["Seconde C", "Première D", "Terminale D"];
+import { NIVEAUX } from "@/lib/programme";
+
+export { NIVEAUX };
 
 export type FiltresEleves = {
   /** Réservé à l'admin : ignoré pour les autres rôles */

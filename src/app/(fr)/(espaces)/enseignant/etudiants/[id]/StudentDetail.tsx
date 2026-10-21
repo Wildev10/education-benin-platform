@@ -15,6 +15,7 @@ import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
 import { periodeScolaireDuJour } from "@/lib/annee-scolaire";
 import { messageSaisie, type AlerteSaisie, type MessageSaisie } from "@/lib/message-saisie";
 import { comparerMoyennes } from "@/lib/regles-alerte";
+import { matieresDuNiveau } from "@/lib/programme";
 import AlertesEleve, { type AlerteEleve } from "./AlertesEleve";
 
 type Note = {
@@ -32,15 +33,6 @@ type Absence = {
   periode: string;
   anneeScolaire: string;
 };
-
-const matieres = [
-  "Mathématiques",
-  "Physique-Chimie",
-  "SVT",
-  "Français",
-  "Anglais",
-  "Histoire-Géo",
-];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
@@ -105,6 +97,7 @@ function RetourSaisie({ message }: { message: MessageSaisie }) {
 
 export default function StudentDetail({
   etudiantId,
+  niveau,
   initialNotes,
   initialAbsences,
   initialAlertes = [],
@@ -114,6 +107,8 @@ export default function StudentDetail({
   peutTraiter = false,
 }: {
   etudiantId: string;
+  /** Classe de l'élève : la saisie ne propose que ses matières */
+  niveau?: string;
   initialNotes: Note[];
   initialAbsences: Absence[];
   initialAlertes?: AlerteEleve[];
@@ -128,6 +123,7 @@ export default function StudentDetail({
 }) {
   const horsLigne = useHorsLigne();
   const [notes, setNotes] = useState(initialNotes);
+  const matieres = matieresDuNiveau(niveau);
   const [matiere, setMatiere] = useState(matieres[0]);
   const [valeur, setValeur] = useState("");
   const [periode, setPeriode] = useState(periodeParDefaut);
@@ -438,9 +434,9 @@ export default function StudentDetail({
                             {groupe.elements.map((abs) => (
                               <li
                                 key={abs.id}
-                                className="flex items-center justify-between gap-4 px-5 py-3"
+                                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3"
                               >
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-3">
                                   <span
                                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                                       abs.motif === "injustifiee"
@@ -462,6 +458,7 @@ export default function StudentDetail({
                                     disabled={horsLigne}
                                     title={horsLigne ? TITRE_HORS_LIGNE : undefined}
                                     aria-label={`Supprimer l'absence du ${formatDate(abs.date)}`}
+                                    className="shrink-0"
                                   >
                                     Supprimer
                                   </Button>
