@@ -6,7 +6,7 @@ import ExcelJS from "exceljs";
 const mockRequireRole = vi.fn();
 vi.mock("@/lib/auth-guard", () => ({ requireRole: mockRequireRole }));
 vi.mock("@/lib/audit", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/detection-alerte", () => ({ detecterAlerteAbsence: vi.fn() }));
+vi.mock("@/lib/detection-alerte", () => ({ detecterAlerteAbsence: vi.fn(), alerteSaisie: () => null }));
 
 const mockAuth = vi.fn();
 vi.mock("@/auth", () => ({ auth: () => mockAuth() }));

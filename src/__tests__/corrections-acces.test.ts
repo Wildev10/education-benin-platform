@@ -28,10 +28,9 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-// Composants clients de la fiche : remplacés par des marqueurs
-const AlertesEleveMock = vi.fn(() => null);
-vi.mock("@/app/(fr)/(espaces)/enseignant/etudiants/[id]/AlertesEleve", () => ({ default: AlertesEleveMock }));
-vi.mock("@/app/(fr)/(espaces)/enseignant/etudiants/[id]/StudentDetail", () => ({ default: () => null }));
+// Composant client de la fiche (notes, absences et alertes) : remplacé par un marqueur
+const StudentDetailMock = vi.fn(() => null);
+vi.mock("@/app/(fr)/(espaces)/enseignant/etudiants/[id]/StudentDetail", () => ({ default: StudentDetailMock }));
 vi.mock("@/components/ExportPdfButton", () => ({ ExportPdfButton: () => null, ExportExcelButton: () => null }));
 
 const prismaMock = {
@@ -132,7 +131,7 @@ describe("Fiche élève : section alertes", () => {
     mockAuth.mockResolvedValue(session("enseignant", MON_ETAB));
     prismaMock.etudiant.findUnique.mockResolvedValue(ELEVE(MON_ETAB));
     const { page } = await ouvrirFiche();
-    const props = propsDe(page, AlertesEleveMock);
+    const props = propsDe(page, StudentDetailMock);
     expect(props?.peutTraiter).toBe(true);
     expect(props?.initialAlertes).toEqual([
       expect.objectContaining({ id: "a1", statut: "active", createdAt: "2026-10-01T10:00:00.000Z" }),
@@ -143,7 +142,7 @@ describe("Fiche élève : section alertes", () => {
     mockAuth.mockResolvedValue(session("directeur", MON_ETAB));
     prismaMock.etudiant.findUnique.mockResolvedValue(ELEVE(MON_ETAB));
     const { page } = await ouvrirFiche();
-    expect(propsDe(page, AlertesEleveMock)?.peutTraiter).toBe(false);
+    expect(propsDe(page, StudentDetailMock)?.peutTraiter).toBe(false);
   });
 });
 

@@ -87,7 +87,7 @@ try {
   const navEns = await libellesNav(ens);
   check("Enseignant : navigation avec Importer, Alertes, Absences, Assistant ; sans Utilisateurs ni Historique",
     ["Importer", "Alertes", "Absences", "Assistant"].every((l) => navEns.includes(l)) && !navEns.some((l) => /Utilisateurs|Historique/.test(l)), navEns.join(", "));
-  check("Enseignant : pas de cloche (réservée à l'admin et au directeur)", (await cloche(ens).count()) === 0);
+  check("Enseignant : cloche affichée (alertes de son établissement)", (await cloche(ens).count()) === 1);
   const absenceEns = (await getJson(ens, "/api/absences?page=1")).corps.elements[0];
   await ouvrir(ens, `/enseignant/etudiants/${absenceEns.etudiant.id}`);
   check("Enseignant, fiche : ni emoji ni pictogramme, icônes accessibles", await sobre(ens));
@@ -101,8 +101,8 @@ try {
     const arrivee = await forcer(ens, adresse);
     check(`Enseignant : ${adresse} forcée → refusée (renvoyé vers ${arrivee})`, arrivee !== adresse);
   }
-  check("Enseignant : l'API refuse cloche et gestion des comptes (403)",
-    (await statut(ens, "GET", "/api/notifications/alertes")) === 403 && (await statut(ens, "GET", "/api/admin/utilisateurs")) === 403);
+  check("Enseignant : l'API ouvre la cloche (200) et refuse la gestion des comptes (403)",
+    (await statut(ens, "GET", "/api/notifications/alertes")) === 200 && (await statut(ens, "GET", "/api/admin/utilisateurs")) === 403);
   await ens.context().close();
 
   // ── DIRECTEUR ──────────────────────────────────────────────────────────────

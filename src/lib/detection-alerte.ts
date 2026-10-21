@@ -1,76 +1,111 @@
+import type { Alerte } from "@/generated/prisma/client";
+import type { AlerteSaisie } from "@/lib/message-saisie";
 import { prisma } from "@/lib/prisma";
+import { comparerMoyennes, compterAbsencesRecentes, estAggravation } from "@/lib/regles-alerte";
 
-const ordrePeriodes: Record<string, number> = {
-  "Trimestre 1": 1,
-  "Trimestre 2": 2,
-  "Trimestre 3": 3,
-};
+// Règles pures, réexportées pour les appels existants
+export {
+  calculerNiveauAlerte,
+  calculerNiveauAlerteAbsence,
+  comparerMoyennes,
+  estAggravation,
+  NOTES_MIN_COMPARAISON,
+} from "@/lib/regles-alerte";
 
-type MoyennePeriode = {
-  anneeScolaire: string;
-  periode: string;
-  moyenne: number;
-  noteCount: number;
-};
-
-export type IssueDetection = "creee" | "mise_a_jour" | null;
+export type TypeAlerte = "baisse_moyenne" | "absences";
 
 export type DetailDetection = {
-  alerteId?: string; // alerte créée ou modifiée (absent en simulation)
   issue: "creee" | "mise_a_jour";
+  type: TypeAlerte;
+  /** Alerte créée ou modifiée (absente en simulation) */
+  alerte?: Alerte;
+  alerteId?: string;
+  /** Niveau avant une aggravation ; absent pour une création */
+  niveauPrecedent?: string;
+  /** L'alerte aggravée avait été traitée : elle redevient active */
+  reactivee: boolean;
   periode: string;
   anneeScolaire: string;
   niveauRisque: string;
+  /** Notes : moyennes des deux périodes. Absences : 0, puis le nombre d'absences injustifiées. */
   moyenneAvant: number;
   moyenneApres: number;
   ecartPourcent: number;
 };
 
-// ── Constantes absences (déclarées ici pour être accessibles aux fonctions pures) ──
-const SEUIL_MOYEN = 5;
-const SEUIL_ELEVE = 10;
-
-// ── Fonctions pures (testables sans Prisma) ──────────────────────────────────
-
-export function calculerNiveauAlerte(
-  moyenneAvant: number,
-  moyenneApres: number
-): "eleve" | "moyen" | null {
-  if (moyenneAvant <= 0) return null;
-  const ecartPourcent = ((moyenneAvant - moyenneApres) / moyenneAvant) * 100;
-  if (ecartPourcent >= 20 && moyenneApres < 10) return "eleve";
-  if (ecartPourcent >= 15) return "moyen";
-  return null;
+/** Forme renvoyée au navigateur après une saisie (message et liste des alertes de la fiche). */
+export function alerteSaisie(detail: DetailDetection | null): AlerteSaisie | null {
+  if (!detail?.alerte) return null;
+  const { alerte } = detail;
+  return {
+    id: alerte.id,
+    type: alerte.type,
+    issue: detail.issue,
+    niveauRisque: alerte.niveauRisque,
+    niveauPrecedent: detail.niveauPrecedent ?? null,
+    reactivee: detail.reactivee,
+    statut: alerte.statut,
+    periode: alerte.periode,
+    anneeScolaire: alerte.anneeScolaire,
+    moyenneAvant: alerte.moyenneAvant,
+    moyenneApres: alerte.moyenneApres,
+    ecartPourcent: alerte.ecartPourcent,
+    createdAt: alerte.createdAt.toISOString(),
+  };
 }
 
-export function calculerNiveauAlerteAbsence(
-  nbAbsencesInjustifiees: number
-): "eleve" | "moyen" | null {
-  if (nbAbsencesInjustifiees >= SEUIL_ELEVE) return "eleve";
-  if (nbAbsencesInjustifiees >= SEUIL_MOYEN) return "moyen";
-  return null;
-}
-
-const RANG_NIVEAU: Record<string, number> = { moyen: 1, eleve: 2 };
+type Constat =Omit<DetailDetection, "issue" | "alerte" | "alerteId" | "niveauPrecedent" | "reactivee">;
 
 /**
- * Le nouveau niveau dépasse celui d'une alerte encore active. Seul cas où une
- * alerte existante est modifiée : un niveau égal ou en baisse, ou une alerte
- * déjà traitée, ne change rien (et ne notifie personne).
+ * Une seule alerte par élève, type, période et année scolaire, quel que soit
+ * son statut (les anciennes alertes sans année comptent pour toute année).
+ * Elle est créée, ou aggravée (Moyen → Élevé, réactivée si elle était traitée,
+ * avec une date d'aggravation qui notifie la cloche). Niveau égal ou en baisse : rien.
  */
-export function estAggravation(
-  alerte: { statut: string; niveauRisque: string },
-  nouveauNiveau: string
-): boolean {
-  return (
-    alerte.statut === "active" &&
-    (RANG_NIVEAU[nouveauNiveau] ?? 0) > (RANG_NIVEAU[alerte.niveauRisque] ?? 0) &&
-    alerte.niveauRisque in RANG_NIVEAU
-  );
+async function enregistrer(etudiantId: string, constat: Constat, simulation: boolean): Promise<DetailDetection | null> {
+  const existante = await prisma.alerte.findFirst({
+    where: {
+      etudiantId,
+      type: constat.type,
+      periode: constat.periode,
+      OR: [{ anneeScolaire: constat.anneeScolaire }, { anneeScolaire: null }],
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (existante) {
+    if (!estAggravation(existante, constat.niveauRisque)) return null;
+    const alerte = simulation
+      ? undefined
+      : await prisma.alerte.update({
+          where: { id: existante.id },
+          data: {
+            niveauRisque: constat.niveauRisque,
+            moyenneApres: constat.moyenneApres,
+            ecartPourcent: constat.ecartPourcent,
+            statut: "active",
+            niveauModifieLe: new Date(),
+          },
+        });
+    return {
+      issue: "mise_a_jour",
+      ...constat,
+      alerte,
+      alerteId: existante.id,
+      niveauPrecedent: existante.niveauRisque,
+      reactivee: existante.statut !== "active",
+    };
+  }
+
+  const alerte = simulation
+    ? undefined
+    : await prisma.alerte.create({ data: { etudiantId, ...constat, statut: "active" } });
+  return { issue: "creee", ...constat, alerte, alerteId: alerte?.id, reactivee: false };
 }
 
-export async function detecterAlerte(etudiantId: string): Promise<IssueDetection> {
-  return (await analyserAlerte(etudiantId))?.issue ?? null;
+/** Baisse de moyenne entre les deux dernières périodes (voir comparerMoyennes). */
+export async function detecterAlerte(etudiantId: string): Promise<DetailDetection | null> {
+  return analyserAlerte(etudiantId);
 }
 
 // En mode simulation, rien n'est écrit : la fonction décrit ce qu'elle ferait.
@@ -80,203 +115,49 @@ export async function analyserAlerte(
 ): Promise<DetailDetection | null> {
   const notes = await prisma.note.findMany({
     where: { etudiantId },
-    select: {
-      valeur: true,
-      periode: true,
-      anneeScolaire: true,
-    },
+    select: { valeur: true, periode: true, anneeScolaire: true },
   });
 
-  const moyennesParPeriode = new Map<
-    string,
-    MoyennePeriode
-  >();
+  const comparaison = comparerMoyennes(notes);
+  if (comparaison.etat !== "comparee" || !comparaison.niveauRisque) return null;
+  const { periodeAvant, periodeRecente, ecartPourcent, niveauRisque } = comparaison;
 
-  for (const note of notes) {
-    const key = `${note.anneeScolaire}::${note.periode}`;
-    const groupe = moyennesParPeriode.get(key);
-
-    if (groupe) {
-      groupe.moyenne =
-        (groupe.moyenne * groupe.noteCount + note.valeur) /
-        (groupe.noteCount + 1);
-      groupe.noteCount += 1;
-    } else {
-      moyennesParPeriode.set(key, {
-        anneeScolaire: note.anneeScolaire,
-        periode: note.periode,
-        moyenne: note.valeur,
-        noteCount: 1,
-      });
-    }
-  }
-
-  const periodes = Array.from(moyennesParPeriode.values()).sort((a, b) => {
-    const anneeA = Number.parseInt(a.anneeScolaire, 10);
-    const anneeB = Number.parseInt(b.anneeScolaire, 10);
-    if (anneeA !== anneeB) return anneeA - anneeB;
-    return (ordrePeriodes[a.periode] ?? Number.MAX_SAFE_INTEGER) -
-      (ordrePeriodes[b.periode] ?? Number.MAX_SAFE_INTEGER);
-  });
-
-  if (periodes.length < 2) return null;
-
-  const periodeAvant = periodes[periodes.length - 2];
-  const periodeRecente = periodes[periodes.length - 1];
-  if (periodeAvant.moyenne <= 0) return null;
-
-  const ecartPourcent =
-    ((periodeAvant.moyenne - periodeRecente.moyenne) /
-      periodeAvant.moyenne) *
-    100;
-
-  let niveauRisque: string;
-  if (ecartPourcent >= 20 && periodeRecente.moyenne < 10) {
-    niveauRisque = "eleve";
-  } else if (ecartPourcent >= 15) {
-    niveauRisque = "moyen";
-  } else {
-    return null;
-  }
-
-  // Une seule alerte par étudiant + période + année scolaire, quel que soit son
-  // statut. Les anciennes alertes (sans année) comptent pour toute année.
-  const alerteExistante = await prisma.alerte.findFirst({
-    where: {
-      etudiantId,
+  return enregistrer(
+    etudiantId,
+    {
+      type: "baisse_moyenne",
+      niveauRisque,
+      moyenneAvant: periodeAvant.moyenne,
+      moyenneApres: periodeRecente.moyenne,
+      ecartPourcent,
       periode: periodeRecente.periode,
-      OR: [
-        { anneeScolaire: periodeRecente.anneeScolaire },
-        { anneeScolaire: null },
-      ],
+      anneeScolaire: periodeRecente.anneeScolaire,
     },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const detail = {
-    periode: periodeRecente.periode,
-    anneeScolaire: periodeRecente.anneeScolaire,
-    niveauRisque,
-    moyenneAvant: periodeAvant.moyenne,
-    moyenneApres: periodeRecente.moyenne,
-    ecartPourcent,
-  };
-
-  if (alerteExistante) {
-    // Une alerte active qui s'aggrave (moyen -> élevé) est mise à jour, et la
-    // date d'aggravation notifie la cloche. Niveau égal ou en baisse : rien.
-    if (estAggravation(alerteExistante, niveauRisque)) {
-      if (!simulation) {
-        await prisma.alerte.update({
-          where: { id: alerteExistante.id },
-          data: {
-            niveauRisque,
-            moyenneApres: periodeRecente.moyenne,
-            ecartPourcent,
-            niveauModifieLe: new Date(),
-          },
-        });
-      }
-      return { issue: "mise_a_jour", alerteId: alerteExistante.id, ...detail };
-    }
-    return null;
-  }
-
-  let alerteId: string | undefined;
-  if (!simulation) {
-    const creee = await prisma.alerte.create({
-      data: {
-        etudiantId,
-        type: "baisse_moyenne",
-        niveauRisque,
-        moyenneAvant: periodeAvant.moyenne,
-        moyenneApres: periodeRecente.moyenne,
-        ecartPourcent,
-        periode: periodeRecente.periode,
-        anneeScolaire: periodeRecente.anneeScolaire,
-        statut: "active",
-      },
-    });
-    alerteId = creee.id;
-  }
-
-  return { issue: "creee", alerteId, ...detail };
+    simulation
+  );
 }
 
-// ── Détection alerte absences ────────────────────────────────────────────────
-
-export async function detecterAlerteAbsence(etudiantId: string): Promise<boolean> {
-  // Compte les absences injustifiées par (anneeScolaire, periode)
+/** Absences injustifiées de la période la plus récente qui en compte (5 : Moyen, 10 : Élevé). */
+export async function detecterAlerteAbsence(etudiantId: string): Promise<DetailDetection | null> {
   const absences = await prisma.absence.findMany({
     where: { etudiantId, motif: "injustifiee" },
     select: { periode: true, anneeScolaire: true },
   });
 
-  if (absences.length === 0) return false;
+  const recentes = compterAbsencesRecentes(absences);
+  if (!recentes?.niveauRisque) return null;
 
-  // Groupe par (anneeScolaire::periode)
-  const compteurs = new Map<string, { periode: string; anneeScolaire: string; count: number }>();
-  for (const a of absences) {
-    const key = `${a.anneeScolaire}::${a.periode}`;
-    const entry = compteurs.get(key);
-    if (entry) entry.count++;
-    else compteurs.set(key, { periode: a.periode, anneeScolaire: a.anneeScolaire, count: 1 });
-  }
-
-  // Prend la période la plus récente avec le plus d'absences
-  const periodes = Array.from(compteurs.values()).sort((a, b) => {
-    const anneeA = Number.parseInt(a.anneeScolaire, 10);
-    const anneeB = Number.parseInt(b.anneeScolaire, 10);
-    if (anneeA !== anneeB) return anneeB - anneeA;
-    return (ordrePeriodes[b.periode] ?? 0) - (ordrePeriodes[a.periode] ?? 0);
-  });
-
-  const cible = periodes[0];
-  const { periode, anneeScolaire, count } = cible;
-
-  let niveauRisque: string;
-  if (count >= SEUIL_ELEVE) {
-    niveauRisque = "eleve";
-  } else if (count >= SEUIL_MOYEN) {
-    niveauRisque = "moyen";
-  } else {
-    return false;
-  }
-
-  // Anti-doublon : cherche une alerte absences existante pour cet étudiant/période
-  const alerteExistante = await prisma.alerte.findFirst({
-    where: {
-      etudiantId,
+  return enregistrer(
+    etudiantId,
+    {
       type: "absences",
-      periode,
-      OR: [{ anneeScolaire }, { anneeScolaire: null }],
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (alerteExistante) {
-    if (estAggravation(alerteExistante, niveauRisque)) {
-      await prisma.alerte.update({
-        where: { id: alerteExistante.id },
-        data: { niveauRisque, moyenneApres: count, ecartPourcent: 0, niveauModifieLe: new Date() },
-      });
-      return true;
-    }
-    return false;
-  }
-
-  await prisma.alerte.create({
-    data: {
-      etudiantId,
-      type: "absences",
-      niveauRisque,
+      niveauRisque: recentes.niveauRisque,
       moyenneAvant: 0,
-      moyenneApres: count,
+      moyenneApres: recentes.count,
       ecartPourcent: 0,
-      periode,
-      anneeScolaire,
-      statut: "active",
+      periode: recentes.periode,
+      anneeScolaire: recentes.anneeScolaire,
     },
-  });
-  return true;
+    false
+  );
 }

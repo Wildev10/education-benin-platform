@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { ROLES_IMPORT_NOTES } from "@/lib/perimetre";
-import { detecterAlerte } from "@/lib/detection-alerte";
+import { alerteSaisie, detecterAlerte } from "@/lib/detection-alerte";
+import type { AlerteSaisie } from "@/lib/message-saisie";
 import { prisma } from "@/lib/prisma";
 
 const TAILLE_MAX = 1 * 1024 * 1024; // 1 Mo
@@ -21,6 +22,9 @@ const PERIODES_VALIDES = new Set(["Trimestre 1", "Trimestre 2", "Trimestre 3"]);
 const ANNEE_REGEX = /^\d{4}-\d{4}$/;
 
 type LigneErreur = { ligne: number; contenu: string; raison: string };
+
+/** Alerte créée ou aggravée par l'import, avec l'élève concerné. */
+export type AlerteImport = AlerteSaisie & { etudiant: { id: string; prenom: string; nom: string } };
 
 export async function POST(request: Request) {
   const access = await requireRole(ROLES_IMPORT_NOTES);
@@ -55,7 +59,9 @@ export async function POST(request: Request) {
   const lignesData = lignesRaw.slice(1);
 
   let importees = 0;
-  let alertesCreees = 0;
+  // Élèves dont au moins une note a été importée : la détection tourne une
+  // fois par élève, après toutes ses lignes (pas sur une moyenne partielle)
+  const etudiantsImportes = new Set<string>();
   const erreurs: LigneErreur[] = [];
   let numeroLigne = 1; // 1 = en-tête, donc data commence à 2
 
@@ -139,13 +145,10 @@ export async function POST(request: Request) {
 
     // Création de la note
     try {
-      const note = await prisma.note.create({
+      await prisma.note.create({
         data: { etudiantId, matiere, valeur, periode, anneeScolaire },
       });
-
-      const issue = await detecterAlerte(note.etudiantId);
-      if (issue !== null) alertesCreees++;
-
+      etudiantsImportes.add(etudiantId);
       importees++;
     } catch (err) {
       console.error("Erreur création note CSV ligne", numeroLigne, err);
@@ -154,6 +157,23 @@ export async function POST(request: Request) {
   }
 
   const total = lignesData.filter((l) => l.trim() !== "").length;
+
+  const alertes: AlerteImport[] = [];
+  const eleves = etudiantsImportes.size
+    ? await prisma.etudiant.findMany({
+        where: { id: { in: [...etudiantsImportes] } },
+        select: { id: true, prenom: true, nom: true },
+      })
+    : [];
+  for (const etudiant of eleves) {
+    try {
+      const alerte = alerteSaisie(await detecterAlerte(etudiant.id));
+      if (alerte) alertes.push({ ...alerte, etudiant });
+    } catch (err) {
+      // Les notes sont enregistrées : une détection en échec ne fait pas échouer l'import
+      console.error("Erreur détection d'alerte après import", etudiant.id, err);
+    }
+  }
 
   if (importees > 0) {
     await logAction({
@@ -164,5 +184,5 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({ total, importees, erreurs, alertesCreees }, { status: 200 });
+  return NextResponse.json({ total, importees, erreurs, alertesCreees: alertes.length, alertes }, { status: 200 });
 }

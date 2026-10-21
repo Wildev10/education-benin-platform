@@ -10,7 +10,8 @@ vi.mock("@/lib/auth-guard", () => ({ requireRole: mockRequireRole }));
 vi.mock("@/lib/audit", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/detection-alerte", () => ({
   detecterAlerte: vi.fn().mockResolvedValue(null),
-  detecterAlerteAbsence: vi.fn().mockResolvedValue(false),
+  detecterAlerteAbsence: vi.fn().mockResolvedValue(null),
+  alerteSaisie: () => null,
 }));
 
 const mockRenderToBuffer = vi.fn();

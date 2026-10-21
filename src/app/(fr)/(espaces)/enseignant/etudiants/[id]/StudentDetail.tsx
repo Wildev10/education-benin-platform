@@ -11,6 +11,10 @@ import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-tr
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { IconeAlerte } from "@/components/ui/Icones";
 import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
+import { periodeScolaireDuJour } from "@/lib/annee-scolaire";
+import { messageSaisie, type AlerteSaisie, type MessageSaisie } from "@/lib/message-saisie";
+import { comparerMoyennes } from "@/lib/regles-alerte";
+import AlertesEleve, { type AlerteEleve } from "./AlertesEleve";
 
 type Note = {
   id: string;
@@ -46,43 +50,109 @@ function formatDate(iso: string) {
   });
 }
 
+const JOUR_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
 const selectCls =
   "w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark";
 const inputCls =
   "w-full rounded-lg border border-border px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark";
 const labelCls = "mb-1.5 block text-sm font-semibold text-ink";
 
+/** Alerte renvoyée par une saisie, ajoutée à l'historique ou mise à jour (aggravation). */
+function fusionnerAlerte(alertes: AlerteEleve[], alerte: AlerteSaisie): AlerteEleve[] {
+  const ligne: AlerteEleve = {
+    id: alerte.id,
+    type: alerte.type,
+    niveauRisque: alerte.niveauRisque,
+    statut: alerte.statut,
+    periode: alerte.periode,
+    moyenneAvant: alerte.moyenneAvant,
+    moyenneApres: alerte.moyenneApres,
+    ecartPourcent: alerte.ecartPourcent,
+    createdAt: alerte.createdAt,
+  };
+  return alertes.some((a) => a.id === alerte.id)
+    ? alertes.map((a) => (a.id === alerte.id ? ligne : a))
+    : [ligne, ...alertes];
+}
+
+/** Retour d'une saisie : l'alerte déclenchée (ambre), sinon la confirmation (vert). */
+function RetourSaisie({ message }: { message: MessageSaisie }) {
+  if (message.alerte) {
+    return (
+      <div
+        role="alert"
+        data-retour="alerte"
+        className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+      >
+        <IconeAlerte taille={18} className="mt-0.5 shrink-0 text-amber-700" />
+        <p className="min-w-0">
+          <strong>{message.titre}</strong>
+          <span className="block">{message.detail}</span>
+        </p>
+      </div>
+    );
+  }
+  return (
+    <p data-retour="enregistre" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+      <strong>{message.titre}</strong>
+      <span className="block">{message.detail}</span>
+    </p>
+  );
+}
+
 export default function StudentDetail({
   etudiantId,
   initialNotes,
   initialAbsences,
+  initialAlertes = [],
+  anneeScolaire,
+  periodeParDefaut,
   peutSupprimerAbsence = false,
+  peutTraiter = false,
 }: {
   etudiantId: string;
   initialNotes: Note[];
   initialAbsences: Absence[];
+  initialAlertes?: AlerteEleve[];
+  /** Année scolaire en cours, au Bénin : celle des notes saisies */
+  anneeScolaire: string;
+  /** Trimestre en cours, proposé par défaut */
+  periodeParDefaut: string;
   /** Même règle que DELETE /api/absences/[id] (le directeur ne supprime pas) */
   peutSupprimerAbsence?: boolean;
+  /** Traiter une alerte : enseignant et admin. Directeur : consultation seule. */
+  peutTraiter?: boolean;
 }) {
   const horsLigne = useHorsLigne();
   const [notes, setNotes] = useState(initialNotes);
   const [matiere, setMatiere] = useState(matieres[0]);
   const [valeur, setValeur] = useState("");
-  const [periode, setPeriode] = useState<string>(periodes[0]);
+  const [periode, setPeriode] = useState(periodeParDefaut);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<MessageSaisie | null>(null);
   const [error, setError] = useState("");
-  const [alerteCreee, setAlerteCreee] = useState(false);
   const [derniereSaisie, setDerniereSaisie] = useState<{ id: string; periode: string } | null>(null);
 
   const [absences, setAbsences] = useState(initialAbsences);
   const [absDate, setAbsDate] = useState(() => jourIsoAuBenin(new Date()));
   const [absMotif, setAbsMotif] = useState("injustifiee");
-  const [absPeriode, setAbsPeriode] = useState<string>(periodes[0]);
+  const [absPeriode, setAbsPeriode] = useState(periodeParDefaut);
   const [absLoading, setAbsLoading] = useState(false);
-  const [absMessage, setAbsMessage] = useState("");
+  const [absMessage, setAbsMessage] = useState<MessageSaisie | null>(null);
   const [absError, setAbsError] = useState("");
-  const [absAlerteCreee, setAbsAlerteCreee] = useState(false);
+
+  const [alertes, setAlertes] = useState(initialAlertes);
+  // Mêmes règles que la détection côté serveur (src/lib/regles-alerte.ts)
+  const comparaison = useMemo(() => comparerMoyennes(notes), [notes]);
+  // L'année d'une absence est celle de sa date (une absence de juin reste en 2025-2026)
+  const absAnnee = JOUR_ISO.test(absDate) ? periodeScolaireDuJour(absDate).anneeScolaire : anneeScolaire;
+
+  function changerDateAbsence(jour: string) {
+    setAbsDate(jour);
+    // Le trimestre proposé suit la date ; l'enseignant peut encore le changer
+    if (JOUR_ISO.test(jour)) setAbsPeriode(periodeScolaireDuJour(jour).periode);
+  }
 
   const notesParPeriode = useMemo(() => grouperNotesParTrimestre(notes), [notes]);
 
@@ -94,9 +164,8 @@ export default function StudentDetail({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setMessage("");
+    setMessage(null);
     setError("");
-    setAlerteCreee(false);
 
     try {
       const response = await fetch("/api/notes", {
@@ -107,7 +176,7 @@ export default function StudentDetail({
           matiere,
           valeur: Number(valeur),
           periode,
-          anneeScolaire: "2025-2026",
+          anneeScolaire,
         }),
       });
       if (response.status === 401) { redirigerVersConnexion(); return; }
@@ -115,13 +184,22 @@ export default function StudentDetail({
       if (!response.ok) throw new Error(data.error ?? "Impossible d'enregistrer la note.");
       setNotes((current) => [data, ...current]);
       setDerniereSaisie({ id: data.id, periode: data.periode });
-      setMessage(`Note de ${data.valeur}/20 enregistrée en ${data.matiere}.`);
-      setAlerteCreee(data.alerteCreee === true);
+      const alerte = (data.alerte ?? null) as AlerteSaisie | null;
+      const retour = messageSaisie(
+        "note",
+        data.etudiant,
+        alerte,
+        // La période figure déjà dans le constat d'une alerte
+        `${data.valeur.toLocaleString("fr-FR")}/20 en ${data.matiere}${alerte ? "" : `, ${data.periode} ${data.anneeScolaire}`}.`
+      );
+      setMessage(retour);
+      if (alerte) setAlertes((courantes) => fusionnerAlerte(courantes, alerte));
       setValeur("");
-      void Toast.fire({ icon: "success", title: "Note enregistrée avec succès." });
-      if (data.alerteCreee === true) {
-        void Toast.fire({ icon: "warning", title: "Alerte déclenchée pour cet élève.", timer: 6000 });
-      }
+      void Toast.fire(
+        retour.alerte
+          ? { icon: "warning", title: retour.titre, timer: 6000 }
+          : { icon: "success", title: "Note enregistrée." }
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Une erreur est survenue.");
       void Toast.fire({ icon: "error", title: "Erreur lors de l'enregistrement de la note." });
@@ -133,9 +211,8 @@ export default function StudentDetail({
   async function handleAbsenceSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAbsLoading(true);
-    setAbsMessage("");
+    setAbsMessage(null);
     setAbsError("");
-    setAbsAlerteCreee(false);
 
     try {
       const response = await fetch("/api/absences", {
@@ -146,7 +223,7 @@ export default function StudentDetail({
           date: absDate,
           motif: absMotif,
           periode: absPeriode,
-          anneeScolaire: "2025-2026",
+          anneeScolaire: absAnnee,
         }),
       });
       if (response.status === 401) { redirigerVersConnexion(); return; }
@@ -156,10 +233,21 @@ export default function StudentDetail({
         { id: data.absence.id, date: data.absence.date, motif: data.absence.motif, periode: data.absence.periode, anneeScolaire: data.absence.anneeScolaire },
         ...current,
       ]);
-      setAbsMessage(`Absence du ${formatDate(absDate)} enregistrée.`);
-      setAbsAlerteCreee(data.alerteCreee === true);
-      setAbsDate(jourIsoAuBenin(new Date()));
-      void Toast.fire({ icon: "success", title: "Absence enregistrée." });
+      const alerte = (data.alerte ?? null) as AlerteSaisie | null;
+      const retour = messageSaisie(
+        "absence",
+        data.etudiant,
+        alerte,
+        `Absence ${absMotif === "injustifiee" ? "injustifiée" : "justifiée"} du ${formatDate(absDate)}${alerte ? "" : `, ${absPeriode} ${absAnnee}`}.`
+      );
+      setAbsMessage(retour);
+      if (alerte) setAlertes((courantes) => fusionnerAlerte(courantes, alerte));
+      changerDateAbsence(jourIsoAuBenin(new Date()));
+      void Toast.fire(
+        retour.alerte
+          ? { icon: "warning", title: retour.titre, timer: 6000 }
+          : { icon: "success", title: "Absence enregistrée." }
+      );
     } catch (e) {
       setAbsError(e instanceof Error ? e.message : "Une erreur est survenue.");
       void Toast.fire({ icon: "error", title: "Erreur lors de l'enregistrement." });
@@ -231,7 +319,7 @@ export default function StudentDetail({
           </h2>
           <p className="mt-1 text-sm text-ink-secondary">
             Année scolaire :{" "}
-            <strong className="text-ink">2025-2026</strong>
+            <strong className="text-ink">{anneeScolaire}</strong>
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -285,22 +373,7 @@ export default function StudentDetail({
           </form>
 
           <div aria-live="polite" className="mt-4 space-y-3">
-            {message && (
-              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-                {message}
-              </p>
-            )}
-            {alerteCreee && (
-              <div
-                role="alert"
-                className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-              >
-                <IconeAlerte taille={18} className="mt-0.5 text-amber-700" />
-                <p>
-                  <strong>Alerte déclenchée.</strong> Une baisse de résultats a été détectée.
-                </p>
-              </div>
-            )}
+            {message && <RetourSaisie message={message} />}
             {error && (
               <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
                 {error}
@@ -409,7 +482,7 @@ export default function StudentDetail({
             Enregistrer une absence
           </h2>
           <p className="mt-1 text-sm text-ink-secondary">
-            Année scolaire : <strong className="text-ink">2025-2026</strong>
+            Année scolaire : <strong className="text-ink">{absAnnee}</strong>
           </p>
 
           <form onSubmit={handleAbsenceSubmit} className="mt-6 space-y-4">
@@ -421,7 +494,7 @@ export default function StudentDetail({
                 required
                 max={jourIsoAuBenin(new Date())}
                 value={absDate}
-                onChange={(e) => setAbsDate(e.target.value)}
+                onChange={(e) => changerDateAbsence(e.target.value)}
                 className={inputCls}
               />
             </div>
@@ -460,22 +533,7 @@ export default function StudentDetail({
           </form>
 
           <div aria-live="polite" className="mt-4 space-y-3">
-            {absMessage && (
-              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-                {absMessage}
-              </p>
-            )}
-            {absAlerteCreee && (
-              <div
-                role="alert"
-                className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-              >
-                <IconeAlerte taille={18} className="mt-0.5 text-amber-700" />
-                <p>
-                  <strong>Alerte déclenchée.</strong> Nombre élevé d&apos;absences injustifiées.
-                </p>
-              </div>
-            )}
+            {absMessage && <RetourSaisie message={absMessage} />}
             {absError && (
               <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
                 {absError}
@@ -484,6 +542,13 @@ export default function StudentDetail({
           </div>
         </section>
       </div>
+
+      <AlertesEleve
+        alertes={alertes}
+        peutTraiter={peutTraiter}
+        comparaison={comparaison}
+        onTraitee={(id) => setAlertes((courantes) => courantes.map((a) => (a.id === id ? { ...a, statut: "traitee" } : a)))}
+      />
     </div>
   );
 }

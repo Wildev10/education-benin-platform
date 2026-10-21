@@ -94,7 +94,7 @@ const absence = { id: "abs-1", date: "2026-10-01T00:00:00.000Z", motif: "injusti
 
 describe("bouton « Supprimer » d'une absence", () => {
   const rendu = (peutSupprimerAbsence: boolean) =>
-    renderToStaticMarkup(<StudentDetail etudiantId="e1" initialNotes={[]} initialAbsences={[absence]} peutSupprimerAbsence={peutSupprimerAbsence} />);
+    renderToStaticMarkup(<StudentDetail etudiantId="e1" anneeScolaire="2026-2027" periodeParDefaut="Trimestre 1" initialNotes={[]} initialAbsences={[absence]} peutSupprimerAbsence={peutSupprimerAbsence} />);
 
   it("affiché quand la suppression est permise", () => {
     expect(rendu(true)).toMatch(/aria-label="Supprimer l&#x27;absence du/);
@@ -104,7 +104,7 @@ describe("bouton « Supprimer » d'une absence", () => {
     const html = rendu(false);
     expect(html).not.toContain("Supprimer");
     expect(html).toContain("Injustifiée");
-    expect(renderToStaticMarkup(<StudentDetail etudiantId="e1" initialNotes={[]} initialAbsences={[absence]} />)).not.toContain("Supprimer");
+    expect(renderToStaticMarkup(<StudentDetail etudiantId="e1" anneeScolaire="2026-2027" periodeParDefaut="Trimestre 1" initialNotes={[]} initialAbsences={[absence]} />)).not.toContain("Supprimer");
   });
 
   /** Props passées à StudentDetail par la page de la fiche, pour un rôle. */

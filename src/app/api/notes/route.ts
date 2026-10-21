@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
-import { detecterAlerte } from "@/lib/detection-alerte";
+import { alerteSaisie, detecterAlerte } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
 import { filtreEtudiantsAccessibles, introuvable, peutAccederEtudiant } from "@/lib/perimetre";
 
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const issue = await detecterAlerte(note.etudiantId);
+    const alerte = alerteSaisie(await detecterAlerte(note.etudiantId));
 
     await logAction({
       userId: access.user.id,
@@ -121,8 +121,10 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ...note,
-        alerteCreee: issue !== null,
-        alerteMiseAJour: issue === "mise_a_jour",
+        alerteCreee: alerte !== null,
+        alerteMiseAJour: alerte?.issue === "mise_a_jour",
+        alerte,
+        etudiant: { prenom: etudiant.prenom, nom: etudiant.nom },
       },
       { status: 201 }
     );

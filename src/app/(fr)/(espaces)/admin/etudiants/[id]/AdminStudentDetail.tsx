@@ -14,6 +14,8 @@ import { SqueletteGraphiqueLigne } from "@/components/ui/Squelette";
 import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { FUSEAU_BENIN } from "@/lib/dates";
+import { texteComparaison } from "@/lib/message-saisie";
+import { comparerMoyennes } from "@/lib/regles-alerte";
 
 const MoyenneChart = dynamic(() => import("./MoyenneChart"), {
   ssr: false,
@@ -67,6 +69,7 @@ function formatDate(value: string) {
 
 export default function AdminStudentDetail({ student }: { student: Student }) {
   const [alerts, setAlerts] = useState(student.alertes);
+  const mentionComparaison = useMemo(() => texteComparaison(comparerMoyennes(student.notes)), [student.notes]);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const horsLigne = useHorsLigne();
   const [error, setError] = useState("");
@@ -281,6 +284,9 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
         <h2 id="alerts-title" className="mt-1 text-2xl font-bold text-ink">
           Historique des alertes
         </h2>
+        {mentionComparaison && (
+          <p className="mt-2 text-sm text-ink-secondary">{mentionComparaison}</p>
+        )}
 
         {error && (
           <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 font-medium text-red-800">

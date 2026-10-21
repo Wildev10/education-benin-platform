@@ -23,7 +23,7 @@ Projet sélectionné dans le cadre du challenge du Ministère de la Transformati
 
 ### Détection automatique du décrochage
 
-Les règles s'appliquent à chaque saisie de note ou d'absence. Elles sont simples et explicables : chaque alerte peut être justifiée devant un directeur ou un inspecteur.
+Les règles s'appliquent à chaque saisie de note ou d'absence, et à l'import CSV (une fois par élève, après toutes ses lignes). Elles sont simples et explicables : chaque alerte peut être justifiée devant un directeur ou un inspecteur.
 
 | Signal | Condition | Niveau |
 |---|---|---|
@@ -32,11 +32,15 @@ Les règles s'appliquent à chaque saisie de note ou d'absence. Elles sont simpl
 | Absences | 10 absences injustifiées ou plus | Élevé |
 | Absences | 5 absences injustifiées ou plus | Moyen |
 
-Une alerte active qui passe de Moyen à Élevé est mise à jour, sans créer de doublon.
+- Les notes comparent la moyenne des **deux dernières périodes** de l'élève (trimestres, dans l'ordre des années scolaires), dès que la plus récente compte **au moins 2 notes**. Sans période précédente (nouvel élève), la fiche l'indique : « Pas encore de période de comparaison » ; les absences restent suivies.
+- Les absences comptent les absences injustifiées de la période la plus récente.
+- La saisie propose le trimestre et l'année scolaire du jour, au Bénin (année à partir de septembre ; trimestres septembre-décembre, janvier-mars, avril-août).
+- Une alerte par élève, type (notes ou absences) et période. Si elle passe de Moyen à Élevé, elle est mise à jour, sans doublon, et réactivée si elle avait été traitée.
+- Après chaque saisie, l'enseignant voit soit « Alerte déclenchée : niveau Élevé pour [élève] » (ou « Alerte aggravée : Moyen → Élevé »), soit « Note enregistrée » / « Absence enregistrée », sans alerte. Le rapport d'import liste les alertes déclenchées.
 
 ### Notifications en temps réel
 
-Une cloche, dans l'en-tête de l'admin et du directeur, signale les alertes **créées** ou **aggravées** (« Aggravée : Moyen → Élevé ») dans les 5 dernières minutes. Elle se met à jour toutes les 60 secondes tant que l'onglet est visible, et dès le retour sur l'onglet ; elle distingue les notifications lues des non lues : une aggravation redevient non lue, même si la création avait déjà été vue. Le directeur ne voit que son établissement.
+Une cloche, dans l'en-tête de l'admin, du directeur et de l'enseignant, liste les alertes actives **créées** ou **aggravées** (« Aggravée : Moyen → Élevé ») depuis 30 jours au plus. Les non lues sont celles arrivées depuis la dernière ouverture de la cloche, date enregistrée sur le serveur pour chaque utilisateur : ce qui est lu sur un appareil l'est sur les autres. Une aggravation redevient non lue, même si la création avait déjà été vue. Elle se met à jour toutes les 60 secondes tant que l'onglet est visible, et dès le retour sur l'onglet. Le directeur et l'enseignant ne voient que leur établissement.
 
 ### Tableaux de bord
 
@@ -89,7 +93,7 @@ Gestion des comptes (création, modification, suppression), demandes de mot de p
 | Importer des notes (CSV) | — | ✓ | — | ✓ |
 | Pages Alertes et Absences | — | ✓ | ✓ | ✓ |
 | Traiter une alerte | — | ✓ | — | ✓ |
-| Cloche de notifications | — | — | ✓ | ✓ |
+| Cloche de notifications | — | ✓ | ✓ | ✓ |
 | Exports PDF et Excel | Sa fiche (Excel) | ✓ | ✓ | ✓ |
 | Assistant | — | ✓ | ✓ | ✓ |
 | Comptes, historique, mots de passe oubliés | — | — | — | ✓ |
@@ -113,8 +117,8 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **477 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base.
-- **1 838 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
+- **519 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base.
+- **1 848 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, réactivation, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---
@@ -176,7 +180,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
   - SweetAlert2 n'est téléchargé qu'au premier message affiché ;
   - côté navigateur, Sentry ne remonte que les erreurs : ni Session Replay, ni envoi d'une session à chaque page.
 - **Région.** La base Neon est dans l'Ohio (`us-east-2`) et les fonctions Vercel à Cleveland (`cle1`). Une migration vers l'Europe a été étudiée puis reportée (gain d'environ 100 ms par requête, hébergement des données à décider) : mesures et procédure complète dans [docs/migration-region.md](docs/migration-region.md).
-- **Évolution de schéma d'octobre 2026.** Colonne `Alerte.niveauModifieLe` (date de la dernière aggravation, nullable), ajoutée de façon purement additive : l'ancien code reste compatible.
+- **Évolutions de schéma d'octobre 2026.** Colonnes `Alerte.niveauModifieLe` (date de la dernière aggravation) et `User.notificationsVuesLe` (dernière ouverture de la cloche), nullables, ajoutées de façon purement additive : l'ancien code reste compatible.
 
 ### Lancer en local
 
@@ -214,7 +218,7 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ### Lancer les tests
 
 ```bash
-npm test          # 477 tests unitaires
+npm test          # 519 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
 npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits
@@ -222,6 +226,6 @@ npm run e2e       # tests navigateur : connexions, excel, pagination, finitions,
 
 `npm run e2e` fait le build, lance `next start` sur le port 3100, exécute les scénarios de `e2e/` avec Google Chrome, puis arrête le serveur. Il refuse de démarrer si la base du `.env` figure dans `PROTECTED_DB_HOSTS`.
 
-- Le scénario `notifications` crée dans la base de dev un élève de test (nommé `E2E-Aggravation`), ses notes et son alerte ; le scénario `droits` crée une absence temporaire. Les deux les suppriment à la fin, même en cas d'échec.
+- Le scénario `notifications` crée dans la base de dev deux élèves de test (nommés `E2E-Alertes`), leurs notes, absences et alertes, un compte élève pour l'import, et rétablit à la fin la date de consultation de la cloche des comptes de démonstration ; le scénario `droits` crée une absence temporaire. Les deux les suppriment à la fin, même en cas d'échec.
 - Pour inclure le rôle directeur, copiez `.env.e2e.example` en `.env.e2e.local` (ignoré par git) et renseignez `E2E_DIRECTEUR_EMAIL` et `E2E_DIRECTEUR_MOT_DE_PASSE` avec un compte directeur de la base de dev ; sans eux, ces étapes sont ignorées.
 - Options : `npm run e2e -- pagination` pour un seul scénario, `npm run e2e -- --sans-build` pour réutiliser le build existant.

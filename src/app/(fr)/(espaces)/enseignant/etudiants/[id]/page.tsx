@@ -3,8 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
 import { peutAccederEtudiant, peutSupprimerAbsence, peutTraiterAlertes } from "@/lib/perimetre";
+import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
 import StudentDetail from "./StudentDetail";
-import AlertesEleve from "./AlertesEleve";
 
 export default async function EtudiantPage({
   params,
@@ -27,6 +27,9 @@ export default async function EtudiantPage({
 
   // Élève d'un autre établissement : même page que s'il n'existait pas
   if (!etudiant || !peutAccederEtudiant(session.user, etudiant)) notFound();
+
+  // Calculée ici (heure du Bénin) plutôt que dans le navigateur : même rendu des deux côtés
+  const { anneeScolaire, periode: periodeParDefaut } = periodeScolaireAuBenin(new Date());
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
@@ -52,7 +55,10 @@ export default async function EtudiantPage({
       </div>
       <StudentDetail
         etudiantId={etudiant.id}
+        anneeScolaire={anneeScolaire}
+        periodeParDefaut={periodeParDefaut}
         peutSupprimerAbsence={peutSupprimerAbsence(session.user.role)}
+        peutTraiter={peutTraiterAlertes(session.user.role)}
         initialNotes={etudiant.notes.map((note) => ({
           id: note.id,
           matiere: note.matiere,
@@ -67,9 +73,6 @@ export default async function EtudiantPage({
           periode: a.periode,
           anneeScolaire: a.anneeScolaire,
         }))}
-      />
-      <AlertesEleve
-        peutTraiter={peutTraiterAlertes(session.user.role)}
         initialAlertes={etudiant.alertes.map((a) => ({
           id: a.id,
           type: a.type,

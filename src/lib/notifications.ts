@@ -1,9 +1,10 @@
-/** Fenêtre de récupération des nouvelles alertes côté serveur. */
-export const FENETRE_NOTIFICATIONS_MS = 5 * 60 * 1000;
-/** Nombre d'alertes affichées dans le dropdown de la cloche. */
-export const MAX_NOTIFICATIONS = 5;
+/** Alertes listées dans la cloche : créées ou aggravées depuis 30 jours au plus. */
+export const FENETRE_NOTIFICATIONS_JOURS = 30;
+export const FENETRE_NOTIFICATIONS_MS = FENETRE_NOTIFICATIONS_JOURS * 24 * 60 * 60 * 1000;
+/** Nombre d'alertes renvoyées à la cloche (les plus récentes). */
+export const MAX_NOTIFICATIONS = 20;
 
-/** Ce qui a déclenché la notification : une alerte créée, ou une alerte active aggravée. */
+/** Ce qui a déclenché la notification : une alerte créée, ou une alerte aggravée. */
 export type EvenementAlerte = "creee" | "aggravee";
 
 export type NotificationAlerte = {
@@ -11,53 +12,29 @@ export type NotificationAlerte = {
   type: string;
   niveauRisque: string;
   createdAt: string;
-  /** Absents des notifications gardées en localStorage avant l'ajout des aggravations */
-  evenement?: EvenementAlerte;
+  evenement: EvenementAlerte;
   /** Date de l'événement : création, ou aggravation */
-  date?: string;
+  date: string;
   /** Niveau avant l'aggravation (« moyen ») ; absent pour une création */
   niveauPrecedent?: string;
   etudiant: { id: string; nom: string; prenom: string; niveau: string };
   etablissement: { id: string; nom: string };
 };
 
-/** Date qui compte pour le tri et le lu/non lu : celle de l'événement, sinon la création. */
-export function dateEvenement(n: NotificationAlerte): string {
-  return n.date ?? n.createdAt;
-}
+/**
+ * Réponse de GET /api/notifications/alertes. vuesLe : dernière ouverture de la
+ * cloche, enregistrée pour l'utilisateur (donc la même sur tous ses appareils).
+ */
+export type EtatNotifications = { notifications: NotificationAlerte[]; vuesLe: string | null };
 
 /**
- * Fusionne les nouvelles alertes reçues avec celles déjà connues : une entrée
- * par alerte (son événement le plus récent : une aggravation remplace la
- * création), triées du plus récent au plus ancien, limitées à `max`.
+ * Une notification est non lue si son événement (création, ou aggravation)
+ * suit la dernière ouverture de la cloche. Une aggravation redevient donc non lue.
  */
-export function fusionnerNotifications(
-  existantes: NotificationAlerte[],
-  nouvelles: NotificationAlerte[],
-  max: number = MAX_NOTIFICATIONS
-): NotificationAlerte[] {
-  const parId = new Map<string, NotificationAlerte>();
-  for (const n of [...existantes, ...nouvelles]) {
-    const connue = parId.get(n.id);
-    if (!connue || dateEvenement(n) >= dateEvenement(connue)) parId.set(n.id, n);
-  }
-  return [...parId.values()]
-    .sort((a, b) => dateEvenement(b).localeCompare(dateEvenement(a)))
-    .slice(0, max);
+export function estNonLue(n: NotificationAlerte, vuesLe: string | null): boolean {
+  return !vuesLe || n.date > vuesLe;
 }
 
-/**
- * Nombre de notifications postérieures à la dernière ouverture du dropdown.
- * Une aggravation compte comme une nouvelle notification, même si la création
- * de l'alerte avait déjà été lue.
- */
-export function compterNonLues(
-  notifications: NotificationAlerte[],
-  dernierVu: string | null
-): number {
-  return notifications.filter((n) => estNonLue(n, dernierVu)).length;
-}
-
-export function estNonLue(n: NotificationAlerte, dernierVu: string | null): boolean {
-  return !dernierVu || dateEvenement(n) > dernierVu;
+export function compterNonLues(notifications: NotificationAlerte[], vuesLe: string | null): number {
+  return notifications.filter((n) => estNonLue(n, vuesLe)).length;
 }

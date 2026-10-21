@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { BoutonTraiterAlerte } from "@/components/alertes/BoutonTraiterAlerte";
+import { FUSEAU_BENIN } from "@/lib/dates";
+import { texteComparaison } from "@/lib/message-saisie";
+import type { ComparaisonNotes } from "@/lib/regles-alerte";
 
 export type AlerteEleve = {
   id: string;
@@ -21,25 +23,30 @@ function formaterNombre(valeur: number) {
 }
 
 export default function AlertesEleve({
-  initialAlertes,
+  alertes,
   peutTraiter,
+  comparaison,
+  onTraitee,
 }: {
-  initialAlertes: AlerteEleve[];
+  alertes: AlerteEleve[];
   /** Enseignant et admin : oui. Directeur : consultation seule. */
   peutTraiter: boolean;
+  comparaison: ComparaisonNotes;
+  onTraitee: (id: string) => void;
 }) {
-  const [alertes, setAlertes] = useState(initialAlertes);
-
-  function marquerTraitee(id: string) {
-    setAlertes((courantes) => courantes.map((a) => (a.id === id ? { ...a, statut: "traitee" } : a)));
-  }
+  const mention = texteComparaison(comparaison);
 
   return (
-    <section aria-labelledby="alertes-eleve-titre" className="mt-10">
+    <section aria-labelledby="alertes-eleve-titre">
       <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">Suivi des risques</p>
       <h2 id="alertes-eleve-titre" className="mt-1 text-2xl font-bold text-ink">
         Historique des alertes
       </h2>
+      {mention && (
+        <p data-comparaison={comparaison.etat} className="mt-2 text-sm text-ink-secondary">
+          {mention}
+        </p>
+      )}
 
       {alertes.length === 0 ? (
         <p className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
@@ -60,7 +67,7 @@ export default function AlertesEleve({
                   <span className="text-sm font-semibold text-ink">{alerte.periode}</span>
                 </div>
                 {peutTraiter && alerte.statut === "active" && (
-                  <BoutonTraiterAlerte alerteId={alerte.id} onTraitee={() => marquerTraitee(alerte.id)} />
+                  <BoutonTraiterAlerte alerteId={alerte.id} onTraitee={() => onTraitee(alerte.id)} />
                 )}
               </div>
               <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-5 sm:grid-cols-3">
@@ -95,7 +102,7 @@ export default function AlertesEleve({
                         day: "numeric",
                         month: "short",
                         year: "numeric",
-                        timeZone: "Africa/Porto-Novo",
+                        timeZone: FUSEAU_BENIN,
                       })}
                     </time>
                   </dd>

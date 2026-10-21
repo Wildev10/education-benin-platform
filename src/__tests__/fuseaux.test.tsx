@@ -96,7 +96,7 @@ describe("rendu identique sur un serveur en UTC et dans un navigateur à New Yor
   it("fiche élève enseignant : absences et date maximale du champ", () => {
     const rendu = () =>
       renderToStaticMarkup(
-        <StudentDetail etudiantId="e1" initialNotes={[]} initialAbsences={[eleve.absences[0]]} peutSupprimerAbsence={false} />
+        <StudentDetail etudiantId="e1" anneeScolaire="2026-2027" periodeParDefaut="Trimestre 1" initialNotes={[]} initialAbsences={[eleve.absences[0]]} peutSupprimerAbsence={false} />
       );
     const serveur = rendreDans("UTC", rendu);
     const navigateur = rendreDans("America/New_York", rendu);

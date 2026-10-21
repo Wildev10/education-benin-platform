@@ -21,7 +21,7 @@ export default function AppHeader({
   spaceLabel?: string;
   role?: string;
 }) {
-  const afficherNotifications = role === "admin" || role === "directeur";
+  const afficherNotifications = role === "admin" || role === "directeur" || role === "enseignant";
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { installationDisponible, installer } = usePwa();

@@ -112,6 +112,9 @@ model User {
   etablissementId  String?
   etablissement    Etablissement? @relation(fields: [etablissementId], references: [id])
   createdAt        DateTime       @default(now())
+  // Dernière ouverture de la cloche : les alertes créées ou aggravées après
+  // cette date sont non lues. null : jamais ouverte (tout est non lu).
+  notificationsVuesLe DateTime?
   actionLogs       ActionLog[]
   resetRequests    ResetRequest[]
 }

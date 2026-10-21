@@ -2,10 +2,13 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { IconeAlerte } from "@/components/ui/Icones";
 import { Toast } from "@/lib/swal";
+import { messageSaisie, type AlerteSaisie } from "@/lib/message-saisie";
 
 type LigneErreur = { ligne: number; contenu: string; raison: string };
-type Rapport = { total: number; importees: number; erreurs: LigneErreur[]; alertesCreees: number };
+type AlerteImport = AlerteSaisie & { etudiant: { id: string; prenom: string; nom: string } };
+type Rapport = { total: number; importees: number; erreurs: LigneErreur[]; alertesCreees: number; alertes: AlerteImport[] };
 
 const CSV_MODELE = [
   "email_etudiant,matiere,valeur,periode,anneeScolaire",
@@ -188,6 +191,26 @@ export default function ImportNotesPage() {
               <dd className="mt-1 text-3xl font-semibold text-ink">{rapport.erreurs.length}</dd>
             </div>
           </dl>
+
+          {rapport.alertes.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-base font-semibold text-ink">Alertes déclenchées par l&apos;import</h3>
+              <ul className="mt-3 space-y-3">
+                {rapport.alertes.map((alerte) => {
+                  const message = messageSaisie("note", alerte.etudiant, alerte, "");
+                  return (
+                    <li key={alerte.id} className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                      <IconeAlerte taille={18} className="mt-0.5 shrink-0 text-amber-700" />
+                      <p className="min-w-0">
+                        <strong>{message.titre}</strong>
+                        <span className="block">{message.detail.trim()}</span>
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           {rapport.erreurs.length > 0 && (
             <div className="mt-6">

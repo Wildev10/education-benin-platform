@@ -25,6 +25,7 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/detection-alerte", () => ({
   detecterAlerte: vi.fn().mockResolvedValue(null),
+  alerteSaisie: () => null,
 }));
 
 // Import AFTER mocks are set up

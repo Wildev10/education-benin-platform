@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
-import { dateEvenement, estNonLue } from "@/lib/notifications";
+import { estNonLue, FENETRE_NOTIFICATIONS_JOURS } from "@/lib/notifications";
 import { IconeAlerte } from "@/components/ui/Icones";
-import { FUSEAU_BENIN } from "@/lib/dates";
+import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
 
 const libellesNiveau: Record<string, { label: string; cls: string }> = {
   eleve: { label: "Élevé", cls: "border-red-300 bg-red-50 text-red-900" },
@@ -17,8 +17,13 @@ const libellesType: Record<string, string> = {
   absences: "Absences",
 };
 
-function formaterHeure(iso: string) {
-  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: FUSEAU_BENIN });
+/** Heure pour un événement du jour, sinon la date (jour et mois), au Bénin. */
+function formaterMoment(iso: string) {
+  const date = new Date(iso);
+  if (jourIsoAuBenin(date) === jourIsoAuBenin(new Date())) {
+    return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: FUSEAU_BENIN });
+  }
+  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: FUSEAU_BENIN });
 }
 
 export default function NotificationBell({
@@ -28,7 +33,7 @@ export default function NotificationBell({
   utilisateur: string;
   role: string;
 }) {
-  const { notifications, nonLues, dernierVu, marquerCommeLues } = useNotifications(utilisateur);
+  const { notifications, nonLues, vuesLe, marquerCommeLues } = useNotifications(utilisateur);
   const [open, setOpen] = useState(false);
   // Alertes non lues au moment de l'ouverture, pour les mettre en évidence dans la liste
   const [vuAvantOuverture, setVuAvantOuverture] = useState<string | null>(null);
@@ -55,8 +60,8 @@ export default function NotificationBell({
 
   function basculer() {
     if (!open) {
-      setVuAvantOuverture(dernierVu);
-      marquerCommeLues();
+      setVuAvantOuverture(vuesLe);
+      void marquerCommeLues();
     }
     setOpen((v) => !v);
   }
@@ -91,9 +96,16 @@ export default function NotificationBell({
           aria-label="Dernières alertes"
           className="fixed inset-x-4 top-20 z-50 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-xl border border-border bg-surface text-ink shadow-xl sm:left-auto sm:right-4 sm:w-80 lg:absolute lg:inset-x-auto lg:right-0 lg:top-full lg:mt-2"
         >
-          <p className="border-b border-border px-4 py-3 text-sm font-semibold">Dernières alertes</p>
+          <p className="border-b border-border px-4 py-3 text-sm font-semibold">
+            Dernières alertes
+            <span className="block text-xs font-normal text-ink-secondary">
+              Créées ou aggravées ces {FENETRE_NOTIFICATIONS_JOURS} derniers jours
+            </span>
+          </p>
           {notifications.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-ink-secondary">Aucune nouvelle alerte.</p>
+            <p className="px-4 py-6 text-center text-sm text-ink-secondary">
+              Aucune alerte ces {FENETRE_NOTIFICATIONS_JOURS} derniers jours.
+            </p>
           ) : (
             <ul className="divide-y divide-border">
               {notifications.map((n) => {
@@ -112,8 +124,8 @@ export default function NotificationBell({
                         <p className="truncate text-sm font-semibold">
                           {n.etudiant.prenom} {n.etudiant.nom}
                         </p>
-                        <time dateTime={dateEvenement(n)} className="shrink-0 text-xs text-ink-secondary">
-                          {formaterHeure(dateEvenement(n))}
+                        <time dateTime={n.date} className="shrink-0 text-xs text-ink-secondary">
+                          {formaterMoment(n.date)}
                         </time>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-ink-secondary">

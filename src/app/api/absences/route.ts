@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
-import { detecterAlerteAbsence } from "@/lib/detection-alerte";
+import { alerteSaisie, detecterAlerteAbsence } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
 import { construireWhereAbsences, lectureAbsences, rechercherAbsencesPaginees } from "@/lib/absences-server";
 import { lireFiltresAbsences } from "@/lib/filtres-absences";
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       data: { etudiantId, date, motif, periode, anneeScolaire },
     });
 
-    const alerteCreee = await detecterAlerteAbsence(etudiantId);
+    const alerte = alerteSaisie(await detecterAlerteAbsence(etudiantId));
 
     await logAction({
       userId: access.user.id,
@@ -87,7 +87,10 @@ export async function POST(request: Request) {
       entityId: absence.id,
     });
 
-    return NextResponse.json({ absence, alerteCreee }, { status: 201 });
+    return NextResponse.json(
+      { absence, alerteCreee: alerte !== null, alerte, etudiant: { prenom: etudiant.prenom, nom: etudiant.nom } },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Erreur POST absence", error);
     return NextResponse.json({ error: "Impossible de créer l'absence." }, { status: 500 });
