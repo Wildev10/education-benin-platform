@@ -243,6 +243,39 @@ export default function UtilisateursList({
     }
   }
 
+  // Rôle, fiche liée (étudiant) et établissement (directeur) : communs au tableau et aux cartes
+  const roleEtLiens = (u: Utilisateur) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <Badge variant={roleVariant(u.role)} />
+      {u.role === "etudiant" && u.etudiantId && (
+        <Link
+          href={`/admin/etudiants/${u.etudiantId}`}
+          className="text-xs font-medium text-brand-dark underline tactile:inline-flex tactile:min-h-11 tactile:items-center decoration-brand/30 underline-offset-2 hover:decoration-brand focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-1"
+        >
+          Voir la fiche<span className="sr-only"> de {u.prenom} {u.nom}</span>
+        </Link>
+      )}
+      {u.role === "directeur" && u.etablissement && (
+        <span className="text-xs text-ink-secondary">{u.etablissement.nom}</span>
+      )}
+    </div>
+  );
+  const creeLe = (u: Utilisateur) =>
+    new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: FUSEAU_BENIN }).format(new Date(u.createdAt));
+  const actions = (u: Utilisateur, alignement: string) =>
+    u.id === currentUserId ? (
+      <span className="text-xs text-ink-secondary">Votre compte</span>
+    ) : (
+      <div className={`flex items-center gap-2 ${alignement}`}>
+        <Button variant="outline" size="sm" disabled={processingId === u.id} onClick={() => void handleEdit(u)}>
+          Modifier<span className="sr-only"> le compte de {u.prenom} {u.nom}</span>
+        </Button>
+        <Button variant="danger" size="sm" disabled={processingId === u.id} onClick={() => void handleDelete(u.id, u.nom, u.prenom)}>
+          {processingId === u.id ? "…" : <>Supprimer<span className="sr-only"> le compte de {u.prenom} {u.nom}</span></>}
+        </Button>
+      </div>
+    );
+
   return (
     <>
       {demandes.length > 0 && (
@@ -295,13 +328,32 @@ export default function UtilisateursList({
         </p>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      {/* Téléphone (moins de 640 px) : une carte par compte, mêmes informations et actions */}
+      <ul aria-label="Comptes utilisateurs" className="space-y-3 sm:hidden">
+        {utilisateurs.map((u) => (
+          <li key={u.id}>
+            <article aria-label={`${u.prenom} ${u.nom}`} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+              <p className="font-semibold text-ink">{u.prenom} {u.nom}</p>
+              <p className="mt-0.5 text-sm text-ink-secondary [overflow-wrap:anywhere]">{u.email}</p>
+              <div className="mt-3">{roleEtLiens(u)}</div>
+              <p className="mt-2 text-xs text-ink-secondary">Créé le {creeLe(u)}</p>
+              <div className="mt-4 border-t border-border pt-3">{actions(u, "flex-wrap")}</div>
+            </article>
+          </li>
+        ))}
+        {utilisateurs.length === 0 && (
+          <li className="rounded-2xl border border-border bg-surface px-5 py-8 text-center text-ink-secondary">Aucun utilisateur.</li>
+        )}
+      </ul>
+
+      {/* Tablette et ordinateur : tableau */}
+      <div className="hidden overflow-hidden rounded-2xl border border-border bg-surface shadow-sm sm:block">
         <CadreDefilant libelle="Comptes utilisateurs">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="bg-ink text-surface">
                 <th scope="col" className="px-5 py-4 text-left font-semibold">Utilisateur</th>
-                <th scope="col" className="hidden px-5 py-4 text-left font-semibold sm:table-cell">Email</th>
+                <th scope="col" className="px-5 py-4 text-left font-semibold">Email</th>
                 <th scope="col" className="px-5 py-4 text-left font-semibold">Rôle</th>
                 <th scope="col" className="hidden px-5 py-4 text-left font-semibold lg:table-cell">Créé le</th>
                 <th scope="col" className="px-5 py-4 text-right font-semibold">Actions</th>
@@ -312,54 +364,11 @@ export default function UtilisateursList({
                 <tr key={u.id} className={`transition hover:bg-brand-light/40 ${i % 2 === 1 ? "bg-page" : "bg-surface"}`}>
                   <td className="px-5 py-4">
                     <p className="font-semibold text-ink">{u.prenom} {u.nom}</p>
-                    <p className="mt-0.5 text-xs text-ink-secondary sm:hidden">{u.email}</p>
                   </td>
-                  <td className="hidden px-5 py-4 text-ink-secondary sm:table-cell">{u.email}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={roleVariant(u.role)} />
-                      {u.role === "etudiant" && u.etudiantId && (
-                        <Link
-                          href={`/admin/etudiants/${u.etudiantId}`}
-                          className="text-xs font-medium text-brand-dark underline tactile:inline-flex tactile:min-h-11 tactile:items-center decoration-brand/30 underline-offset-2 hover:decoration-brand focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-1"
-                        >
-                          Voir la fiche<span className="sr-only"> de {u.prenom} {u.nom}</span>
-                        </Link>
-                      )}
-                      {u.role === "directeur" && u.etablissement && (
-                        <span className="text-xs text-ink-secondary">{u.etablissement.nom}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="hidden px-5 py-4 text-ink-secondary lg:table-cell">
-                    {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: FUSEAU_BENIN }).format(
-                      new Date(u.createdAt)
-                    )}
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    {u.id === currentUserId ? (
-                      <span className="text-xs text-ink-secondary">Votre compte</span>
-                    ) : (
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={processingId === u.id}
-                          onClick={() => void handleEdit(u)}
-                        >
-                          Modifier
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          disabled={processingId === u.id}
-                          onClick={() => void handleDelete(u.id, u.nom, u.prenom)}
-                        >
-                          {processingId === u.id ? "…" : "Supprimer"}
-                        </Button>
-                      </div>
-                    )}
-                  </td>
+                  <td className="px-5 py-4 text-ink-secondary">{u.email}</td>
+                  <td className="px-5 py-4">{roleEtLiens(u)}</td>
+                  <td className="hidden px-5 py-4 text-ink-secondary lg:table-cell">{creeLe(u)}</td>
+                  <td className="px-5 py-4 text-right">{actions(u, "justify-end")}</td>
                 </tr>
               ))}
             </tbody>

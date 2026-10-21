@@ -114,7 +114,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 ## Qualité
 
 - **477 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base.
-- **1 827 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
+- **1 838 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---

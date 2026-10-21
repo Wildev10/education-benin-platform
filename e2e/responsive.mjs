@@ -97,6 +97,80 @@ for (const config of CONFIGS) {
   }
 }
 
+// ── Comptes utilisateurs : cartes sous 640 px, tableau au-delà, mêmes contenus ──
+{
+  /** Contenu de chaque compte, lu dans les cartes ou dans les lignes du tableau. */
+  const lireComptes = (page, mode) =>
+    page.evaluate((mode) => {
+      const norm = (t) => (t ?? "").replace(/\s+/g, " ").trim();
+      const blocs = mode === "cartes"
+        ? [...document.querySelectorAll('ul[aria-label="Comptes utilisateurs"] article')]
+        : [...document.querySelectorAll("table tbody tr")].filter((tr) => tr.closest("section") === null);
+      return blocs.map((b) => ({
+        texte: norm(b.textContent).replace(/Créé le /, ""),
+        actions: [...b.querySelectorAll("button")].map((x) => norm(x.textContent)).sort(),
+        liens: [...b.querySelectorAll("a")].map((a) => a.getAttribute("href")).sort(),
+      }));
+    }, mode);
+
+  const ouvrir = async (largeur, hauteur) => {
+    const contexte = await navigateur.newContext({ viewport: { width: largeur, height: hauteur }, isMobile: largeur < 1024, hasTouch: largeur < 1024, serviceWorkers: "block" });
+    await contexte.route("**/*", (route) => {
+      const req = route.request();
+      const url = new URL(req.url());
+      if (url.host.endsWith(".sentry.io")) return route.abort();
+      return ["GET", "HEAD", "OPTIONS"].includes(req.method()) || url.pathname.startsWith("/api/auth/") ? route.continue() : route.abort();
+    });
+    const page = await contexte.newPage();
+    await page.goto(`${BASE}/login`);
+    await page.fill("#email", COMPTES.admin.email);
+    await page.fill("#password", COMPTES.admin.motDePasse);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((u) => u.pathname === "/admin", { timeout: 60000 });
+    await page.goto(`${BASE}/admin/utilisateurs`);
+    await page.waitForLoadState("networkidle");
+    return page;
+  };
+
+  const bureau = await ouvrir(1280, 800);
+  const lignes = await lireComptes(bureau, "tableau");
+  check("Comptes, 1280 px : tableau affiché, cartes masquées",
+    (await bureau.locator("table").last().isVisible()) && !(await bureau.locator('ul[aria-label="Comptes utilisateurs"]').isVisible()), `${lignes.length} ligne(s)`);
+  await bureau.context().close();
+
+  for (const [largeur, hauteur] of [[320, 640], [375, 812], [639, 900], [640, 900]]) {
+    const page = await ouvrir(largeur, hauteur);
+    const cartesVisibles = await page.locator('ul[aria-label="Comptes utilisateurs"]').isVisible();
+    if (largeur < 640) {
+      const cartes = await lireComptes(page, "cartes");
+      const tableauMasque = !(await page.locator("table").last().isVisible());
+      check(`Comptes, ${largeur} px : cartes affichées, tableau masqué`, cartesVisibles && tableauMasque, `${cartes.length} carte(s)`);
+      // Même nombre de comptes, mêmes textes (nom, e-mail, rôle, établissement, date), mêmes actions et liens
+      const identiques = cartes.length === lignes.length && cartes.every((c, i) => {
+        const l = lignes[i];
+        const mots = (t) => t.split(" ").filter(Boolean).sort().join(" ");
+        return mots(c.texte) === mots(l.texte) && JSON.stringify(c.actions) === JSON.stringify(l.actions) && JSON.stringify(c.liens) === JSON.stringify(l.liens);
+      });
+      check(`Comptes, ${largeur} px : chaque carte reprend les informations et actions du tableau`, identiques,
+        identiques ? "" : JSON.stringify({ carte: cartes[0], ligne: lignes[0] }).slice(0, 200));
+      // Les actions s'utilisent au doigt : « Modifier » ouvre la fenêtre (annulée)
+      const modifier = page.locator('ul[aria-label="Comptes utilisateurs"]').getByRole("button", { name: /^Modifier/ }).first();
+      await modifier.click();
+      const fenetre = page.locator(".swal2-popup");
+      await fenetre.waitFor();
+      await page.waitForTimeout(300);
+      const b = await fenetre.boundingBox();
+      check(`Comptes, ${largeur} px : « Modifier » d'une carte ouvre la fenêtre, dans l'écran`, b.x >= 0 && b.x + b.width <= largeur + 1, `${Math.round(b.x)} → ${Math.round(b.x + b.width)}`);
+      await page.locator(".swal2-cancel").click();
+      await page.locator(".swal2-container").waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+      await page.screenshot({ path: path.join(CAPTURES, `comptes-cartes-${largeur}.png`), fullPage: true });
+    } else {
+      check(`Comptes, ${largeur} px : tableau affiché, cartes masquées`, !cartesVisibles && (await page.locator("table").last().isVisible()));
+    }
+    await page.context().close();
+  }
+}
+
 // ── Au doigt : menu mobile, cloche et fenêtre de confirmation (annulée) ─────
 for (const config of [FORMATS[0], FORMATS.find((f) => f.largeur === 768), FORMATS.at(-1)]) {
   const vw = config.largeur, vh = config.hauteur;
