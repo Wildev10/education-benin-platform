@@ -13,12 +13,20 @@ export type CleRaccourci = "eleve" | "absences" | "recentes";
 
 export type Raccourci = {
   cle: CleRaccourci;
+  /** Suite du compteur, accordée : « 13 alertes détectées sur les 7 derniers jours » */
   libelle: string;
-  /** Complément lu après le compteur (« 3 alertes actives… ») */
+  /** Précision sous la phrase */
   precision: string;
   href: string;
   total: number;
 };
+
+type Accord = { un: string; plusieurs: string };
+
+/** Libellé lu après le nombre : singulier pour 0 et 1, comme en français. */
+export function accorder(total: number, { un, plusieurs }: Accord): string {
+  return total <= 1 ? un : plusieurs;
+}
 
 /** Jour (AAAA-MM-JJ, heure du Bénin) du début de la période des 7 derniers jours, aujourd'hui compris. */
 export function debutSeptDerniersJours(maintenant: Date = new Date()): string {
@@ -30,12 +38,29 @@ function formaterJour(jour: string) {
   return new Date(`${jour}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: FUSEAU_BENIN });
 }
 
-export function definitionsRaccourcis(maintenant: Date = new Date()): Omit<Raccourci, "total">[] {
+export function definitionsRaccourcis(
+  maintenant: Date = new Date()
+): (Omit<Raccourci, "total" | "libelle"> & { libelle: Accord })[] {
   const du = debutSeptDerniersJours(maintenant);
-  const parametres: { cle: CleRaccourci; libelle: string; precision: string; params: Record<string, string> }[] = [
-    { cle: "eleve", libelle: "Risque élevé", precision: "à examiner en priorité", params: { niveau: "eleve" } },
-    { cle: "absences", libelle: "Absences répétées", precision: "liées à l'assiduité", params: { type: "absences" } },
-    { cle: "recentes", libelle: "7 derniers jours", precision: `détectées depuis le ${formaterJour(du)}`, params: { du } },
+  const parametres: { cle: CleRaccourci; libelle: Accord; precision: string; params: Record<string, string> }[] = [
+    {
+      cle: "eleve",
+      libelle: { un: "alerte à risque élevé", plusieurs: "alertes à risque élevé" },
+      precision: "à examiner en priorité",
+      params: { niveau: "eleve" },
+    },
+    {
+      cle: "absences",
+      libelle: { un: "alerte pour absences répétées", plusieurs: "alertes pour absences répétées" },
+      precision: "5 absences injustifiées ou plus sur un trimestre",
+      params: { type: "absences" },
+    },
+    {
+      cle: "recentes",
+      libelle: { un: "alerte détectée sur les 7 derniers jours", plusieurs: "alertes détectées sur les 7 derniers jours" },
+      precision: `depuis le ${formaterJour(du)}`,
+      params: { du },
+    },
   ];
   return parametres.map(({ params, ...r }) => ({ ...r, href: `/admin/alertes?${new URLSearchParams(params)}` }));
 }
@@ -46,7 +71,8 @@ export async function raccourcisAlertes(portee: PorteeAlertes, maintenant: Date 
     definitionsRaccourcis(maintenant).map(async (r) => {
       const filtres = lireFiltres(Object.fromEntries(new URL(r.href, "http://x").searchParams));
       const where = construireWhereAlertes(filtres, portee);
-      return { ...r, total: where ? await prisma.alerte.count({ where }) : 0 };
+      const total = where ? await prisma.alerte.count({ where }) : 0;
+      return { ...r, libelle: accorder(total, r.libelle), total };
     })
   );
 }

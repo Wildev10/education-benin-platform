@@ -98,11 +98,11 @@ describe("notes-trimestres", () => {
 
   it("graphiques : un point par trimestre et par année, dans l'ordre chronologique", () => {
     const points = moyennesChronologiques(notes);
-    expect(points.map((p) => libelleCourt(p, true))).toEqual(["T1 25-26", "T2 25-26", "T1 26-27"]);
+    expect(points.map((p) => libelleCourt(p, true))).toEqual(["T1 ·\u00a025-26", "T2 ·\u00a025-26", "T1 ·\u00a026-27"]);
     expect(points.map((p) => p.moyenne)).toEqual([8, 13.5, 4]);
     expect(libelleCourt(points[0], false)).toBe("T1");
-    expect(libellePeriode("Trimestre 1", "2026-2027")).toBe("Trimestre 1 2026-2027");
-    expect(libellePeriode("Trimestre 1", null)).toBe("Trimestre 1");
+    expect(libellePeriode("Trimestre 1", "2026-2027")).toBe("Trimestre\u00a01 ·\u00a02026-2027");
+    expect(libellePeriode("Trimestre 1", null)).toBe("Trimestre\u00a01");
   });
 
   it("moyenne : null sans note", () => {
@@ -130,7 +130,7 @@ describe("AccordeonTrimestres", () => {
   it("une année par titre h3, la plus récente d'abord, marquée « en cours »", () => {
     const titres = [...html.matchAll(/<h3[^>]*>(.*?)<\/h3>/g)].map((m) => m[1].replace(/<[^>]+>/g, ""));
     expect(titres).toEqual(["Année scolaire 2026-2027(en cours)", "Année scolaire 2025-2026"]);
-    expect(html).toContain("Moyenne annuelle : 9.0/20");
+    expect(html).toContain("Moyenne annuelle : 9,0/20");
   });
 
   it("un bouton par trimestre et par année, de type button, dans un titre h4", () => {
@@ -157,7 +157,7 @@ describe("AccordeonTrimestres", () => {
 
   it("la moyenne reste dans l'en-tête d'un trimestre replié", () => {
     const enteteT1Passe = html.slice(html.indexOf(boutons[3]), html.indexOf("</button>", html.indexOf(boutons[3])));
-    expect(enteteT1Passe).toContain("Moyenne : </span>10.0/20");
+    expect(enteteT1Passe).toContain("Moyenne : </span>10,0/20");
     expect(enteteT1Passe).toContain("2 notes");
   });
 

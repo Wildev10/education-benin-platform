@@ -30,6 +30,7 @@ export default async function AdminStudentPage({ params }: PageProps) {
       alertes: {
         select: {
           id: true,
+          type: true,
           niveauRisque: true,
           periode: true,
           anneeScolaire: true,

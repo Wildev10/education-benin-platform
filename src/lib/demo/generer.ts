@@ -13,6 +13,7 @@
 
 import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
 import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
+import { formaterNote } from "@/lib/format";
 import { matieresDuNiveau } from "@/lib/programme";
 import { comparerMoyennes, comparerPeriodes, compterAbsencesRecentes } from "@/lib/regles-alerte";
 import { NOMS, PRENOMS_COURANTS, PRENOMS_LOCAUX, PRENOMS_MUSULMANS, REPARTITION_PRENOMS, type Groupe } from "./noms";
@@ -701,7 +702,7 @@ export function genererDonneesDemo(maintenant: Date): DonneesDemo {
         return {
           id: idSaisie(),
           action: "NOTE_CREEE",
-          description: `Note ${n.valeur}/20 en ${n.matiere} pour ${e.prenom} ${e.nom}`,
+          description: `Note ${formaterNote(n.valeur)}/20 en ${n.matiere} pour ${e.prenom} ${e.nom}`,
           entityType: "note",
           entityId: n.id,
           createdAt: n.createdAt,

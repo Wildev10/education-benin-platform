@@ -2,6 +2,7 @@
 
 import { useId, useState, type KeyboardEvent } from "react";
 import { BlocAnnee } from "@/components/notes/BlocAnnee";
+import { formaterNombre, formaterNote } from "@/lib/format";
 import { cleTrimestre, type GroupeAnnee, type PeriodeScolaire } from "@/lib/notes-trimestres";
 
 /**
@@ -70,7 +71,7 @@ export function AccordeonTrimestres({
           key={annee.anneeScolaire}
           anneeScolaire={annee.anneeScolaire}
           enCours={enCours.anneeScolaire}
-          resume={annee.moyenne !== null ? `Moyenne annuelle : ${annee.moyenne.toFixed(1)}/20` : "Aucune note cette année"}
+          resume={annee.moyenne !== null ? `Moyenne annuelle : ${formaterNombre(annee.moyenne)}/20` : "Aucune note cette année"}
         >
           <div className="space-y-3">
             {annee.trimestres.map(({ periode, notes, moyenne }, i) => {
@@ -111,7 +112,7 @@ export function AccordeonTrimestres({
                       {moyenne !== null ? (
                         <span className="shrink-0 rounded-full bg-brand px-3 py-1 text-sm font-bold text-ink tabular-nums">
                           <span className="sr-only">Moyenne : </span>
-                          {moyenne.toFixed(1)}/20
+                          {formaterNombre(moyenne)}/20
                         </span>
                       ) : (
                         <span className="shrink-0 text-sm font-medium text-surface/75">Pas de moyenne</span>
@@ -133,7 +134,7 @@ export function AccordeonTrimestres({
                                   : "font-semibold tabular-nums text-ink"
                               }
                             >
-                              {note.valeur}/20
+                              {formaterNote(note.valeur)}/20
                             </span>
                           </li>
                         ))}

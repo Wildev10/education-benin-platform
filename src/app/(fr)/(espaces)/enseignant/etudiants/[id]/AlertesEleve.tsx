@@ -5,6 +5,7 @@ import { BoutonTraiterAlerte } from "@/components/alertes/BoutonTraiterAlerte";
 import { FUSEAU_BENIN } from "@/lib/dates";
 import { texteComparaison } from "@/lib/message-saisie";
 import { libellePeriode } from "@/lib/notes-trimestres";
+import { formaterNombre } from "@/lib/format";
 import type { ComparaisonNotes } from "@/lib/regles-alerte";
 
 export type AlerteEleve = {
@@ -19,10 +20,6 @@ export type AlerteEleve = {
   ecartPourcent: number;
   createdAt: string;
 };
-
-function formaterNombre(valeur: number) {
-  return valeur.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-}
 
 export default function AlertesEleve({
   alertes,
@@ -72,7 +69,7 @@ export default function AlertesEleve({
                   <BoutonTraiterAlerte alerteId={alerte.id} onTraitee={() => onTraitee(alerte.id)} />
                 )}
               </div>
-              <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-5 sm:grid-cols-3">
+              <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-5 min-[360px]:grid-cols-2 sm:grid-cols-3">
                 <div>
                   <dt className="text-sm font-semibold text-ink-secondary">Type</dt>
                   <dd className="mt-1 font-semibold text-ink">

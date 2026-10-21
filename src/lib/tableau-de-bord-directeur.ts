@@ -170,7 +170,7 @@ export async function getTableauDeBordDirecteur(
         (ordrePeriodes[a.periode] ?? 99) - (ordrePeriodes[b.periode] ?? 99)
     )
     .map((g) => ({
-      periode: plusieursAnnees ? `${g.periode} (${g.anneeScolaire})` : g.periode,
+      periode: plusieursAnnees ? libellePeriode(g.periode, g.anneeScolaire) : g.periode,
       moyenne: arrondir((g._sum.valeur ?? 0) / g._count.valeur),
     }));
 

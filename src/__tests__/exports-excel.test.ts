@@ -226,8 +226,8 @@ describe("Fiche élève Excel — contenu relu", () => {
     const f = classeur.getWorksheet("Alertes")!;
     const titres = ligneCommencantPar(f, "Détectée le");
     const colonne = (titres.values as unknown[]).indexOf("Période");
-    expect(f.getRow(titres.number + 1).getCell(colonne).value).toBe("Trimestre 2 2025-2026");
-    expect(f.getRow(titres.number + 2).getCell(colonne).value).toBe("Trimestre 1"); // ancienne alerte sans année
+    expect(f.getRow(titres.number + 1).getCell(colonne).value).toBe("Trimestre\u00a02 ·\u00a02025-2026");
+    expect(f.getRow(titres.number + 2).getCell(colonne).value).toBe("Trimestre\u00a01"); // ancienne alerte sans année
   });
 });
 
@@ -255,7 +255,7 @@ describe("Fiche élève Excel — rentrée sans note ni absence dans l'année en
       "Récapitulatif de l'année 2025-2026 — moyennes sur 20",
     ]));
     const titres = ligneCommencantPar(notes, "Matière");
-    expect(titres.getCell(2).value).toBe("Trimestre 1 2025-2026");
+    expect(titres.getCell(2).value).toBe("Trimestre\u00a01 ·\u00a02025-2026");
     expect(notes.getRow(titres.number + 1).getCell(2).value).toBe(12.5); // Mathématiques T1 2025-2026 : (12 + 13) / 2
     const absences = c.getWorksheet("Absences")!;
     expect(lignes(absences)).toEqual(expect.arrayContaining([

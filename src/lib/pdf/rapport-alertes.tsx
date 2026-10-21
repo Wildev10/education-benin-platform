@@ -1,5 +1,5 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
-import { EntetePdf, PiedPagePdf, couleurs, formatNote, ligneStyle, styles } from "@/lib/pdf/commun";
+import { EntetePdf, PiedPagePdf, couleurs, formatBaisse, formatNote, ligneStyle, styles } from "@/lib/pdf/commun";
 import { libellePeriode } from "@/lib/notes-trimestres";
 
 export type AlerteRapport = {
@@ -132,7 +132,7 @@ export function RapportAlertesPdf({
                   ) : (
                     <>
                       <Text style={[styles.cellule, styles.rouge, { width: COLONNES[4].width, textAlign: "right" }]}>
-                        -{a.ecartPourcent.toFixed(1).replace(".", ",")} %
+                        {formatBaisse(a.ecartPourcent)}
                       </Text>
                       <Text
                         style={[

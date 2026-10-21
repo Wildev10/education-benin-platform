@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 import { FUSEAU_BENIN } from "@/lib/dates";
+import { formaterNombre, formaterPourcent } from "@/lib/format";
 
 export const couleurs = {
   noir: "#0A0A0A",
@@ -40,8 +41,17 @@ export function slugFichier(...parts: string[]) {
     .replace(/^-|-$/g, "");
 }
 
+/** Moyenne sur 20 dans les PDF : deux décimales, format français (src/lib/format.ts). */
 export function formatNote(valeur: number) {
-  return valeur.toFixed(2).replace(".", ",");
+  return formaterNombre(valeur, 2);
+}
+
+/**
+ * Baisse dans les PDF : « -35,0 % ». Trait d'union au lieu du signe moins
+ * (U+2212), absent de l'encodage des polices standard des PDF (Helvetica).
+ */
+export function formatBaisse(ecartPourcent: number) {
+  return `-${formaterPourcent(ecartPourcent)}`;
 }
 
 export const styles = StyleSheet.create({

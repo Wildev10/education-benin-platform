@@ -8,7 +8,8 @@ import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { MessageEcritureHorsLigne, TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { BlocAnnee } from "@/components/notes/BlocAnnee";
-import { TRIMESTRES as periodes, grouperNotesParAnnee, grouperParAnnee } from "@/lib/notes-trimestres";
+import { TRIMESTRES as periodes, grouperNotesParAnnee, grouperParAnnee, libellePeriode } from "@/lib/notes-trimestres";
+import { formaterNote } from "@/lib/format";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { IconeAlerte } from "@/components/ui/Icones";
 import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
@@ -184,7 +185,7 @@ export default function StudentDetail({
         data.etudiant,
         alerte,
         // La période figure déjà dans le constat d'une alerte
-        `${data.valeur.toLocaleString("fr-FR")}/20 en ${data.matiere}${alerte ? "" : `, ${data.periode} ${data.anneeScolaire}`}.`
+        `${formaterNote(data.valeur)}/20 en ${data.matiere}${alerte ? "" : `, ${libellePeriode(data.periode, data.anneeScolaire)}`}.`
       );
       setMessage(retour);
       if (alerte) setAlertes((courantes) => fusionnerAlerte(courantes, alerte));
@@ -232,7 +233,7 @@ export default function StudentDetail({
         "absence",
         data.etudiant,
         alerte,
-        `Absence ${absMotif === "injustifiee" ? "injustifiée" : "justifiée"} du ${formatDate(absDate)}${alerte ? "" : `, ${absPeriode} ${absAnnee}`}.`
+        `Absence ${absMotif === "injustifiee" ? "injustifiée" : "justifiée"} du ${formatDate(absDate)}${alerte ? "" : `, ${libellePeriode(absPeriode, absAnnee)}`}.`
       );
       setAbsMessage(retour);
       if (alerte) setAlertes((courantes) => fusionnerAlerte(courantes, alerte));

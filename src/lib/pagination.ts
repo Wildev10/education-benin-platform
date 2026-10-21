@@ -1,6 +1,8 @@
 // Pagination côté serveur des listes. Ce module n'importe rien du serveur : il
 // sert aux pages, aux routes API et au composant client <Pagination>.
 
+import { formaterNombre } from "@/lib/format";
+
 export const TAILLES_PAGE = [20, 50, 100] as const;
 export type TaillePage = (typeof TAILLES_PAGE)[number];
 export const TAILLE_PAR_DEFAUT: TaillePage = 20;
@@ -106,14 +108,13 @@ export function urlListe(chemin: string, filtres: URLSearchParams, taille: Taill
   return requete ? `${chemin}?${requete}` : chemin;
 }
 
-const nombreFr = new Intl.NumberFormat("fr-FR");
 
 /** « 1–20 sur 143 » (aucun résultat : « 0 sur 0 »). */
 export function libellePlage({ page, taille, total }: { page: number; taille: number; total: number }): string {
   if (total === 0) return "0 sur 0";
   const debut = (page - 1) * taille + 1;
   const fin = Math.min(page * taille, total);
-  return `${nombreFr.format(debut)}–${nombreFr.format(fin)} sur ${nombreFr.format(total)}`;
+  return `${formaterNombre(debut, 0)}–${formaterNombre(fin, 0)} sur ${formaterNombre(total, 0)}`;
 }
 
 /**

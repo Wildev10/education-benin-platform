@@ -1,3 +1,5 @@
+import { formaterBaisse, formaterNombre } from "@/lib/format";
+import { libellePeriode } from "@/lib/notes-trimestres";
 import { LIBELLES_NIVEAU, NOTES_MIN_COMPARAISON, type ComparaisonNotes } from "@/lib/regles-alerte";
 
 /** Alerte créée ou aggravée par une saisie, telle que la renvoient POST /api/notes et /api/absences. */
@@ -18,9 +20,6 @@ export type AlerteSaisie = {
 };
 
 export type MessageSaisie = { alerte: boolean; titre: string; detail: string };
-
-const nombre = (valeur: number) =>
-  valeur.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 const niveau = (code: string | null) => (code ? LIBELLES_NIVEAU[code] ?? code : "");
 
@@ -47,11 +46,11 @@ export function messageSaisie(
     alerte.issue === "creee"
       ? `Alerte déclenchée : niveau ${niveau(alerte.niveauRisque)} pour ${nom}`
       : `Alerte ${alerte.reactivee ? "réactivée et aggravée" : "aggravée"} : ${niveau(alerte.niveauPrecedent)} → ${niveau(alerte.niveauRisque)} pour ${nom}`;
-  const periode = `${alerte.periode}${alerte.anneeScolaire ? ` ${alerte.anneeScolaire}` : ""}`;
+  const periode = libellePeriode(alerte.periode, alerte.anneeScolaire);
   const constat =
     alerte.type === "absences"
       ? `${alerte.moyenneApres} absences injustifiées en ${periode}.`
-      : `Moyenne ${nombre(alerte.moyenneAvant)} → ${nombre(alerte.moyenneApres)} en ${periode} (−${Math.round(alerte.ecartPourcent)} % par rapport à la période précédente).`;
+      : `Moyenne ${formaterNombre(alerte.moyenneAvant)} → ${formaterNombre(alerte.moyenneApres)} en ${periode} (${formaterBaisse(alerte.ecartPourcent)} par rapport à la période précédente).`;
   return { alerte: true, titre, detail: `${resume} ${constat}` };
 }
 
@@ -65,7 +64,7 @@ export function texteComparaison(comparaison: ComparaisonNotes): string | null {
   }
   if (comparaison.etat === "notes_insuffisantes") {
     const { periode, anneeScolaire, noteCount } = comparaison.periodeRecente;
-    return `Notes comparées à partir de ${NOTES_MIN_COMPARAISON} notes en ${periode} ${anneeScolaire} (${noteCount} pour l'instant). Les absences restent suivies.`;
+    return `Notes comparées à partir de ${NOTES_MIN_COMPARAISON} notes en ${libellePeriode(periode, anneeScolaire)} (${noteCount} pour l'instant). Les absences restent suivies.`;
   }
   return null;
 }

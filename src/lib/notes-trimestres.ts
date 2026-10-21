@@ -81,16 +81,27 @@ export function moyennesChronologiques(notes: NoteTrimestre[]): (PeriodeScolaire
   );
 }
 
-/** « Trimestre 1 2026-2027 » ; la période seule pour une ancienne alerte sans année. */
+/** Espace insécable : « Trimestre » et son numéro ne sont jamais séparés. */
+const INSECABLE = " ";
+
+/**
+ * Libellé unique d'une période, partout (pages, cloche, messages, PDF, Excel) :
+ * « Trimestre 1 · 2026-2027 ». Le point médian sépare le numéro du trimestre
+ * de l'année, qui ne peuvent plus se lire « 12026 ». Une seule coupure de ligne
+ * possible, avant le point : en place réduite, l'année passe à la ligne
+ * (« Trimestre 1 », puis « · 2026-2027 »), jamais « Trimestre » seul.
+ * La période seule pour une ancienne alerte sans année.
+ */
 export function libellePeriode(periode: string, anneeScolaire: string | null | undefined): string {
-  return anneeScolaire ? `${periode} ${anneeScolaire}` : periode;
+  const trimestre = periode.replace(" ", INSECABLE);
+  return anneeScolaire ? `${trimestre} ·${INSECABLE}${anneeScolaire}` : trimestre;
 }
 
 /**
- * Libellé court d'un point de graphique : « T1 », ou « T1 25-26 » quand les
+ * Libellé court d'un point de graphique : « T1 », ou « T1 · 25-26 » quand les
  * points couvrent plusieurs années (sinon deux « T1 » se suivraient).
  */
 export function libelleCourt({ anneeScolaire, periode }: PeriodeScolaire, plusieursAnnees: boolean): string {
   const trimestre = periode.replace("Trimestre ", "T");
-  return plusieursAnnees ? `${trimestre} ${anneeScolaire.replace(/\d{2}(\d{2})-\d{2}(\d{2})/, "$1-$2")}` : trimestre;
+  return plusieursAnnees ? `${trimestre} ·${INSECABLE}${anneeScolaire.replace(/\d{2}(\d{2})-\d{2}(\d{2})/, "$1-$2")}` : trimestre;
 }

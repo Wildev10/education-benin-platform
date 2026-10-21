@@ -15,6 +15,7 @@ import { SqueletteGraphiqueBarres } from "@/components/ui/Squelette";
 import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 import type { StatsEtablissement } from "@/lib/stats-etablissements";
 import { libellePeriode } from "@/lib/notes-trimestres";
+import { formaterBaisse, formaterNombre, formaterPourcent } from "@/lib/format";
 import type { CleRaccourci, Raccourci } from "@/lib/raccourcis-alertes";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { IconeValide } from "@/components/ui/Icones";
@@ -39,6 +40,7 @@ function tauxBarCls(taux: number) {
 
 type Alert = {
   id: string;
+  type: string;
   niveauRisque: string;
   periode: string;
   anneeScolaire: string | null;
@@ -312,32 +314,42 @@ export default function AdminDashboard({
                     <dt className="text-sm font-semibold text-ink-secondary">Période</dt>
                     <dd className="mt-1 font-semibold text-ink">{libellePeriode(alert.periode, alert.anneeScolaire)}</dd>
                   </div>
-                  <div>
-                    <dt className="text-sm font-semibold text-ink-secondary">Moyenne</dt>
-                    <dd className="mt-1 flex items-center gap-2">
-                      <span className="rounded-md border border-border bg-page px-2 py-0.5 text-sm font-semibold text-ink tabular-nums">
-                        {alert.moyenneAvant.toFixed(1)}
-                      </span>
-                      <svg
-                        width="22"
-                        height="10"
-                        viewBox="0 0 22 10"
-                        fill="none"
-                        aria-hidden="true"
-                        className="shrink-0 text-ink-secondary"
-                      >
-                        <path d="M1 5h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        <path d="M15 1.5L19.5 5 15 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <span className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-sm font-semibold text-red-700 tabular-nums">
-                        {alert.moyenneApres.toFixed(1)}
-                      </span>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-semibold text-ink-secondary">Baisse</dt>
-                    <dd className="mt-1 font-bold text-red-700">−{alert.ecartPourcent.toFixed(1)} %</dd>
-                  </div>
+                  {alert.type === "absences" ? (
+                    <div>
+                      <dt className="text-sm font-semibold text-ink-secondary">Absences injustifiées</dt>
+                      <dd className="mt-1 font-bold tabular-nums text-red-700">{alert.moyenneApres}</dd>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <dt className="text-sm font-semibold text-ink-secondary">Moyenne</dt>
+                        <dd className="mt-1 flex items-center gap-2">
+                          <span className="rounded-md border border-border bg-page px-2 py-0.5 text-sm font-semibold text-ink tabular-nums">
+                            {formaterNombre(alert.moyenneAvant)}
+                          </span>
+                          <svg
+                            width="22"
+                            height="10"
+                            viewBox="0 0 22 10"
+                            fill="none"
+                            aria-hidden="true"
+                            className="shrink-0 text-ink-secondary"
+                          >
+                            <path d="M1 5h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M15 1.5L19.5 5 15 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <span className="sr-only"> puis </span>
+                          <span className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-sm font-semibold text-red-700 tabular-nums">
+                            {formaterNombre(alert.moyenneApres)}
+                          </span>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-semibold text-ink-secondary">Baisse</dt>
+                        <dd className="mt-1 font-bold text-red-700">{formaterBaisse(alert.ecartPourcent)}</dd>
+                      </div>
+                    </>
+                  )}
                 </dl>
               </article>
             ))}
@@ -403,7 +415,7 @@ export default function AdminDashboard({
                         <span className="text-ink-secondary">—</span>
                       ) : (
                         <span className={`font-bold tabular-nums ${moyenneCls(e.moyenneGenerale)}`}>
-                          {e.moyenneGenerale.toFixed(2)}
+                          {formaterNombre(e.moyenneGenerale, 2)}
                           <span className="font-normal text-ink-secondary">/20</span>
                           <span className="block text-xs font-normal text-ink-secondary">{e.anneeMoyenne}</span>
                         </span>
@@ -425,7 +437,7 @@ export default function AdminDashboard({
                           />
                         </div>
                         <span className="tabular-nums font-semibold text-ink">
-                          {e.tauxAlerte.toLocaleString("fr-FR")} %
+                          {formaterPourcent(e.tauxAlerte)}
                         </span>
                       </div>
                     </td>

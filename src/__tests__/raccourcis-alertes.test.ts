@@ -22,12 +22,12 @@ describe("accès directs aux alertes", () => {
     expect(debutSeptDerniersJours(MAINTENANT)).toBe("2026-10-14");
     // 23 h 30 UTC = 0 h 30 le lendemain à Porto-Novo
     expect(debutSeptDerniersJours(new Date("2026-10-20T23:30:00Z"))).toBe("2026-10-15");
-    expect(definitionsRaccourcis(MAINTENANT)[2].precision).toBe("détectées depuis le 14 octobre");
+    expect(definitionsRaccourcis(MAINTENANT)[2].precision).toBe("depuis le 14 octobre");
   });
 
   it("libellés explicites, sans flèche ni texte vague", () => {
     for (const r of definitionsRaccourcis(MAINTENANT)) {
-      expect(r.libelle).not.toMatch(/[→›»]|avancé|cliquez|ici/i);
+      expect(`${r.libelle.un} ${r.libelle.plusieurs}`).not.toMatch(/[→›»]|avancé|cliquez|ici/i);
       expect(r.precision.length).toBeGreaterThan(5);
     }
   });
@@ -41,6 +41,18 @@ describe("accès directs aux alertes", () => {
     expect(where[0].niveauRisque).toBe("eleve");
     expect(where[1].type).toBe("absences");
     expect(where[2].createdAt.gte.toISOString()).toBe("2026-10-13T23:00:00.000Z"); // 14 octobre, 0 h à Porto-Novo
+  });
+
+  it("le nombre et son libellé forment une phrase, accordée (« 13 alertes détectées sur les 7 derniers jours »)", async () => {
+    mockCount.mockResolvedValueOnce(13).mockResolvedValueOnce(1).mockResolvedValueOnce(13);
+    const r = await raccourcisAlertes({ type: "toutes" }, MAINTENANT);
+    expect(r.map((x) => `${x.total} ${x.libelle}`)).toEqual([
+      "13 alertes à risque élevé",
+      "1 alerte pour absences répétées",
+      "13 alertes détectées sur les 7 derniers jours",
+    ]);
+    mockCount.mockResolvedValue(0);
+    expect((await raccourcisAlertes({ type: "toutes" }, MAINTENANT))[2].libelle).toBe("alerte détectée sur les 7 derniers jours");
   });
 
   it("portée sans établissement : zéro, sans requête", async () => {

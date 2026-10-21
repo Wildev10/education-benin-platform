@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { logAction } from "@/lib/audit";
+import { formaterNote } from "@/lib/format";
 import { requireRole } from "@/lib/auth-guard";
 import { alerteSaisie, detecterAlerte } from "@/lib/detection-alerte";
 import { prisma } from "@/lib/prisma";
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
     await logAction({
       userId: access.user.id,
       action: "NOTE_CREEE",
-      description: `Note ${note.valeur}/20 en ${note.matiere} pour ${etudiant.prenom} ${etudiant.nom}`,
+      description: `Note ${formaterNote(note.valeur)}/20 en ${note.matiere} pour ${etudiant.prenom} ${etudiant.nom}`,
       entityType: "note",
       entityId: note.id,
     });

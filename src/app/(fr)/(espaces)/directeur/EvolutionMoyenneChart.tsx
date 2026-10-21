@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import type { PointEvolution } from "@/lib/tableau-de-bord-directeur";
+import { formaterNombre } from "@/lib/format";
 
 /** Sous cette largeur, « Trimestre 1 » devient « T1 » : les trois étiquettes ne tiennent plus côte à côte. */
 const LARGEUR_ETIQUETTES_COURTES = 300;
@@ -22,7 +23,7 @@ export default function EvolutionMoyenneChart({ data }: { data: PointEvolution[]
     <div
       role="img"
       aria-label={`Évolution de la moyenne de l'établissement : ${data
-        .map((p) => `${p.periode} ${p.moyenne.toLocaleString("fr-FR")} sur 20`)
+        .map((p) => `${p.periode} ${formaterNombre(p.moyenne, 2)} sur 20`)
         .join(", ")}`}
       className="h-64 w-full"
     >
@@ -48,7 +49,7 @@ export default function EvolutionMoyenneChart({ data }: { data: PointEvolution[]
           />
           <ReferenceLine y={10} stroke="#B91C1C" strokeDasharray="4 4" strokeOpacity={0.5} />
           <Tooltip
-            formatter={(value) => [`${Number(value).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/20`, "Moyenne"]}
+            formatter={(value) => [`${formaterNombre(Number(value), 2)}/20`, "Moyenne"]}
             contentStyle={{
               borderRadius: "12px",
               border: "1px solid #E5E5E5",

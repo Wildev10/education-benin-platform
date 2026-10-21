@@ -63,6 +63,7 @@ export default async function AdminPage() {
           }}
           initialAlerts={alertesTriees.map((alerte) => ({
             id: alerte.id,
+            type: alerte.type,
             niveauRisque: alerte.niveauRisque,
             periode: alerte.periode,
             anneeScolaire: alerte.anneeScolaire,

@@ -4,6 +4,7 @@ import { ExportExcelButton } from "@/components/ExportPdfButton";
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { BlocAnnee } from "@/components/notes/BlocAnnee";
 import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
+import { formaterNombre, formaterPourcent } from "@/lib/format";
 import {
   grouperNotesParAnnee,
   grouperParAnnee,
@@ -20,7 +21,7 @@ function tendance(avant: PointMoyenne, apres: PointMoyenne): { titre: string; de
   const difference = derniereMoyenne - anciennesMoyenne;
   const seuil = 0.1;
   // Les deux trimestres comparés, avec leur année : jamais deux « Trimestre 1 » confondus
-  const detail = `Elle est passée de ${anciennesMoyenne.toFixed(1)}/20 (${libellePeriode(avant.periode, avant.anneeScolaire)}) à ${derniereMoyenne.toFixed(1)}/20 (${libellePeriode(apres.periode, apres.anneeScolaire)}).`;
+  const detail = `Elle est passée de ${formaterNombre(anciennesMoyenne)}/20 (${libellePeriode(avant.periode, avant.anneeScolaire)}) à ${formaterNombre(derniereMoyenne)}/20 (${libellePeriode(apres.periode, apres.anneeScolaire)}).`;
 
   if (Math.abs(difference) <= seuil) {
     return {
@@ -43,7 +44,7 @@ function tendance(avant: PointMoyenne, apres: PointMoyenne): { titre: string; de
     : ((anciennesMoyenne - derniereMoyenne) / anciennesMoyenne) * 100;
 
   return {
-    titre: `Ta moyenne a baissé de ${baisse.toFixed(1)} %`,
+    titre: `Ta moyenne a baissé de ${formaterPourcent(baisse)}`,
     detail,
     tone: "border-amber-200 bg-amber-50 text-amber-950",
   };

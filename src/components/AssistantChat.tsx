@@ -15,7 +15,7 @@ type Message = {
 const examples = [
   "Combien d'étudiants à risque dans l'Atlantique ?",
   "Liste les alertes de niveau élevé",
-  "Combien d'étudiants au Lycée Mathieu Bouké ?",
+  "Combien d'étudiants au CEG Zopah ?",
   "Combien d'absences injustifiées ce trimestre ?",
 ];
 

@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { hauteurGraphiqueBarres } from "@/lib/graphiques";
+import { formaterNombre } from "@/lib/format";
 import type { MoyenneNiveau } from "@/lib/tableau-de-bord-directeur";
 
 function couleur(moyenne: number) {
@@ -26,7 +27,7 @@ export default function MoyennesNiveauChart({ data }: { data: MoyenneNiveau[] })
     <div
       role="img"
       aria-label={`Moyenne par classe : ${data
-        .map((d) => `${d.niveau} ${d.moyenne.toLocaleString("fr-FR")} sur 20`)
+        .map((d) => `${d.niveau} ${formaterNombre(d.moyenne, 2)} sur 20`)
         .join(", ")}`}
       style={{ height: hauteurGraphiqueBarres(data.length) }}
       className="w-full"
@@ -54,7 +55,7 @@ export default function MoyennesNiveauChart({ data }: { data: MoyenneNiveau[] })
           <Tooltip
             cursor={{ fill: "#FFF7ED" }}
             formatter={(value, _name, item) => [
-              `${Number(value).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/20 (${(item.payload as MoyenneNiveau).eleves} élèves)`,
+              `${formaterNombre(Number(value), 2)}/20 (${(item.payload as MoyenneNiveau).eleves} élèves)`,
               "Moyenne",
             ]}
             contentStyle={{
@@ -70,7 +71,7 @@ export default function MoyennesNiveauChart({ data }: { data: MoyenneNiveau[] })
             <LabelList
               dataKey="moyenne"
               position="right"
-              formatter={(v) => Number(v).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+              formatter={(v) => formaterNombre(Number(v))}
               style={{ fill: "#0A0A0A", fontSize: 12, fontWeight: 600 }}
             />
           </Bar>

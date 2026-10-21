@@ -287,9 +287,9 @@ describe("getTableauDeBordDirecteur — indicateurs", () => {
   it("évolution triée chronologiquement, avec l'année si plusieurs années", async () => {
     const tdb = (await getTableauDeBordDirecteur(ETAB))!;
     expect(tdb.evolution).toEqual([
-      { periode: "Trimestre 3 (2024-2025)", moyenne: 10 },
-      { periode: "Trimestre 1 (2025-2026)", moyenne: 13 },
-      { periode: "Trimestre 2 (2025-2026)", moyenne: 12 },
+      { periode: "Trimestre\u00a03 ·\u00a02024-2025", moyenne: 10 },
+      { periode: "Trimestre\u00a01 ·\u00a02025-2026", moyenne: 13 },
+      { periode: "Trimestre\u00a02 ·\u00a02025-2026", moyenne: 12 },
     ]);
   });
 

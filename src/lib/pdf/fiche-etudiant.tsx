@@ -4,6 +4,7 @@ import {
   EntetePdf,
   PiedPagePdf,
   couleurs,
+  formatBaisse,
   formatDateLongue,
   formatNote,
   ligneStyle,
@@ -258,7 +259,7 @@ export function FicheEtudiantPdf({ etudiant, anneeScolaire, notes, absences, ale
                     {formatNote(a.moyenneAvant)} › {formatNote(a.moyenneApres)}
                   </Text>
                   <Text style={[styles.cellule, styles.rouge, { width: "12%", textAlign: "right" }]}>
-                    -{a.ecartPourcent.toFixed(1).replace(".", ",")} %
+                    {formatBaisse(a.ecartPourcent)}
                   </Text>
                   <Text style={[styles.cellule, styles.gras, { width: "14%" }, a.statut === "active" ? styles.rouge : { color: couleurs.vert }]}>
                     {a.statut === "active" ? "Active" : "Traitée"}

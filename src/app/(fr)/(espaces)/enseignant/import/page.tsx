@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { IconeAlerte } from "@/components/ui/Icones";
 import { Toast } from "@/lib/swal";
+import { formaterNombre } from "@/lib/format";
 import { messageSaisie, type AlerteSaisie } from "@/lib/message-saisie";
 
 type LigneErreur = { ligne: number; contenu: string; raison: string };
@@ -123,7 +124,7 @@ export default function ImportNotesPage() {
           {fichier ? (
             <>
               <p className="font-semibold text-ink">{fichier.name}</p>
-              <p className="mt-1 text-sm text-ink-secondary">{(fichier.size / 1024).toFixed(1)} Ko · cliquez pour changer</p>
+              <p className="mt-1 text-sm text-ink-secondary">{formaterNombre(fichier.size / 1024)} Ko · cliquez pour changer</p>
             </>
           ) : (
             <>

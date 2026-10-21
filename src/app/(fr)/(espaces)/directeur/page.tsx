@@ -12,18 +12,12 @@ import { GraphiqueEvolution, GraphiqueNiveaux } from "./DirecteurCharts";
 import { ExportExcelButton } from "@/components/ExportPdfButton";
 import { IconeEtablissement } from "@/components/ui/Icones";
 import { FUSEAU_BENIN } from "@/lib/dates";
+import { formaterBaisse, formaterNombre, formaterPourcent } from "@/lib/format";
 
 function moyenneCls(moyenne: number) {
   if (moyenne >= 12) return "text-emerald-700";
   if (moyenne >= 10) return "text-orange-700";
   return "text-red-700";
-}
-
-function formaterNombre(valeur: number, decimales: number) {
-  return valeur.toLocaleString("fr-FR", {
-    minimumFractionDigits: decimales,
-    maximumFractionDigits: decimales,
-  });
 }
 
 function formaterDate(iso: string) {
@@ -132,7 +126,7 @@ export default async function DirecteurPage() {
         />
         <StatCard
           label="Élèves en alerte"
-          value={`${tdb.tauxElevesEnAlerte.toLocaleString("fr-FR")} %`}
+          value={formaterPourcent(tdb.tauxElevesEnAlerte)}
           sublabel={`${tdb.nbElevesEnAlerte} sur ${tdb.nbEleves} élèves`}
           tone={tdb.tauxElevesEnAlerte >= 25 ? "danger" : tdb.tauxElevesEnAlerte >= 10 ? "warning" : "default"}
         />
@@ -204,7 +198,7 @@ export default async function DirecteurPage() {
                           <span className={`font-semibold ${moyenneCls(e.moyenneApres)}`}>
                             {formaterNombre(e.moyenneApres, 2)}/20
                           </span>{" "}
-                          · −{e.ecartPourcent.toLocaleString("fr-FR")} %
+                          · {formaterBaisse(e.ecartPourcent)}
                         </span>
                       )}
                     </div>

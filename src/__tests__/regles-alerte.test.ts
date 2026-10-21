@@ -110,7 +110,7 @@ describe("messageSaisie", () => {
     const m = messageSaisie("note", eleve, alerte({}), "3/20 en SVT.");
     expect(m.alerte).toBe(true);
     expect(m.titre).toBe("Alerte déclenchée : niveau Élevé pour Koffi Agossou");
-    expect(m.detail).toBe("3/20 en SVT. Moyenne 12,4 → 8,9 en Trimestre 1 2026-2027 (−28 % par rapport à la période précédente).");
+    expect(m.detail).toBe("3/20 en SVT. Moyenne 12,4 → 8,9 en Trimestre\u00a01 ·\u00a02026-2027 (−28,2\u00a0% par rapport à la période précédente).");
   });
 
   it("aggravation, et réactivation d'une alerte traitée", () => {
@@ -125,7 +125,7 @@ describe("messageSaisie", () => {
   it("absences : niveau et nombre d'absences injustifiées", () => {
     const m = messageSaisie("absence", eleve, alerte({ type: "absences", niveauRisque: "moyen", moyenneAvant: 0, moyenneApres: 5 }), "Absence du 21 octobre.");
     expect(m.titre).toBe("Alerte déclenchée : niveau Moyen pour Koffi Agossou");
-    expect(m.detail).toBe("Absence du 21 octobre. 5 absences injustifiées en Trimestre 1 2026-2027.");
+    expect(m.detail).toBe("Absence du 21 octobre. 5 absences injustifiées en Trimestre\u00a01 ·\u00a02026-2027.");
   });
 });
 
@@ -139,7 +139,7 @@ describe("texteComparaison (fiche élève)", () => {
   it("une note dans la période en cours : à partir de 2 notes", () => {
     expect(
       texteComparaison({ etat: "notes_insuffisantes", periodeRecente: { periode: "Trimestre 1", anneeScolaire: "2026-2027", moyenne: 9, noteCount: 1 } })
-    ).toBe("Notes comparées à partir de 2 notes en Trimestre 1 2026-2027 (1 pour l'instant). Les absences restent suivies.");
+    ).toBe("Notes comparées à partir de 2 notes en Trimestre\u00a01 ·\u00a02026-2027 (1 pour l'instant). Les absences restent suivies.");
   });
 
   it("moyennes comparées : aucune mention", () => {

@@ -24,6 +24,7 @@ import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { FUSEAU_BENIN } from "@/lib/dates";
 import { texteComparaison } from "@/lib/message-saisie";
 import { comparerMoyennes } from "@/lib/regles-alerte";
+import { formaterBaisse, formaterNombre } from "@/lib/format";
 
 const MoyenneChart = dynamic(() => import("./MoyenneChart"), {
   ssr: false,
@@ -41,6 +42,7 @@ type Note = {
 
 type Alerte = {
   id: string;
+  type: string;
   niveauRisque: string;
   periode: string;
   anneeScolaire: string | null;
@@ -354,26 +356,36 @@ export default function AdminStudentDetail({ student, enCours }: { student: Stud
                     </Button>
                   )}
                 </div>
-                <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-5 sm:grid-cols-4">
-                  <div>
-                    <dt className="text-sm font-semibold text-ink-secondary">Moyenne</dt>
-                    <dd className="mt-1 flex items-center gap-2">
-                      <span className="rounded-md border border-border bg-page px-2 py-0.5 text-sm font-semibold text-ink tabular-nums">
-                        {alert.moyenneAvant.toFixed(1)}
-                      </span>
-                      <svg width="22" height="10" viewBox="0 0 22 10" fill="none" aria-hidden="true" className="shrink-0 text-ink-secondary">
-                        <path d="M1 5h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                        <path d="M15 1.5L19.5 5 15 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      <span className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-sm font-semibold text-red-700 tabular-nums">
-                        {alert.moyenneApres.toFixed(1)}
-                      </span>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-semibold text-ink-secondary">Baisse</dt>
-                    <dd className="mt-1 font-semibold text-red-800">−{alert.ecartPourcent.toFixed(1)} %</dd>
-                  </div>
+                <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-5 min-[360px]:grid-cols-2 sm:grid-cols-4">
+                  {alert.type === "absences" ? (
+                    <div className="min-[360px]:col-span-2">
+                      <dt className="text-sm font-semibold text-ink-secondary">Absences injustifiées</dt>
+                      <dd className="mt-1 font-semibold tabular-nums text-red-800">{alert.moyenneApres}</dd>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <dt className="text-sm font-semibold text-ink-secondary">Moyenne</dt>
+                        <dd className="mt-1 flex items-center gap-2">
+                          <span className="rounded-md border border-border bg-page px-2 py-0.5 text-sm font-semibold text-ink tabular-nums">
+                            {formaterNombre(alert.moyenneAvant)}
+                          </span>
+                          <svg width="22" height="10" viewBox="0 0 22 10" fill="none" aria-hidden="true" className="shrink-0 text-ink-secondary">
+                            <path d="M1 5h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                            <path d="M15 1.5L19.5 5 15 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="sr-only"> puis </span>
+                          <span className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-sm font-semibold text-red-700 tabular-nums">
+                            {formaterNombre(alert.moyenneApres)}
+                          </span>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-semibold text-ink-secondary">Baisse</dt>
+                        <dd className="mt-1 font-semibold text-red-800">{formaterBaisse(alert.ecartPourcent)}</dd>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <dt className="text-sm font-semibold text-ink-secondary">Date</dt>
                     <dd className="mt-1 font-semibold text-ink">{formatDate(alert.createdAt)}</dd>

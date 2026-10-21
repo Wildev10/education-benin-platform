@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formaterNombre } from "@/lib/format";
 
 /** periode : libellé court de l'axe ; nom : libellé complet lu par les lecteurs d'écran */
 type ChartPoint = { periode: string; nom?: string; moyenne: number };
@@ -17,7 +18,7 @@ export default function MoyenneChart({ data }: { data: ChartPoint[] }) {
   return (
     <div
       role="img"
-      aria-label={`Évolution de la moyenne par trimestre : ${data.map((p) => `${p.nom ?? p.periode} ${p.moyenne.toFixed(1)} sur 20`).join(", ")}`}
+      aria-label={`Évolution de la moyenne par trimestre : ${data.map((p) => `${p.nom ?? p.periode} ${formaterNombre(p.moyenne)} sur 20`).join(", ")}`}
       className="mt-6 h-72 w-full"
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -38,7 +39,7 @@ export default function MoyenneChart({ data }: { data: ChartPoint[] }) {
             width={28}
           />
           <Tooltip
-            formatter={(value) => [`${Number(value).toFixed(2)}/20`, "Moyenne"]}
+            formatter={(value) => [`${formaterNombre(Number(value), 2)}/20`, "Moyenne"]}
             contentStyle={{
               borderRadius: "12px",
               border: "1px solid #E5E5E5",

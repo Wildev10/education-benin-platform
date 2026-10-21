@@ -6,6 +6,7 @@ import { Badge, riskVariant } from "@/components/ui/Badge";
 import { Pagination } from "@/components/Pagination";
 import { rechercherAlertesPaginees, type AlerteFiltree } from "@/lib/alertes-server";
 import { libellePeriode } from "@/lib/notes-trimestres";
+import { formaterBaisse, formaterNombre } from "@/lib/format";
 import {
   compterFiltresActifs,
   filtresVersParams,
@@ -20,13 +21,6 @@ import { BoutonTraiterAlerte } from "./BoutonTraiterAlerte";
 import { ZoneFiltresAlertes } from "./ZoneFiltresAlertes";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-function formaterNombre(valeur: number, decimales = 1) {
-  return valeur.toLocaleString("fr-FR", {
-    minimumFractionDigits: decimales,
-    maximumFractionDigits: decimales,
-  });
-}
 
 function formaterDate(date: Date) {
   return date.toLocaleDateString("fr-FR", {
@@ -78,7 +72,7 @@ function CarteAlerte({
         {peutTraiter && alerte.statut === "active" && <BoutonTraiterAlerte alerteId={alerte.id} />}
       </div>
 
-      <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-5 sm:grid-cols-4">
+      <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-5 min-[360px]:grid-cols-2 sm:grid-cols-4">
         <div>
           <dt className="text-sm font-semibold text-ink-secondary">Type</dt>
           <dd className="mt-1 font-semibold text-ink">{absences ? "Absences" : "Notes"}</dd>
@@ -99,7 +93,7 @@ function CarteAlerte({
                 <span className="sr-only"> puis </span>
                 <span className="text-red-700">{formaterNombre(alerte.moyenneApres)}</span>
                 <span className="ml-1.5 whitespace-nowrap text-sm font-bold text-red-700">
-                  (−{formaterNombre(alerte.ecartPourcent)} %)
+                  ({formaterBaisse(alerte.ecartPourcent)})
                 </span>
               </>
             )}

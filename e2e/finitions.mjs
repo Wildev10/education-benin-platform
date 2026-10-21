@@ -162,7 +162,7 @@ async function verifierAccordeon(page, nom, notes) {
     etat.filter((e) => e.ouvert).length === 1 && etat.find((e) => e.ouvert)?.cle === attendu, etat.filter((e) => e.ouvert).map((e) => e.cle).join(" | "));
   const moyennesOk = etat.every((e) => {
     const duT = notes.filter((n) => `${n.anneeScolaire}::${n.periode}` === e.cle);
-    return duT.length === 0 ? e.texte.includes("Pas de moyenne") : e.texte.includes(`${moyenne(duT).toFixed(1)}/20`) && e.texte.includes(`${duT.length} note`);
+    return duT.length === 0 ? e.texte.includes("Pas de moyenne") : e.texte.includes(`${moyenne(duT).toFixed(1).replace(".", ",")}/20`) && e.texte.includes(`${duT.length} note`);
   });
   check(`${nom} : chaque en-tête affiche la moyenne et le nombre de notes de son trimestre et de son année, même replié`, moyennesOk);
 
@@ -385,6 +385,9 @@ for (const cle of ["eleve", "absences", "recentes"]) {
   await ouvrir(tdb, "/admin");
   const lien = tdb.locator(`[data-raccourci="${cle}"]`);
   const annonce = Number((await lien.locator("span").first().textContent()).trim());
+  // Le nombre et son libellé se lisent comme une phrase : « 13 alertes détectées sur les 7 derniers jours »
+  const phrase = (await lien.innerText()).replace(/\s+/g, " ").trim();
+  check(`Accès direct « ${cle} » : se lit « ${annonce} alerte(s) … »`, new RegExp(`^${annonce} alertes? `).test(phrase), phrase);
   const href = await lien.getAttribute("href");
   await lien.focus();
   const auClavier = await lien.evaluate((el) => document.activeElement === el);
