@@ -9,6 +9,7 @@ import { filtresElevesVersParams, lireFiltresEleves } from "@/lib/filtres-eleves
 import { lirePagination } from "@/lib/pagination";
 import { corrigerUrlPagination } from "@/lib/pagination-serveur";
 import { FiltresEleves } from "./FiltresEleves";
+import { CadreDefilant } from "@/components/ui/CadreDefilant";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -76,7 +77,7 @@ export default async function StudentDirectory({
       ) : (
         <FiltresEleves filtres={filtres} taille={resultat.taille} etablissements={etablissements}>
           <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-            <div className="overflow-x-auto">
+            <CadreDefilant libelle="Liste des étudiants">
               <table className="w-full min-w-160 text-left">
                 <caption className="sr-only">Liste filtrée des étudiants</caption>
                 <thead>
@@ -99,7 +100,7 @@ export default async function StudentDirectory({
                       <td className="px-5 py-4">
                         <Link
                           href={`${detailBasePath}/${etudiant.id}`}
-                          className="font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-brand-dark hover:decoration-brand/30 focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
+                          className="font-semibold text-ink underline tactile:inline-flex tactile:min-h-11 tactile:min-w-11 tactile:items-center decoration-transparent underline-offset-4 hover:text-brand-dark hover:decoration-brand/30 focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
                         >
                           {etudiant.nom}
                         </Link>
@@ -120,7 +121,7 @@ export default async function StudentDirectory({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </CadreDefilant>
             {etudiants.length === 0 && (
               <p className="p-8 text-center text-ink-secondary">
                 Aucun étudiant ne correspond à ces filtres.

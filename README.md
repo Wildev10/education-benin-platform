@@ -65,9 +65,9 @@ La plateforme s'installe comme une application (PWA). Les pages et les données 
 
 ### Accessibilité et langues
 
-- Contraste élevé, taille du texte ajustable, lecture à voix haute.
+- Contraste élevé, taille du texte ajustable, lecture à voix haute, sur toutes les pages (y compris la 404). Sur téléphone et tablette, ces commandes sont dans le menu utilisateur.
 - Squelettes de chargement à la forme du contenu, respectant la réduction des animations et le contraste élevé.
-- Affichage soigné de 375 px à 1440 px.
+- **Responsive vérifié de 320 px à 1920 px** (téléphones, tablettes, ordinateurs, téléphone en paysage), au zoom de 200 % et avec la plus grande taille de texte : pas de défilement horizontal, tableaux qui défilent dans leur cadre (ombre au bord quand des colonnes restent à voir), zones à toucher d'au moins 44 × 44 px sur écran tactile.
 - **Accueil et connexion en français et en anglais** (`/en`, `/en/login`) : sélecteur FR/EN mémorisé, voix de lecture anglaise sur les pages anglaises. Après connexion, l'application est en français.
 - Page 404 unique, avec retour vers l'espace de l'utilisateur.
 
@@ -114,7 +114,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 ## Qualité
 
 - **477 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base.
-- **321 vérifications navigateur** (8 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
+- **1 827 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, notifications d'aggravation, version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---

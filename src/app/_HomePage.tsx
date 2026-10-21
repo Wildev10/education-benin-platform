@@ -45,7 +45,7 @@ export default function HomePage({ langue }: { langue: Langue }) {
             <SelecteurLangue page="accueil" langue={langue} />
             <Link
               href={connexion}
-              className="rounded-lg bg-brand px-5 py-2.5 text-sm font-bold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+              className="rounded-lg bg-brand px-5 py-2.5 tactile:min-h-11 tactile:items-center tactile:inline-flex text-sm font-bold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
             >
               {a.seConnecter}
             </Link>
@@ -169,7 +169,7 @@ export default function HomePage({ langue }: { langue: Langue }) {
           </div>
           <Link
             href={connexion}
-            className="text-sm font-semibold text-brand underline decoration-brand/30 underline-offset-2 transition hover:decoration-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="shrink-0 text-sm font-semibold text-brand underline tactile:inline-flex tactile:min-h-11 tactile:min-w-11 tactile:items-center decoration-brand/30 underline-offset-2 transition hover:decoration-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             {a.seConnecter}
           </Link>

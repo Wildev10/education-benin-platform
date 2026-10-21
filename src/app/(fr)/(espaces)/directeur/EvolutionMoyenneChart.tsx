@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -12,7 +13,11 @@ import {
 } from "recharts";
 import type { PointEvolution } from "@/lib/tableau-de-bord-directeur";
 
+/** Sous cette largeur, « Trimestre 1 » devient « T1 » : les trois étiquettes ne tiennent plus côte à côte. */
+const LARGEUR_ETIQUETTES_COURTES = 300;
+
 export default function EvolutionMoyenneChart({ data }: { data: PointEvolution[] }) {
+  const [etroit, setEtroit] = useState(false);
   return (
     <div
       role="img"
@@ -21,7 +26,7 @@ export default function EvolutionMoyenneChart({ data }: { data: PointEvolution[]
         .join(", ")}`}
       className="h-64 w-full"
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" onResize={(largeur) => setEtroit(largeur < LARGEUR_ETIQUETTES_COURTES)}>
         <LineChart data={data} margin={{ top: 16, right: 16, bottom: 4, left: 0 }}>
           <CartesianGrid strokeDasharray="4 4" stroke="#E5E5E5" vertical={false} />
           <XAxis
@@ -29,6 +34,7 @@ export default function EvolutionMoyenneChart({ data }: { data: PointEvolution[]
             interval={0}
             padding={{ left: 28, right: 28 }}
             tick={{ fill: "#404040", fontSize: 12 }}
+            tickFormatter={(periode: string) => (etroit ? periode.replace(/^Trimestre\s*/, "T") : periode)}
             axisLine={{ stroke: "#E5E5E5" }}
             tickLine={false}
           />

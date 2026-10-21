@@ -17,6 +17,7 @@ import type { StatsEtablissement } from "@/lib/stats-etablissements";
 import type { CleRaccourci, Raccourci } from "@/lib/raccourcis-alertes";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { IconeValide } from "@/components/ui/Icones";
+import { CadreDefilant } from "@/components/ui/CadreDefilant";
 
 const AlertesEtablissementChart = dynamic(() => import("./AlertesEtablissementChart"), {
   ssr: false,
@@ -219,7 +220,7 @@ export default function AdminDashboard({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/admin/alertes"
-              className="inline-flex min-h-[42px] items-center rounded-lg bg-ink px-4 text-sm font-semibold text-surface transition hover:bg-ink-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2"
+              className="inline-flex min-h-[42px] tactile:min-h-11 items-center rounded-lg bg-ink px-4 text-sm font-semibold text-surface transition hover:bg-ink-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2"
             >
               Voir toutes les alertes
             </Link>
@@ -279,7 +280,7 @@ export default function AdminDashboard({
                     <div className="flex flex-wrap items-center gap-3">
                       <Link
                         href={`/admin/etudiants/${alert.etudiant.id}`}
-                        className="text-lg font-bold text-ink underline decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+                        className="text-lg font-bold text-ink underline tactile:inline-flex tactile:min-h-11 tactile:items-center decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
                       >
                         {alert.etudiant.prenom} {alert.etudiant.nom}
                       </Link>
@@ -355,7 +356,7 @@ export default function AdminDashboard({
         </div>
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-          <div className="overflow-x-auto">
+          <CadreDefilant libelle="Statistiques par établissement">
             <table className="w-full min-w-180 text-left text-sm">
               <caption className="sr-only">Statistiques par établissement</caption>
               <thead>
@@ -436,7 +437,7 @@ export default function AdminDashboard({
                 ))}
               </tbody>
             </table>
-          </div>
+          </CadreDefilant>
         </div>
 
         <div className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-6">

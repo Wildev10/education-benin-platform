@@ -8,6 +8,7 @@ import { lirePagination } from "@/lib/pagination";
 import { corrigerUrlPagination } from "@/lib/pagination-serveur";
 import { prisma } from "@/lib/prisma";
 import { ZoneFiltresAbsences } from "./ZoneFiltresAbsences";
+import { CadreDefilant } from "@/components/ui/CadreDefilant";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -89,7 +90,7 @@ export async function PageAbsences({ chemin, searchParams }: { chemin: string; s
           </p>
 
           <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-            <div className="overflow-x-auto">
+            <CadreDefilant libelle="Liste des absences">
               <table className="w-full min-w-160 text-left text-sm">
                 <caption className="sr-only">Liste filtrée des absences</caption>
                 <thead>
@@ -110,7 +111,7 @@ export async function PageAbsences({ chemin, searchParams }: { chemin: string; s
                       <td className="px-5 py-4">
                         <Link
                           href={`${ficheBase}/${absence.etudiant.id}`}
-                          className="font-semibold text-ink underline decoration-transparent underline-offset-4 hover:text-brand-dark hover:decoration-brand/30 focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
+                          className="font-semibold text-ink underline tactile:inline-flex tactile:min-h-11 tactile:min-w-11 tactile:items-center decoration-transparent underline-offset-4 hover:text-brand-dark hover:decoration-brand/30 focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
                         >
                           {absence.etudiant.prenom} {absence.etudiant.nom}
                         </Link>
@@ -133,7 +134,7 @@ export async function PageAbsences({ chemin, searchParams }: { chemin: string; s
                   ))}
                 </tbody>
               </table>
-            </div>
+            </CadreDefilant>
             {absences.length === 0 && (
               <p className="px-5 py-8 text-center text-ink-secondary">
                 {requete.size > 0 ? "Aucune absence ne correspond à ces filtres." : "Aucune absence enregistrée."}

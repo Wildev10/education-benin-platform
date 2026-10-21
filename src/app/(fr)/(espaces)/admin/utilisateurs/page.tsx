@@ -41,7 +41,7 @@ export default async function UtilisateursPage({
         </div>
         <Link
           href="/admin/utilisateurs/nouveau"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
+          className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-brand-dark hover:text-surface focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2 tactile:min-h-11"
         >
           <span aria-hidden="true">+</span>
           Nouveau compte

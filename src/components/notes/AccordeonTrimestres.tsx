@@ -75,7 +75,7 @@ export function AccordeonTrimestres({
                 aria-expanded={ouvert}
                 aria-controls={idPanneau}
                 onClick={() => basculer(periode)}
-                className="flex min-h-14 w-full items-center justify-between gap-3 bg-ink px-5 py-3 text-left text-surface transition hover:bg-ink-secondary focus-visible:outline-brand focus-visible:-outline-offset-4"
+                className="flex min-h-14 w-full flex-wrap items-center justify-between gap-x-3 gap-y-2 bg-ink px-5 py-3 text-left text-surface transition hover:bg-ink-secondary focus-visible:outline-brand focus-visible:-outline-offset-4"
               >
                 <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
                   <span className="flex items-center gap-2.5 font-semibold">

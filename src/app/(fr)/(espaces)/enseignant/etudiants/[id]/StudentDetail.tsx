@@ -193,10 +193,10 @@ export default function StudentDetail({
   return (
     <div className="space-y-12">
       {/* ── Notes ──────────────────────────────────────────────── */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-8 lg:grid-cols-[1fr_380px] [&>*]:min-w-0">
         {/* Liste des notes */}
         <section aria-labelledby="notes-title">
-          <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
+          <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">
                 Historique
@@ -310,7 +310,7 @@ export default function StudentDetail({
 
           <Link
             href="/enseignant"
-            className="mt-5 inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-ink-secondary shadow-sm transition hover:border-brand hover:bg-brand-light hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
+            className="mt-5 inline-flex items-center tactile:min-h-11 gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-ink-secondary shadow-sm transition hover:border-brand hover:bg-brand-light hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -321,10 +321,10 @@ export default function StudentDetail({
       </div>
 
       {/* ── Absences ───────────────────────────────────────────── */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-8 lg:grid-cols-[1fr_380px] [&>*]:min-w-0">
         {/* Liste des absences */}
         <section aria-labelledby="absences-title">
-          <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
+          <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-dark">
                 Présence

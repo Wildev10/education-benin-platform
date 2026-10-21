@@ -60,7 +60,7 @@ function CarteAlerte({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <Link
               href={`${ficheBase}/${etudiant.id}`}
-              className="min-w-0 text-lg font-bold text-ink underline decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+              className="min-w-0 text-lg font-bold text-ink underline tactile:inline-flex tactile:min-h-11 tactile:items-center decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
             >
               {etudiant.prenom} {etudiant.nom}
             </Link>

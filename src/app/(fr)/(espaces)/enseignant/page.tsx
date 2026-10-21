@@ -73,7 +73,7 @@ export default async function EnseignantPage({
       </div>
 
       <section aria-label="Statistiques de mon école" className="mt-8">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(8rem,1fr))] gap-4 lg:grid-cols-4">
           <StatCard label="Mes élèves" value={stats.eleves} />
           <StatCard
             label="Alertes actives"

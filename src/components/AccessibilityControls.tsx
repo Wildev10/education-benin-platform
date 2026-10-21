@@ -36,11 +36,8 @@ export default function AccessibilityControls({
   const [isReading, setIsReading] = useState(false);
   const [speechMessage, setSpeechMessage] = useState("");
 
-  // Applique les préférences à la page ; localStorage n'est écrit que sur une action de l'utilisateur
-  useEffect(() => {
-    document.documentElement.dataset.theme = highContrast ? "high-contrast" : "default";
-    document.documentElement.dataset.fontSize = fontSize;
-  }, [highContrast, fontSize]);
+  // Les préférences sont appliquées à la page par AppliquerPreferences (Providers) ;
+  // localStorage n'est écrit que sur une action de l'utilisateur
 
   useEffect(() => () => {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();

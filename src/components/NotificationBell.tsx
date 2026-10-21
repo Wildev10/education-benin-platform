@@ -89,7 +89,7 @@ export default function NotificationBell({
         <div
           role="dialog"
           aria-label="Dernières alertes"
-          className="fixed inset-x-4 top-20 z-50 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl border border-border bg-surface text-ink shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80"
+          className="fixed inset-x-4 top-20 z-50 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-xl border border-border bg-surface text-ink shadow-xl sm:left-auto sm:right-4 sm:w-80 lg:absolute lg:inset-x-auto lg:right-0 lg:top-full lg:mt-2"
         >
           <p className="border-b border-border px-4 py-3 text-sm font-semibold">Dernières alertes</p>
           {notifications.length === 0 ? (

@@ -10,6 +10,7 @@ import type { DemandeReinitialisation } from "@/lib/reset-requests";
 import { Toast, Confirm, Swal } from "@/lib/swal";
 import { IconeCloche } from "@/components/ui/Icones";
 import { FUSEAU_BENIN } from "@/lib/dates";
+import { CadreDefilant } from "@/components/ui/CadreDefilant";
 
 const dateDemandeFmt = new Intl.DateTimeFormat("fr-FR", {
   dateStyle: "medium",
@@ -253,7 +254,7 @@ export default function UtilisateursList({
             <IconeCloche />
             {demandes.length} demande{demandes.length > 1 ? "s" : ""} de réinitialisation en attente
           </h2>
-          <div className="overflow-x-auto">
+          <CadreDefilant libelle="Demandes de réinitialisation">
             <table className="w-full min-w-160 text-sm">
               <thead>
                 <tr className="bg-ink text-surface">
@@ -284,7 +285,7 @@ export default function UtilisateursList({
                 ))}
               </tbody>
             </table>
-          </div>
+          </CadreDefilant>
         </section>
       )}
 
@@ -295,7 +296,7 @@ export default function UtilisateursList({
       )}
 
       <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        <div className="overflow-x-auto">
+        <CadreDefilant libelle="Comptes utilisateurs">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="bg-ink text-surface">
@@ -320,7 +321,7 @@ export default function UtilisateursList({
                       {u.role === "etudiant" && u.etudiantId && (
                         <Link
                           href={`/admin/etudiants/${u.etudiantId}`}
-                          className="text-xs font-medium text-brand-dark underline decoration-brand/30 underline-offset-2 hover:decoration-brand focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-1"
+                          className="text-xs font-medium text-brand-dark underline tactile:inline-flex tactile:min-h-11 tactile:items-center decoration-brand/30 underline-offset-2 hover:decoration-brand focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-1"
                         >
                           Voir la fiche<span className="sr-only"> de {u.prenom} {u.nom}</span>
                         </Link>
@@ -366,7 +367,7 @@ export default function UtilisateursList({
           {utilisateurs.length === 0 && (
             <p className="px-5 py-8 text-center text-ink-secondary">Aucun utilisateur.</p>
           )}
-        </div>
+        </CadreDefilant>
       </div>
     </>
   );

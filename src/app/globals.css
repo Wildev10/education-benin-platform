@@ -12,6 +12,31 @@
   --font-sans: var(--font-jakarta);
 }
 
+/* Écran tactile (doigt) : variante `tactile:` pour les liens et éléments à agrandir */
+@custom-variant tactile (@media (pointer: coarse));
+
+/*
+ * Écrans tactiles : toute commande fait au moins 44 × 44 px, la taille qu'un
+ * doigt touche sans erreur. Sans effet à la souris : l'affichage de bureau ne
+ * change pas. Dans la couche « base », une classe utilitaire peut l'ajuster.
+ */
+@layer base {
+  @media (pointer: coarse) {
+    button,
+    select,
+    summary,
+    [role="button"],
+    input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="file"], [type="range"]) {
+      min-height: 2.75rem;
+    }
+    button,
+    summary,
+    [role="button"] {
+      min-width: 2.75rem;
+    }
+  }
+}
+
 body {
   background-color: var(--color-page);
   color: var(--color-ink);
@@ -156,5 +181,15 @@ html[data-theme="high-contrast"] .squelette-trace {
 @media (max-width: 420px) {
   .swal-grid {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* Ombres des cadres de tableaux défilants : décoratives, retirées en contraste élevé */
+html[data-theme="high-contrast"] .cadre-ombre {
+  display: none;
+}
+@media (forced-colors: active) {
+  .cadre-ombre {
+    display: none;
   }
 }

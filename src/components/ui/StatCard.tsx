@@ -42,7 +42,7 @@ export function StatCard({ label, value, sublabel, icon, tone = "default" }: Sta
   const cls = toneCls[tone];
 
   return (
-    <article className={`rounded-[14px] border p-5 shadow-sm ${cls.card}`}>
+    <article className={`@container rounded-[14px] border p-5 shadow-sm ${cls.card}`}>
       <div className="flex items-start justify-between gap-3">
         <p className={`text-sm font-semibold ${cls.label}`}>{label}</p>
         {icon && (
@@ -51,7 +51,8 @@ export function StatCard({ label, value, sublabel, icon, tone = "default" }: Sta
           </span>
         )}
       </div>
-      <p className={`mt-3 text-4xl font-bold tabular-nums ${cls.value}`}>{value}</p>
+      {/* Taille selon la largeur de la carte (requête de conteneur), pour que le chiffre y tienne toujours */}
+      <p className={`mt-3 text-2xl font-bold tabular-nums @[6.5rem]:text-3xl @[8rem]:text-4xl ${cls.value}`}>{value}</p>
       {sublabel && (
         <p className={`mt-1.5 text-sm font-medium ${cls.label}`}>{sublabel}</p>
       )}

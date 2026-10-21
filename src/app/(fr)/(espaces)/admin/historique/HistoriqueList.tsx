@@ -7,6 +7,7 @@ import { ACTION_TYPES, type ActionType } from "@/lib/audit-types";
 import { filtresHistoriqueVersParams, type FiltresHistorique } from "@/lib/filtres-historique";
 import type { EntreeHistorique } from "@/lib/historique";
 import { urlListe, type TaillePage } from "@/lib/pagination";
+import { CadreDefilant } from "@/components/ui/CadreDefilant";
 
 const actionLabels: Record<ActionType, string> = {
   NOTE_CREEE: "Note créée",
@@ -105,7 +106,7 @@ export default function HistoriqueList({
         className={`mt-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition-opacity ${loading ? "opacity-60" : ""}`}
         aria-busy={loading}
       >
-        <div className="overflow-x-auto">
+        <CadreDefilant libelle="Historique des actions">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="bg-ink text-surface">
@@ -142,7 +143,7 @@ export default function HistoriqueList({
           {logs.length === 0 && (
             <p className="px-5 py-8 text-center text-ink-secondary">Aucune action enregistrée.</p>
           )}
-        </div>
+        </CadreDefilant>
       </div>
       {children}
     </>

@@ -12,7 +12,7 @@ import {
 } from "@/lib/pagination";
 
 const boutonCls =
-  "inline-flex min-h-10 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark";
+  "inline-flex min-h-10 tactile:min-h-11 tactile:min-w-11 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark";
 const actifCls = `${boutonCls} border-border bg-surface text-ink hover:border-brand hover:bg-brand-light`;
 const inactifCls = `${boutonCls} cursor-not-allowed border-border bg-page text-ink-secondary/60`;
 
@@ -54,7 +54,7 @@ export function Pagination({
       </p>
 
       {nbPages > 1 && (
-        <div className="flex items-center justify-between gap-2 sm:justify-start">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-start">
           {page > 1 ? (
             <Link href={lien(page - 1)} className={actifCls} rel="prev">
               <span aria-hidden="true">‹</span>&nbsp;Précédent

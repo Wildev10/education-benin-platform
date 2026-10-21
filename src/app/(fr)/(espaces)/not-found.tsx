@@ -29,7 +29,7 @@ export default async function NotFound() {
         </div>
 
         <div className="mt-8 rounded-2xl border border-border bg-surface px-6 py-10 shadow-sm sm:px-10">
-          <p aria-hidden="true" className="text-6xl font-bold tracking-tight text-brand tabular-nums sm:text-7xl">
+          <p aria-hidden="true" className="text-6xl font-bold tracking-tight text-brand-dark tabular-nums sm:text-7xl">
             404
           </p>
           <h1 className="mt-4 text-2xl font-bold text-ink sm:text-3xl">Page introuvable</h1>

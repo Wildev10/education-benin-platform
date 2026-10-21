@@ -30,7 +30,7 @@ export function SelecteurLangue({
                 hrefLang={l}
                 lang={l}
                 aria-current={active ? "true" : undefined}
-                className={`flex min-h-9 min-w-10 items-center justify-center rounded-md px-2.5 uppercase tracking-wide transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark ${
+                className={`flex min-h-9 min-w-10 items-center tactile:min-h-11 tactile:min-w-11 justify-center rounded-md px-2.5 uppercase tracking-wide transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark ${
                   active
                     ? sombre
                       ? "bg-white/15 text-surface"

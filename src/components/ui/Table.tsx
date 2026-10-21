@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { CadreDefilant } from "@/components/ui/CadreDefilant";
 
 type Column<T> = {
   key: string;
@@ -34,7 +35,7 @@ export function Table<T>({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-      <div className="overflow-x-auto">
+      <CadreDefilant libelle={caption ?? "Tableau"}>
         <table
           className="w-full text-left text-sm"
           style={minWidth ? { minWidth } : undefined}
@@ -85,7 +86,7 @@ export function Table<T>({
             ))}
           </tbody>
         </table>
-      </div>
+      </CadreDefilant>
       {rows.length === 0 && (
         <p className="px-5 py-8 text-center text-ink-secondary">{empty}</p>
       )}

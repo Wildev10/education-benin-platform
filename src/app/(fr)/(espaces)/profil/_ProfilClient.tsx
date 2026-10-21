@@ -83,7 +83,7 @@ function EyeButton({
       type="button"
       onClick={onToggle}
       aria-label={label}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-secondary hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-1 rounded"
+      className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-ink-secondary transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-1"
     >
       {show ? (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -324,7 +324,7 @@ export default function ProfilClient({ initialData }: { initialData: ProfilData 
                     onChange={(e) => setMotDePasseActuel(e.target.value)}
                     required
                     autoComplete="current-password"
-                    className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pr-11 text-ink placeholder:text-ink-secondary/50 transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+                    className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pr-12 text-ink placeholder:text-ink-secondary/50 transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   />
                   <EyeButton
                     show={showActuel}
@@ -347,7 +347,7 @@ export default function ProfilClient({ initialData }: { initialData: ProfilData 
                     onChange={(e) => setNouveauMotDePasse(e.target.value)}
                     required
                     autoComplete="new-password"
-                    className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pr-11 text-ink placeholder:text-ink-secondary/50 transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+                    className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pr-12 text-ink placeholder:text-ink-secondary/50 transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   />
                   <EyeButton
                     show={showNouveau}
@@ -371,7 +371,7 @@ export default function ProfilClient({ initialData }: { initialData: ProfilData 
                     onChange={(e) => setConfirmation(e.target.value)}
                     required
                     autoComplete="new-password"
-                    className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pr-11 text-ink placeholder:text-ink-secondary/50 transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+                    className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pr-12 text-ink placeholder:text-ink-secondary/50 transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   />
                   <EyeButton
                     show={showConfirmation}

@@ -88,7 +88,7 @@ export default function ImportNotesPage() {
           </svg>
           Télécharger le modèle CSV
         </Button>
-        <p className="text-sm text-ink-secondary">Format : <code className="rounded bg-page px-1 py-px text-xs">email_etudiant,matiere,valeur,periode,anneeScolaire</code></p>
+        <p className="text-sm text-ink-secondary">Format : <code className="rounded bg-page px-1 py-px text-xs [overflow-wrap:anywhere]">email_etudiant,matiere,valeur,periode,anneeScolaire</code></p>
       </div>
 
       {/* Zone de dépôt */}

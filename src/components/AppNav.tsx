@@ -90,21 +90,31 @@ export function AppNav({ items, ariaLabel }: { items: NavItem[]; ariaLabel: stri
         setOpen(false);
       }
     }
+    // Échap ferme le menu et rend le focus au bouton qui l'a ouvert
+    function touche(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      buttonRef.current?.focus();
+    }
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("keydown", touche);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", touche);
+    };
   }, [open]);
 
   return (
     <nav aria-label={ariaLabel} className="border-b border-border bg-surface">
       {/* Desktop nav */}
-      <div className="mx-auto hidden max-w-7xl gap-6 px-5 sm:flex sm:px-8">
+      <div className="mx-auto hidden max-w-7xl flex-wrap gap-x-6 px-5 sm:px-8 md:flex">
         {items.map((item) => (
           <NavItemLink key={item.href} {...item} />
         ))}
       </div>
 
       {/* Mobile nav */}
-      <div className="relative sm:hidden">
+      <div className="relative md:hidden">
         <div className="flex items-center justify-between px-5 py-1">
           <span className="text-sm font-semibold text-ink-secondary">Navigation</span>
           <button
@@ -114,7 +124,7 @@ export function AppNav({ items, ariaLabel }: { items: NavItem[]; ariaLabel: stri
             aria-controls="mobile-nav-menu"
             aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
             onClick={() => setOpen((v) => !v)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg transition hover:bg-page focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
+            className="flex h-11 w-11 items-center justify-center rounded-lg transition hover:bg-page focus:outline-none focus:ring-2 focus:ring-brand-dark focus:ring-offset-2"
           >
             {open ? (
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">

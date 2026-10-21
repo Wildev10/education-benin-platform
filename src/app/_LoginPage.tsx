@@ -218,7 +218,7 @@ export default function LoginPageClient({ langue }: { langue: Langue }) {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full rounded-lg border border-border bg-surface pl-4 pr-10 py-3 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
+                      className="w-full rounded-lg border border-border bg-surface pl-4 pr-12 py-3 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark"
                       autoComplete="current-password"
                       required
                     />
@@ -226,7 +226,7 @@ export default function LoginPageClient({ langue }: { langue: Langue }) {
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
                       aria-label={showPassword ? t.masquerMotDePasse : t.afficherMotDePasse}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-secondary hover:text-ink transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-1 rounded"
+                      className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-ink-secondary transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-1"
                     >
                       {showPassword ? (
                         /* Œil barré — mot de passe visible */

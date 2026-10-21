@@ -102,7 +102,7 @@ export default async function DirecteurPage() {
       </div>
 
       {/* ── Chiffres clés ───────────────────────────────────────── */}
-      <section aria-label="Chiffres clés" className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <section aria-label="Chiffres clés" className="mt-8 grid grid-cols-[repeat(auto-fit,minmax(8rem,1fr))] gap-4 lg:grid-cols-5">
         <StatCard label="Élèves" value={tdb.nbEleves} sublabel="inscrits" />
         <StatCard
           label="Moyenne générale"
@@ -130,14 +130,12 @@ export default async function DirecteurPage() {
           sublabel={`en ${tdb.mois}`}
           tone={tdb.absencesInjustifieesMois > 0 ? "warning" : "default"}
         />
-        <div className="col-span-2 lg:col-span-1">
-          <StatCard
-            label="Élèves en alerte"
-            value={`${tdb.tauxElevesEnAlerte.toLocaleString("fr-FR")} %`}
-            sublabel={`${tdb.nbElevesEnAlerte} sur ${tdb.nbEleves} élèves`}
-            tone={tdb.tauxElevesEnAlerte >= 25 ? "danger" : tdb.tauxElevesEnAlerte >= 10 ? "warning" : "default"}
-          />
-        </div>
+        <StatCard
+          label="Élèves en alerte"
+          value={`${tdb.tauxElevesEnAlerte.toLocaleString("fr-FR")} %`}
+          sublabel={`${tdb.nbElevesEnAlerte} sur ${tdb.nbEleves} élèves`}
+          tone={tdb.tauxElevesEnAlerte >= 25 ? "danger" : tdb.tauxElevesEnAlerte >= 10 ? "warning" : "default"}
+        />
       </section>
 
       {/* ── Graphiques ──────────────────────────────────────────── */}
