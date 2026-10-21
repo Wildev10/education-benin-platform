@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth-guard";
+import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
+import { selectionnerAnneeExport } from "@/lib/annee-export";
 import { prisma } from "@/lib/prisma";
 import { introuvable, peutAccederEtudiant } from "@/lib/perimetre";
 import { reponseXlsx } from "@/lib/excel/commun";
@@ -18,7 +20,6 @@ export async function GET(_request: Request, context: RouteContext) {
       where: { id },
       include: {
         etablissement: true,
-        inscriptions: { select: { anneeScolaire: true } },
         notes: { select: { matiere: true, valeur: true, periode: true, anneeScolaire: true } },
         absences: { select: { date: true, motif: true, periode: true, anneeScolaire: true } },
         alertes: { orderBy: { createdAt: "desc" } },
@@ -30,18 +31,16 @@ export async function GET(_request: Request, context: RouteContext) {
       return introuvable("Étudiant introuvable");
     }
 
-    const annees = [
-      ...etudiant.inscriptions.map((i) => i.anneeScolaire),
-      ...etudiant.notes.map((n) => n.anneeScolaire),
-    ].sort();
-    const anneeScolaire = annees.at(-1) ?? "—";
+    // Année scolaire en cours au Bénin ; sans note ou absence cette année,
+    // le récapitulatif de l'année précédente (voir selectionnerAnneeExport)
+    const { anneeScolaire } = periodeScolaireAuBenin(new Date());
     const genereLe = new Date();
 
     const classeur = classeurFicheEleve({
       etudiant,
       anneeScolaire,
-      notes: etudiant.notes.filter((n) => n.anneeScolaire === anneeScolaire),
-      absences: etudiant.absences.filter((a) => a.anneeScolaire === anneeScolaire),
+      notes: selectionnerAnneeExport(etudiant.notes, anneeScolaire),
+      absences: selectionnerAnneeExport(etudiant.absences, anneeScolaire),
       alertes: etudiant.alertes,
       genereLe,
     });

@@ -1,4 +1,5 @@
 import type { Session } from "next-auth";
+import { libellePeriode } from "@/lib/notes-trimestres";
 import { prisma } from "@/lib/prisma";
 import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
 
@@ -118,6 +119,7 @@ export async function getTableauDeBordDirecteur(
         niveauRisque: true,
         type: true,
         periode: true,
+        anneeScolaire: true,
         moyenneApres: true,
         ecartPourcent: true,
         createdAt: true,
@@ -147,6 +149,7 @@ export async function getTableauDeBordDirecteur(
         id: true,
         date: true,
         periode: true,
+        anneeScolaire: true,
         etudiant: { select: { id: true, nom: true, prenom: true, niveau: true } },
       },
     }),
@@ -222,7 +225,7 @@ export async function getTableauDeBordDirecteur(
       niveau: a.etudiant.niveau,
       niveauRisque: a.niveauRisque,
       type: a.type,
-      periode: a.periode,
+      periode: libellePeriode(a.periode, a.anneeScolaire),
       moyenneApres: a.moyenneApres,
       ecartPourcent: arrondir(a.ecartPourcent, 1),
     });
@@ -249,7 +252,7 @@ export async function getTableauDeBordDirecteur(
     dernieresAbsences: dernieresAbsences.map((a) => ({
       id: a.id,
       date: a.date.toISOString(),
-      periode: a.periode,
+      periode: libellePeriode(a.periode, a.anneeScolaire),
       etudiant: a.etudiant,
     })),
   };

@@ -1,4 +1,5 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
+import type { ReactNode } from "react";
 import {
   EntetePdf,
   PiedPagePdf,
@@ -8,7 +9,11 @@ import {
   ligneStyle,
   styles,
 } from "@/lib/pdf/commun";
+import { messageAucun, titreRecapitulatif, type AnneeExport } from "@/lib/annee-export";
 import { libellePeriode } from "@/lib/notes-trimestres";
+
+type NotePdf = { matiere: string; valeur: number; periode: string; anneeScolaire: string };
+type AbsencePdf = { motif: string; periode: string; anneeScolaire: string };
 
 const PERIODES = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
 const ORDRE_MATIERES = ["Mathématiques", "Physique-Chimie", "SVT", "Français", "Anglais", "Histoire-Géo"];
@@ -20,9 +25,10 @@ export type DonneesFicheEtudiant = {
     niveau: string;
     etablissement: { nom: string; departement: string; commune: string };
   };
+  /** Année scolaire en cours au Bénin */
   anneeScolaire: string;
-  notes: { matiere: string; valeur: number; periode: string }[];
-  absences: { motif: string; periode: string }[];
+  notes: AnneeExport<NotePdf>;
+  absences: AnneeExport<AbsencePdf>;
   alertes: {
     niveauRisque: string;
     periode: string;
@@ -56,20 +62,111 @@ function CelluleNote({ valeur, gras = false, width }: { valeur: number | null; g
   );
 }
 
-export function FicheEtudiantPdf({ etudiant, anneeScolaire, notes, absences, alertes, genereLe }: DonneesFicheEtudiant) {
+/**
+ * Éléments de l'année en cours ; sinon « Aucune note pour l'année … pour
+ * l'instant », puis le récapitulatif de l'année précédente s'il existe.
+ */
+function SectionAnnee<T>({
+  selection,
+  type,
+  rendu,
+}: {
+  selection: AnneeExport<T>;
+  type: "note" | "absence";
+  rendu: (elements: T[], annee: string) => ReactNode;
+}) {
+  if (selection.enCours.length > 0) return <>{rendu(selection.enCours, selection.anneeEnCours)}</>;
+  return (
+    <>
+      <Text style={styles.vide}>{messageAucun(type, selection.anneeEnCours)}</Text>
+      {selection.precedente && (
+        <>
+          <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", marginTop: 8, marginBottom: 4 }}>
+            {titreRecapitulatif(selection.precedente.anneeScolaire)}
+          </Text>
+          {rendu(selection.precedente.elements, selection.precedente.anneeScolaire)}
+        </>
+      )}
+    </>
+  );
+}
+
+function TableauNotes({ notes, annee }: { notes: NotePdf[]; annee: string }) {
   const matieres = [...new Set(notes.map((n) => n.matiere))].sort((a, b) => {
     const ia = ORDRE_MATIERES.indexOf(a);
     const ib = ORDRE_MATIERES.indexOf(b);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b, "fr");
   });
-  const alertesActives = alertes.filter((a) => a.statut === "active");
-  const absencesParPeriode = PERIODES.map((periode) => {
+  return (
+    <View style={styles.table} wrap={false}>
+      <View style={styles.ligneEntete}>
+        <Text style={[styles.celluleEntete, { width: "34%" }]}>Matière ({annee})</Text>
+        {PERIODES.map((p) => (
+          <Text key={p} style={[styles.celluleEntete, { width: "22%", textAlign: "right" }]}>
+            {p}
+          </Text>
+        ))}
+      </View>
+      {matieres.map((matiere, i) => (
+        <View key={matiere} style={ligneStyle(i)}>
+          <Text style={[styles.cellule, { width: "34%" }]}>{matiere}</Text>
+          {PERIODES.map((p) => (
+            <CelluleNote
+              key={p}
+              width="22%"
+              valeur={moyenne(notes.filter((n) => n.matiere === matiere && n.periode === p).map((n) => n.valeur))}
+            />
+          ))}
+        </View>
+      ))}
+      <View style={[styles.ligne, { borderTopWidth: 1.5, borderTopColor: couleurs.noir }]}>
+        <Text style={[styles.cellule, styles.gras, { width: "34%" }]}>Moyenne du trimestre</Text>
+        {PERIODES.map((p) => (
+          <CelluleNote key={p} width="22%" gras valeur={moyenne(notes.filter((n) => n.periode === p).map((n) => n.valeur))} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function TableauAbsences({ absences, annee }: { absences: AbsencePdf[]; annee: string }) {
+  const parPeriode = PERIODES.map((periode) => {
     const liste = absences.filter((a) => a.periode === periode);
     const injustifiees = liste.filter((a) => a.motif === "injustifiee").length;
     return { periode, injustifiees, justifiees: liste.length - injustifiees, total: liste.length };
   });
-  const totalInjustifiees = absencesParPeriode.reduce((s, p) => s + p.injustifiees, 0);
-  const totalJustifiees = absencesParPeriode.reduce((s, p) => s + p.justifiees, 0);
+  const totalInjustifiees = parPeriode.reduce((s, p) => s + p.injustifiees, 0);
+  const totalJustifiees = parPeriode.reduce((s, p) => s + p.justifiees, 0);
+  return (
+    <View style={styles.table}>
+      <View style={styles.ligneEntete}>
+        <Text style={[styles.celluleEntete, { width: "34%" }]}>Période</Text>
+        <Text style={[styles.celluleEntete, { width: "22%", textAlign: "right" }]}>Injustifiées</Text>
+        <Text style={[styles.celluleEntete, { width: "22%", textAlign: "right" }]}>Justifiées</Text>
+        <Text style={[styles.celluleEntete, { width: "22%", textAlign: "right" }]}>Total</Text>
+      </View>
+      {parPeriode.map((p, i) => (
+        <View key={p.periode} style={ligneStyle(i)}>
+          <Text style={[styles.cellule, { width: "34%" }]}>{libellePeriode(p.periode, annee)}</Text>
+          <Text style={[styles.cellule, { width: "22%", textAlign: "right" }, ...(p.injustifiees > 0 ? [styles.rouge] : [])]}>
+            {p.injustifiees}
+          </Text>
+          <Text style={[styles.cellule, { width: "22%", textAlign: "right" }]}>{p.justifiees}</Text>
+          <Text style={[styles.cellule, styles.gras, { width: "22%", textAlign: "right" }]}>{p.total}</Text>
+        </View>
+      ))}
+      <View style={[styles.ligne, { borderTopWidth: 1.5, borderTopColor: couleurs.noir }]}>
+        <Text style={[styles.cellule, styles.gras, { width: "34%" }]}>Total {annee}</Text>
+        <Text style={[styles.cellule, styles.gras, { width: "22%", textAlign: "right" }]}>{totalInjustifiees}</Text>
+        <Text style={[styles.cellule, styles.gras, { width: "22%", textAlign: "right" }]}>{totalJustifiees}</Text>
+        <Text style={[styles.cellule, styles.gras, { width: "22%", textAlign: "right" }]}>{totalInjustifiees + totalJustifiees}</Text>
+      </View>
+    </View>
+  );
+}
+
+export function FicheEtudiantPdf({ etudiant, anneeScolaire, notes, absences, alertes, genereLe }: DonneesFicheEtudiant) {
+  const alertesActives = alertes.filter((a) => a.statut === "active");
 
   return (
     <Document
@@ -120,77 +217,24 @@ export function FicheEtudiantPdf({ etudiant, anneeScolaire, notes, absences, ale
           </View>
         </View>
 
-        {/* Notes */}
+        {/* Notes : année en cours, sinon récapitulatif de l'année précédente */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitre}>Notes par période (sur 20)</Text>
-          {matieres.length === 0 ? (
-            <Text style={styles.vide}>Aucune note enregistrée.</Text>
-          ) : (
-            <View style={styles.table} wrap={false}>
-              <View style={styles.ligneEntete}>
-                <Text style={[styles.celluleEntete, { width: "34%" }]}>Matière</Text>
-                {PERIODES.map((p) => (
-                  <Text key={p} style={[styles.celluleEntete, { width: "22%", textAlign: "right" }]}>
-                    {p}
-                  </Text>
-                ))}
-              </View>
-              {matieres.map((matiere, i) => (
-                <View key={matiere} style={ligneStyle(i)}>
-                  <Text style={[styles.cellule, { width: "34%" }]}>{matiere}</Text>
-                  {PERIODES.map((p) => (
-                    <CelluleNote
-                      key={p}
-                      width="22%"
-                      valeur={moyenne(notes.filter((n) => n.matiere === matiere && n.periode === p).map((n) => n.valeur))}
-                    />
-                  ))}
-                </View>
-              ))}
-              <View style={[styles.ligne, { borderTopWidth: 1.5, borderTopColor: couleurs.noir }]}>
-                <Text style={[styles.cellule, styles.gras, { width: "34%" }]}>Moyenne du trimestre</Text>
-                {PERIODES.map((p) => (
-                  <CelluleNote
-                    key={p}
-                    width="22%"
-                    gras
-                    valeur={moyenne(notes.filter((n) => n.periode === p).map((n) => n.valeur))}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
+          <Text style={styles.sectionTitre}>Notes par période (sur 20) — année {anneeScolaire}</Text>
+          <SectionAnnee
+            selection={notes}
+            type="note"
+            rendu={(liste, annee) => <TableauNotes notes={liste} annee={annee} />}
+          />
         </View>
 
-        {/* Absences */}
+        {/* Absences : même règle */}
         <View style={styles.section} wrap={false}>
-          <Text style={styles.sectionTitre}>Absences</Text>
-          <View style={styles.table}>
-            <View style={styles.ligneEntete}>
-              <Text style={[styles.celluleEntete, { width: "34%" }]}>Période</Text>
-              <Text style={[styles.celluleEntete, { width: "22%", textAlign: "right" }]}>Injustifiées</Text>
-              <Text style={[styles.celluleEntete, { width: "22%", textAlign: "right" }]}>Justifiées</Text>
-              <Text style={[styles.celluleEntete, { width: "22%", textAlign: "right" }]}>Total</Text>
-            </View>
-            {absencesParPeriode.map((p, i) => (
-              <View key={p.periode} style={ligneStyle(i)}>
-                <Text style={[styles.cellule, { width: "34%" }]}>{p.periode}</Text>
-                <Text style={[styles.cellule, { width: "22%", textAlign: "right" }, ...(p.injustifiees > 0 ? [styles.rouge] : [])]}>
-                  {p.injustifiees}
-                </Text>
-                <Text style={[styles.cellule, { width: "22%", textAlign: "right" }]}>{p.justifiees}</Text>
-                <Text style={[styles.cellule, styles.gras, { width: "22%", textAlign: "right" }]}>{p.total}</Text>
-              </View>
-            ))}
-            <View style={[styles.ligne, { borderTopWidth: 1.5, borderTopColor: couleurs.noir }]}>
-              <Text style={[styles.cellule, styles.gras, { width: "34%" }]}>Total année</Text>
-              <Text style={[styles.cellule, styles.gras, { width: "22%", textAlign: "right" }]}>{totalInjustifiees}</Text>
-              <Text style={[styles.cellule, styles.gras, { width: "22%", textAlign: "right" }]}>{totalJustifiees}</Text>
-              <Text style={[styles.cellule, styles.gras, { width: "22%", textAlign: "right" }]}>
-                {totalInjustifiees + totalJustifiees}
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.sectionTitre}>Absences — année {anneeScolaire}</Text>
+          <SectionAnnee
+            selection={absences}
+            type="absence"
+            rendu={(liste, annee) => <TableauAbsences absences={liste} annee={annee} />}
+          />
         </View>
 
         {/* Alertes */}

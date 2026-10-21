@@ -14,6 +14,7 @@ import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import { SqueletteGraphiqueBarres } from "@/components/ui/Squelette";
 import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 import type { StatsEtablissement } from "@/lib/stats-etablissements";
+import { libellePeriode } from "@/lib/notes-trimestres";
 import type { CleRaccourci, Raccourci } from "@/lib/raccourcis-alertes";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { IconeValide } from "@/components/ui/Icones";
@@ -40,6 +41,7 @@ type Alert = {
   id: string;
   niveauRisque: string;
   periode: string;
+  anneeScolaire: string | null;
   moyenneAvant: number;
   moyenneApres: number;
   ecartPourcent: number;
@@ -308,7 +310,7 @@ export default function AdminDashboard({
                 <dl className="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-3">
                   <div>
                     <dt className="text-sm font-semibold text-ink-secondary">Période</dt>
-                    <dd className="mt-1 font-semibold text-ink">{alert.periode}</dd>
+                    <dd className="mt-1 font-semibold text-ink">{libellePeriode(alert.periode, alert.anneeScolaire)}</dd>
                   </div>
                   <div>
                     <dt className="text-sm font-semibold text-ink-secondary">Moyenne</dt>

@@ -1,10 +1,13 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { EntetePdf, PiedPagePdf, couleurs, formatNote, ligneStyle, styles } from "@/lib/pdf/commun";
+import { libellePeriode } from "@/lib/notes-trimestres";
 
 export type AlerteRapport = {
   type: string;
   niveauRisque: string;
   periode: string;
+  /** Absente des anciennes alertes */
+  anneeScolaire?: string | null;
   moyenneApres: number;
   ecartPourcent: number;
   etudiant: {
@@ -16,10 +19,10 @@ export type AlerteRapport = {
 };
 
 const COLONNES = [
-  { titre: "Étudiant", width: "24%" },
-  { titre: "Établissement", width: "22%" },
-  { titre: "Niveau", width: "11%" },
-  { titre: "Période", width: "15%" },
+  { titre: "Étudiant", width: "22%" },
+  { titre: "Établissement", width: "20%" },
+  { titre: "Niveau", width: "10%" },
+  { titre: "Période", width: "20%" },
   { titre: "Baisse", width: "12%", droite: true },
   { titre: "Moyenne actuelle", width: "16%", droite: true },
 ];
@@ -118,7 +121,7 @@ export function RapportAlertesPdf({
                   >
                     {a.niveauRisque === "eleve" ? "Élevé" : "Moyen"}
                   </Text>
-                  <Text style={[styles.cellule, { width: COLONNES[3].width }]}>{a.periode}</Text>
+                  <Text style={[styles.cellule, { width: COLONNES[3].width }]}>{libellePeriode(a.periode, a.anneeScolaire)}</Text>
                   {a.type === "absences" ? (
                     <>
                       <Text style={[styles.cellule, styles.gris, { width: COLONNES[4].width, textAlign: "right" }]}>—</Text>

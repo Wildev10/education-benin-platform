@@ -1,3 +1,4 @@
+import { messageAucun, titreRecapitulatif, type AnneeExport } from "@/lib/annee-export";
 import { libellePeriode } from "@/lib/notes-trimestres";
 import { slugFichier } from "@/lib/pdf/commun";
 import {
@@ -29,9 +30,10 @@ export type DonneesFicheExcel = {
     niveau: string;
     etablissement: { nom: string; departement: string; commune: string };
   };
+  /** Année scolaire en cours au Bénin */
   anneeScolaire: string;
-  notes: { matiere: string; valeur: number; periode: string }[];
-  absences: { date: Date; motif: string; periode: string }[];
+  notes: AnneeExport<{ matiere: string; valeur: number; periode: string; anneeScolaire: string }>;
+  absences: AnneeExport<{ date: Date; motif: string; periode: string; anneeScolaire: string }>;
   alertes: {
     type: string;
     niveauRisque: string;
@@ -46,6 +48,21 @@ export type DonneesFicheExcel = {
   }[];
   genereLe: Date;
 };
+
+/**
+ * Éléments affichés dans une feuille, son année et ses lignes d'information :
+ * l'année en cours, sinon « Aucune note pour l'année … pour l'instant » et le
+ * récapitulatif de l'année précédente s'il existe.
+ */
+function contenuAnnee<T>(selection: AnneeExport<T>, type: "note" | "absence", suffixe = "") {
+  if (selection.enCours.length > 0) {
+    return { elements: selection.enCours, annee: selection.anneeEnCours, informations: [`Année scolaire ${selection.anneeEnCours}${suffixe}`] };
+  }
+  const aucun = messageAucun(type, selection.anneeEnCours);
+  if (!selection.precedente) return { elements: [] as T[], annee: selection.anneeEnCours, informations: [aucun] };
+  const { anneeScolaire, elements } = selection.precedente;
+  return { elements, annee: anneeScolaire, informations: [aucun, `${titreRecapitulatif(anneeScolaire)}${suffixe}`] };
+}
 
 export function nomFichierFiche(d: Pick<DonneesFicheExcel, "etudiant" | "genereLe">) {
   return nomFichierXlsx(`fiche-${slugFichier(d.etudiant.nom, d.etudiant.prenom)}`, d.genereLe);
@@ -91,22 +108,30 @@ export function classeurFicheEleve(d: DonneesFicheExcel) {
   }
 
   // ── Notes : moyenne par matière et par trimestre ──────────────────────────
+  const contenuNotes = contenuAnnee(d.notes, "note", " — moyennes sur 20");
+  const notesAnnee = contenuNotes.elements;
   const notes = nouvelleFeuille(classeur, "Notes", {
     ...entete,
-    informations: [`Année scolaire ${anneeScolaire} — moyennes sur 20`],
+    informations: contenuNotes.informations,
     colonnes: [
       { titre: "Matière", cle: "matiere", largeur: 22 },
-      ...PERIODES.map((p, i) => ({ titre: p, cle: `t${i + 1}`, largeur: 14, format: FORMAT_NOTE, alignement: "right" as const })),
+      ...PERIODES.map((p, i) => ({
+        titre: libellePeriode(p, contenuNotes.annee),
+        cle: `t${i + 1}`,
+        largeur: 21,
+        format: FORMAT_NOTE,
+        alignement: "right" as const,
+      })),
       { titre: "Moyenne annuelle", cle: "annuelle", largeur: 18, format: FORMAT_NOTE, alignement: "right" as const },
     ],
   });
-  const matieres = [...new Set(d.notes.map((n) => n.matiere))].sort((a, b) => {
+  const matieres = [...new Set(notesAnnee.map((n) => n.matiere))].sort((a, b) => {
     const ia = ORDRE_MATIERES.indexOf(a);
     const ib = ORDRE_MATIERES.indexOf(b);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b, "fr");
   });
-  const moyennePour = (filtre: (n: DonneesFicheExcel["notes"][number]) => boolean) =>
-    arrondi2(moyenne(d.notes.filter(filtre).map((n) => n.valeur)));
+  const moyennePour = (filtre: (n: (typeof notesAnnee)[number]) => boolean) =>
+    arrondi2(moyenne(notesAnnee.filter(filtre).map((n) => n.valeur)));
   matieres.forEach((matiere, i) => {
     ajouterLigne(
       notes,
@@ -118,37 +143,41 @@ export function classeurFicheEleve(d: DonneesFicheExcel) {
       i % 2 === 1
     );
   });
-  const totalNotes = ajouterLigne(notes, {
-    matiere: "Moyenne générale",
-    ...Object.fromEntries(PERIODES.map((p, j) => [`t${j + 1}`, moyennePour((n) => n.periode === p)])),
-    annuelle: moyennePour(() => true),
-  });
-  styliserTotal(totalNotes);
+  if (notesAnnee.length > 0) {
+    const totalNotes = ajouterLigne(notes, {
+      matiere: "Moyenne générale",
+      ...Object.fromEntries(PERIODES.map((p, j) => [`t${j + 1}`, moyennePour((n) => n.periode === p)])),
+      annuelle: moyennePour(() => true),
+    });
+    styliserTotal(totalNotes);
+  }
 
   // ── Absences ──────────────────────────────────────────────────────────────
+  const contenuAbsences = contenuAnnee(d.absences, "absence");
+  const absencesAnnee = contenuAbsences.elements;
   const absences = nouvelleFeuille(classeur, "Absences", {
     ...entete,
-    informations: [`Année scolaire ${anneeScolaire}`],
+    informations: contenuAbsences.informations,
     colonnes: [
       { titre: "Date", cle: "date", largeur: 14, format: FORMAT_DATE, alignement: "left" },
-      { titre: "Période", cle: "periode", largeur: 16 },
+      { titre: "Période", cle: "periode", largeur: 22 },
       { titre: "Motif", cle: "motif", largeur: 16 },
     ],
   });
-  [...d.absences]
+  [...absencesAnnee]
     .sort((a, b) => b.date.getTime() - a.date.getTime())
     .forEach((a, i) => {
       const ligne = ajouterLigne(
         absences,
-        { date: a.date, periode: a.periode, motif: a.motif === "injustifiee" ? "Injustifiée" : "Justifiée" },
+        { date: a.date, periode: libellePeriode(a.periode, a.anneeScolaire), motif: a.motif === "injustifiee" ? "Injustifiée" : "Justifiée" },
         i % 2 === 1
       );
       if (a.motif === "injustifiee") ligne.getCell("motif").font = { bold: true, color: { argb: "FF991B1B" } };
     });
-  const injustifiees = d.absences.filter((a) => a.motif === "injustifiee").length;
-  styliserTotal(ajouterLigne(absences, { date: null, periode: "Injustifiées", motif: injustifiees }));
-  ajouterLigne(absences, { date: null, periode: "Justifiées", motif: d.absences.length - injustifiees }).font = { bold: true };
-  ajouterLigne(absences, { date: null, periode: "Total", motif: d.absences.length }).font = { bold: true };
+  const injustifiees = absencesAnnee.filter((a) => a.motif === "injustifiee").length;
+  styliserTotal(ajouterLigne(absences, { date: null, periode: `Injustifiées ${contenuAbsences.annee}`, motif: injustifiees }));
+  ajouterLigne(absences, { date: null, periode: `Justifiées ${contenuAbsences.annee}`, motif: absencesAnnee.length - injustifiees }).font = { bold: true };
+  ajouterLigne(absences, { date: null, periode: `Total ${contenuAbsences.annee}`, motif: absencesAnnee.length }).font = { bold: true };
 
   // ── Alertes ───────────────────────────────────────────────────────────────
   const alertes = nouvelleFeuille(classeur, "Alertes", {

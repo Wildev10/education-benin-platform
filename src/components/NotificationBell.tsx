@@ -6,6 +6,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { estNonLue, FENETRE_NOTIFICATIONS_JOURS } from "@/lib/notifications";
 import { IconeAlerte } from "@/components/ui/Icones";
 import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
+import { libellePeriode } from "@/lib/notes-trimestres";
 
 const libellesNiveau: Record<string, { label: string; cls: string }> = {
   eleve: { label: "Élevé", cls: "border-red-300 bg-red-50 text-red-900" },
@@ -131,7 +132,7 @@ export default function NotificationBell({
                       <p className="mt-0.5 truncate text-xs text-ink-secondary">
                         {n.etablissement.nom} · {n.etudiant.niveau}
                       </p>
-                      <div className="mt-1.5 flex items-center gap-2">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span
                           data-evenement={aggravee ? "aggravee" : "creee"}
                           className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${niveau?.cls ?? "border-border bg-page text-ink-secondary"}`}
@@ -139,7 +140,9 @@ export default function NotificationBell({
                           <IconeAlerte taille={12} />
                           {aggravee ? `Aggravée : ${precedent} → ${niveau?.label ?? n.niveauRisque}` : niveau?.label ?? n.niveauRisque}
                         </span>
-                        <span className="text-xs text-ink-secondary">{libellesType[n.type] ?? n.type}</span>
+                        <span className="text-xs text-ink-secondary">
+                          {libellesType[n.type] ?? n.type} · {libellePeriode(n.periode, n.anneeScolaire)}
+                        </span>
                       </div>
                     </Link>
                   </li>

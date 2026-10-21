@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Badge, riskVariant } from "@/components/ui/Badge";
 import { Pagination } from "@/components/Pagination";
 import { rechercherAlertesPaginees, type AlerteFiltree } from "@/lib/alertes-server";
+import { libellePeriode } from "@/lib/notes-trimestres";
 import {
   compterFiltresActifs,
   filtresVersParams,
@@ -84,7 +85,7 @@ function CarteAlerte({
         </div>
         <div>
           <dt className="text-sm font-semibold text-ink-secondary">Période</dt>
-          <dd className="mt-1 font-semibold text-ink">{alerte.periode}</dd>
+          <dd className="mt-1 font-semibold text-ink">{libellePeriode(alerte.periode, alerte.anneeScolaire)}</dd>
         </div>
         <div>
           <dt className="text-sm font-semibold text-ink-secondary">{absences ? "Absences injustifiées" : "Moyenne"}</dt>

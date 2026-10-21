@@ -11,6 +11,9 @@ export type NotificationAlerte = {
   id: string;
   type: string;
   niveauRisque: string;
+  periode: string;
+  /** Absente des anciennes alertes */
+  anneeScolaire: string | null;
   createdAt: string;
   evenement: EvenementAlerte;
   /** Date de l'événement : création, ou aggravation */

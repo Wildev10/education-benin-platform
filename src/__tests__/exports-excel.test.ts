@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ExcelJS from "exceljs";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -18,6 +18,10 @@ const fiche = await import("@/app/api/etudiants/[id]/xlsx/route");
 const alertes = await import("@/app/api/alertes/xlsx/route");
 const eleves = await import("@/app/api/etablissements/[id]/eleves/xlsx/route");
 const { lignesEleves, anneeDeReference } = await import("@/lib/excel/eleves");
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 // ── Données ──────────────────────────────────────────────────────────────────
 
@@ -144,6 +148,8 @@ describe("GET /api/etudiants/[id]/xlsx — périmètre", () => {
 describe("Fiche élève Excel — contenu relu", () => {
   let classeur: ExcelJS.Workbook;
   beforeEach(async () => {
+    // En cours d'année 2025-2026 : l'année des données de la fiche
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-03-15T12:00:00Z") });
     mockRequireRole.mockResolvedValue(user("admin"));
     prismaMock.etudiant.findUnique.mockResolvedValue(ficheElwin());
     classeur = await lireClasseur(await fiche.GET(requete(`/api/etudiants/${ELWIN}/xlsx`), ctx(ELWIN)));
@@ -199,7 +205,7 @@ describe("Fiche élève Excel — contenu relu", () => {
     expect(f.getRow(titres.number + 1).getCell(3).value).toBe("Justifiée"); // la plus récente d'abord
     expect(f.getRow(titres.number + 2).getCell(3).value).toBe("Injustifiée");
     let injustifiees: unknown;
-    f.eachRow((r) => { if (r.getCell(2).value === "Injustifiées") injustifiees = r.getCell(3).value; });
+    f.eachRow((r) => { if (r.getCell(2).value === "Injustifiées 2025-2026") injustifiees = r.getCell(3).value; });
     expect(injustifiees).toBe(1);
   });
 
@@ -222,6 +228,51 @@ describe("Fiche élève Excel — contenu relu", () => {
     const colonne = (titres.values as unknown[]).indexOf("Période");
     expect(f.getRow(titres.number + 1).getCell(colonne).value).toBe("Trimestre 2 2025-2026");
     expect(f.getRow(titres.number + 2).getCell(colonne).value).toBe("Trimestre 1"); // ancienne alerte sans année
+  });
+});
+
+describe("Fiche élève Excel — rentrée sans note ni absence dans l'année en cours", () => {
+  const lignes = (f: ExcelJS.Worksheet) => {
+    const valeurs: string[] = [];
+    f.eachRow((r) => valeurs.push(String(r.getCell(1).value ?? "")));
+    return valeurs;
+  };
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-21T12:00:00Z") });
+    mockRequireRole.mockResolvedValue(user("admin"));
+  });
+
+  it("année en cours retenue ; « Aucune note pour l'année 2026-2027 pour l'instant », puis le récapitulatif 2025-2026", async () => {
+    prismaMock.etudiant.findUnique.mockResolvedValue(ficheElwin());
+    const c = await lireClasseur(await fiche.GET(requete(`/api/etudiants/${ELWIN}/xlsx`), ctx(ELWIN)));
+    const identite = c.getWorksheet("Identité")!;
+    let annee: unknown;
+    identite.eachRow((r) => { if (r.getCell(1).value === "Année scolaire") annee = r.getCell(2).value; });
+    expect(annee).toBe("2026-2027");
+    const notes = c.getWorksheet("Notes")!;
+    expect(lignes(notes)).toEqual(expect.arrayContaining([
+      "Aucune note pour l'année 2026-2027 pour l'instant.",
+      "Récapitulatif de l'année 2025-2026 — moyennes sur 20",
+    ]));
+    const titres = ligneCommencantPar(notes, "Matière");
+    expect(titres.getCell(2).value).toBe("Trimestre 1 2025-2026");
+    expect(notes.getRow(titres.number + 1).getCell(2).value).toBe(12.5); // Mathématiques T1 2025-2026 : (12 + 13) / 2
+    const absences = c.getWorksheet("Absences")!;
+    expect(lignes(absences)).toEqual(expect.arrayContaining([
+      "Aucune absence pour l'année 2026-2027 pour l'instant.",
+      "Récapitulatif de l'année 2025-2026",
+    ]));
+    let total: unknown;
+    absences.eachRow((r) => { if (r.getCell(2).value === "Total 2025-2026") total = r.getCell(3).value; });
+    expect(total).toBe(2);
+  });
+
+  it("ni cette année ni l'an dernier : le message seul, sans tableau d'une autre année", async () => {
+    prismaMock.etudiant.findUnique.mockResolvedValue({ ...ficheElwin(), notes: [], absences: [] });
+    const c = await lireClasseur(await fiche.GET(requete(`/api/etudiants/${ELWIN}/xlsx`), ctx(ELWIN)));
+    const notes = lignes(c.getWorksheet("Notes")!);
+    expect(notes).toContain("Aucune note pour l'année 2026-2027 pour l'instant.");
+    expect(notes.some((l) => l.startsWith("Récapitulatif") || l === "Moyenne générale")).toBe(false);
   });
 });
 

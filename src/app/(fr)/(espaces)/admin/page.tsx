@@ -65,6 +65,7 @@ export default async function AdminPage() {
             id: alerte.id,
             niveauRisque: alerte.niveauRisque,
             periode: alerte.periode,
+            anneeScolaire: alerte.anneeScolaire,
             moyenneAvant: alerte.moyenneAvant,
             moyenneApres: alerte.moyenneApres,
             ecartPourcent: alerte.ecartPourcent,

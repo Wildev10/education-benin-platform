@@ -1,3 +1,4 @@
+import { libellePeriode } from "@/lib/notes-trimestres";
 import {
   FORMAT_DATE,
   FORMAT_NOTE,
@@ -19,6 +20,8 @@ export type AlerteExcel = {
   niveauRisque: string;
   statut: string;
   periode: string;
+  /** Absente des anciennes alertes */
+  anneeScolaire?: string | null;
   moyenneAvant: number;
   moyenneApres: number;
   ecartPourcent: number;
@@ -62,7 +65,7 @@ export function classeurAlertes({
       { titre: "Type", cle: "type", largeur: 11 },
       { titre: "Niveau", cle: "niveau", largeur: 10 },
       { titre: "Statut", cle: "statut", largeur: 10 },
-      { titre: "Période", cle: "periode", largeur: 13 },
+      { titre: "Période", cle: "periode", largeur: 22 },
       { titre: "Moyenne avant", cle: "avant", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
       { titre: "Moyenne après", cle: "apres", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
       { titre: "Baisse", cle: "baisse", largeur: 10, format: FORMAT_POURCENT, alignement: "right" },
@@ -83,7 +86,7 @@ export function classeurAlertes({
         type: LIBELLES_TYPE[a.type] ?? a.type,
         niveau: LIBELLES_NIVEAU[a.niveauRisque] ?? a.niveauRisque,
         statut: LIBELLES_STATUT[a.statut] ?? a.statut,
-        periode: a.periode,
+        periode: libellePeriode(a.periode, a.anneeScolaire),
         avant: absence ? null : arrondi2(a.moyenneAvant),
         apres: absence ? null : arrondi2(a.moyenneApres),
         baisse: absence ? null : Math.round(a.ecartPourcent * 10) / 10,

@@ -165,6 +165,8 @@ describe("getNotifications", () => {
         id: "a1",
         type: "baisse_moyenne",
         niveauRisque: "eleve",
+        periode: "Trimestre 1",
+        anneeScolaire: "2026-2027",
         createdAt: "2026-10-18T09:00:00.000Z",
         evenement: "creee",
         date: "2026-10-18T09:00:00.000Z",

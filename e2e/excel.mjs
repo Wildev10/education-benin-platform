@@ -89,6 +89,9 @@ function anneeDeLaFeuille(feuille) {
   }
   return null;
 }
+// Année scolaire en cours au Bénin (même règle que src/lib/annee-scolaire.ts)
+const [anJour, moisJour] = AUJOURDHUI.split("-").map(Number);
+const ANNEE_EN_COURS = moisJour >= 9 ? `${anJour}-${anJour + 1}` : `${anJour - 1}-${anJour}`;
 const moyenne = (xs) => (xs.length ? Math.round((xs.reduce((s, v) => s + v, 0) / xs.length) * 100) / 100 : null);
 const slug = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 const elevesDe = async (page, etablissement = "") =>
@@ -168,11 +171,24 @@ check("Admin, fiche élève : 4 feuilles, nom de fichier clair",
   JSON.stringify(f.classeur.worksheets.map((w) => w.name)) === JSON.stringify(["Identité", "Notes", "Absences", "Alertes"]) &&
   f.nom === `fiche-${slug(ELEVE_ENS.nom)}-${slug(ELEVE_ENS.prenom)}-${AUJOURDHUI}.xlsx`, f.nom);
 const anneeFiche = String(lignesDonnees(f.classeur.getWorksheet("Identité"), "Rubrique").find((r) => r.getCell(1).value === "Année scolaire")?.getCell(2).value ?? "");
-const premiereMatiere = lignesDonnees(f.classeur.getWorksheet("Notes"), "Matière")[0];
+check(`Admin, fiche élève : année scolaire en cours au Bénin (${ANNEE_EN_COURS})`, anneeFiche === ANNEE_EN_COURS, anneeFiche);
+// Année du tableau des notes : l'année en cours, ou le récapitulatif de l'année précédente
+const feuilleNotes = f.classeur.getWorksheet("Notes");
+const enTeteNotes = [];
+feuilleNotes.eachRow((r) => enTeteNotes.push(String(r.getCell(1).value ?? "")));
+const recapitulatif = enTeteNotes.some((l) => l === `Aucune note pour l'année ${ANNEE_EN_COURS} pour l'instant.`);
+let anneeNotes = anneeFiche;
+feuilleNotes.eachRow((r) => {
+  const m = String(r.getCell(2).value ?? "").match(/^Trimestre 1 (\d{4}-\d{4})$/);
+  if (m) anneeNotes = m[1];
+});
+check(recapitulatif ? `… pas encore de note en ${ANNEE_EN_COURS} : message, puis récapitulatif ${anneeNotes} annoncé` : `… notes de ${anneeNotes}`,
+  recapitulatif ? enTeteNotes.includes(`Récapitulatif de l'année ${anneeNotes} — moyennes sur 20`) : anneeNotes === ANNEE_EN_COURS, enTeteNotes.slice(3, 6).join(" | "));
+const premiereMatiere = lignesDonnees(feuilleNotes, "Matière")[0];
 if (premiereMatiere) {
   const matiere = premiereMatiere.getCell(1).value;
   const notesEns = (await getJson(admin, `/api/notes?etudiantId=${ELEVE_ENS.id}`)).corps;
-  const attenduT1 = moyenne(notesEns.filter((n) => n.matiere === matiere && n.periode === "Trimestre 1" && n.anneeScolaire === anneeFiche).map((n) => n.valeur));
+  const attenduT1 = moyenne(notesEns.filter((n) => n.matiere === matiere && n.periode === "Trimestre 1" && n.anneeScolaire === anneeNotes).map((n) => n.valeur));
   check(`… moyenne de ${matiere} au T1 identique au calcul depuis l'API`, (premiereMatiere.getCell(2).value ?? null) === attenduT1,
     `${premiereMatiere.getCell(2).value} / ${attenduT1}`);
 } else {

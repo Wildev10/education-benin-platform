@@ -60,6 +60,7 @@ Une cloche, dans l'en-tête de l'admin, du directeur et de l'enseignant, liste l
 
 - **PDF** : fiche de suivi d'un élève, rapport des alertes actives groupé par établissement.
 - **Excel** : fiche élève (4 feuilles), alertes (en respectant les filtres), liste des élèves d'un établissement.
+- La fiche élève (PDF et Excel) porte sur l'année scolaire en cours au Bénin. Sans note ou sans absence cette année, elle l'indique (« Aucune note pour l'année 2026-2027 pour l'instant ») puis donne le récapitulatif de l'année précédente, avec son année. Partout (listes, tableaux de bord, cloche, exports), la période d'une alerte est suivie de son année.
 
 Chaque export ne contient que ce que l'utilisateur a le droit de voir.
 
@@ -117,8 +118,8 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **524 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base.
-- **1 853 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, réactivation, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
+- **526 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base.
+- **1 855 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, réactivation, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---
@@ -218,7 +219,7 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ### Lancer les tests
 
 ```bash
-npm test          # 524 tests unitaires
+npm test          # 526 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
 npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits

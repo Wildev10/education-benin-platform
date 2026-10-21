@@ -69,6 +69,8 @@ export async function getNotifications(
       id: a.id,
       type: a.type,
       niveauRisque: a.niveauRisque,
+      periode: a.periode,
+      anneeScolaire: a.anneeScolaire,
       createdAt: a.createdAt.toISOString(),
       evenement: aggravation ? "aggravee" : "creee",
       date: (aggravation ?? a.createdAt).toISOString(),
