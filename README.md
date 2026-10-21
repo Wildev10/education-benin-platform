@@ -50,7 +50,7 @@ Une cloche, dans l'en-tête de l'admin, du directeur et de l'enseignant, liste l
 
 ### Suivi des élèves
 
-- **Fiche élève** : informations, notes par trimestre en accordéon (moyenne visible même replié, trimestre le plus récent ouvert), absences par période, historique des alertes, et graphique d'évolution de la moyenne dans l'espace admin.
+- **Fiche élève** : informations, notes par année scolaire (la plus récente d'abord, avec sa moyenne annuelle) puis par trimestre, en accordéon (moyenne visible même replié, seul le trimestre en cours ouvert), absences par année et par trimestre, historique des alertes, et graphique d'évolution de la moyenne dans l'espace admin.
 - **Page Alertes** avec filtres avancés : recherche par nom, niveau de risque, type (notes ou absences), statut, établissement, dates de création.
 - **Page Absences** : toutes les absences, filtrables par période, motif, année scolaire et établissement.
 - **Listes paginées côté serveur** (20, 50 ou 100 par page), avec filtres et taille conservés dans l'adresse.
@@ -117,8 +117,8 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **519 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base.
-- **1 848 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, réactivation, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
+- **524 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base.
+- **1 853 vérifications navigateur** (9 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, réactivation, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---
@@ -218,7 +218,7 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ### Lancer les tests
 
 ```bash
-npm test          # 519 tests unitaires
+npm test          # 524 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
 npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits

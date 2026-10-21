@@ -79,6 +79,7 @@ export default async function EtudiantPage({
           niveauRisque: a.niveauRisque,
           statut: a.statut,
           periode: a.periode,
+          anneeScolaire: a.anneeScolaire,
           moyenneAvant: a.moyenneAvant,
           moyenneApres: a.moyenneApres,
           ecartPourcent: a.ecartPourcent,

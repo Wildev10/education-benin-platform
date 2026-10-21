@@ -4,6 +4,7 @@ import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { BoutonTraiterAlerte } from "@/components/alertes/BoutonTraiterAlerte";
 import { FUSEAU_BENIN } from "@/lib/dates";
 import { texteComparaison } from "@/lib/message-saisie";
+import { libellePeriode } from "@/lib/notes-trimestres";
 import type { ComparaisonNotes } from "@/lib/regles-alerte";
 
 export type AlerteEleve = {
@@ -12,6 +13,7 @@ export type AlerteEleve = {
   niveauRisque: string;
   statut: string;
   periode: string;
+  anneeScolaire: string | null;
   moyenneAvant: number;
   moyenneApres: number;
   ecartPourcent: number;
@@ -64,7 +66,7 @@ export default function AlertesEleve({
                   <Badge variant={statusVariant(alerte.statut)}>
                     {alerte.statut === "active" ? "Active" : "Traitée"}
                   </Badge>
-                  <span className="text-sm font-semibold text-ink">{alerte.periode}</span>
+                  <span className="text-sm font-semibold text-ink">{libellePeriode(alerte.periode, alerte.anneeScolaire)}</span>
                 </div>
                 {peutTraiter && alerte.statut === "active" && (
                   <BoutonTraiterAlerte alerteId={alerte.id} onTraitee={() => onTraitee(alerte.id)} />

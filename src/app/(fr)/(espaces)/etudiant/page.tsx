@@ -2,19 +2,30 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ExportExcelButton } from "@/components/ExportPdfButton";
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
-import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
+import { BlocAnnee } from "@/components/notes/BlocAnnee";
+import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
+import {
+  grouperNotesParAnnee,
+  grouperParAnnee,
+  libellePeriode,
+  moyennesChronologiques,
+  type PeriodeScolaire,
+} from "@/lib/notes-trimestres";
 
-function tendance(
-  anciennesMoyenne: number,
-  derniereMoyenne: number
-): { titre: string; detail: string; tone: string } {
+type PointMoyenne = PeriodeScolaire & { moyenne: number };
+
+function tendance(avant: PointMoyenne, apres: PointMoyenne): { titre: string; detail: string; tone: string } {
+  const anciennesMoyenne = avant.moyenne;
+  const derniereMoyenne = apres.moyenne;
   const difference = derniereMoyenne - anciennesMoyenne;
   const seuil = 0.1;
+  // Les deux trimestres comparés, avec leur année : jamais deux « Trimestre 1 » confondus
+  const detail = `Elle est passée de ${anciennesMoyenne.toFixed(1)}/20 (${libellePeriode(avant.periode, avant.anneeScolaire)}) à ${derniereMoyenne.toFixed(1)}/20 (${libellePeriode(apres.periode, apres.anneeScolaire)}).`;
 
   if (Math.abs(difference) <= seuil) {
     return {
       titre: "Ta moyenne est stable",
-      detail: `Elle est passée de ${anciennesMoyenne.toFixed(1)}/20 à ${derniereMoyenne.toFixed(1)}/20.`,
+      detail,
       tone: "border-border bg-page text-ink-secondary",
     };
   }
@@ -22,7 +33,7 @@ function tendance(
   if (difference > 0) {
     return {
       titre: "Ta moyenne progresse",
-      detail: `Elle est passée de ${anciennesMoyenne.toFixed(1)}/20 à ${derniereMoyenne.toFixed(1)}/20.`,
+      detail,
       tone: "border-emerald-200 bg-emerald-50 text-emerald-900",
     };
   }
@@ -33,7 +44,7 @@ function tendance(
 
   return {
     titre: `Ta moyenne a baissé de ${baisse.toFixed(1)} %`,
-    detail: `Elle est passée de ${anciennesMoyenne.toFixed(1)}/20 à ${derniereMoyenne.toFixed(1)}/20.`,
+    detail,
     tone: "border-amber-200 bg-amber-50 text-amber-950",
   };
 }
@@ -62,10 +73,10 @@ export default async function EtudiantPage() {
       etablissement: { select: { nom: true } },
       notes: {
         orderBy: [{ periode: "asc" }, { createdAt: "desc" }],
-        select: { id: true, matiere: true, valeur: true, periode: true },
+        select: { id: true, matiere: true, valeur: true, periode: true, anneeScolaire: true },
       },
       absences: {
-        select: { periode: true, motif: true },
+        select: { periode: true, motif: true, anneeScolaire: true },
       },
     },
   });
@@ -81,13 +92,14 @@ export default async function EtudiantPage() {
     );
   }
 
-  const groupes = grouperNotesParTrimestre(etudiant.notes);
-  const groupesAvecNotes = groupes.filter((groupe) => groupe.moyenne !== null);
-  const derniere = groupesAvecNotes.at(-1);
-  const avantDerniere = groupesAvecNotes.at(-2);
-  const resume = derniere && avantDerniere
-    ? tendance(avantDerniere.moyenne as number, derniere.moyenne as number)
-    : null;
+  const enCours = periodeScolaireAuBenin(new Date());
+  const annees = grouperNotesParAnnee(etudiant.notes, enCours.anneeScolaire);
+  const absencesParAnnee = grouperParAnnee(etudiant.absences, enCours.anneeScolaire);
+  // Les deux derniers trimestres qui ont des notes, dans l'ordre chronologique (années comprises)
+  const points = moyennesChronologiques(etudiant.notes);
+  const derniere = points.at(-1);
+  const avantDerniere = points.at(-2);
+  const resume = derniere && avantDerniere ? tendance(avantDerniere, derniere) : null;
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
@@ -140,34 +152,48 @@ export default async function EtudiantPage() {
           </div>
           <p className="text-sm text-ink-secondary">{etudiant.absences.length} absence{etudiant.absences.length > 1 ? "s" : ""} au total</p>
         </div>
-        <div className="mt-5 grid gap-5 lg:grid-cols-3">
-          {periodes.map((periode) => {
-            const absPeriode = etudiant.absences.filter((a) => a.periode === periode);
-            const injustifiees = absPeriode.filter((a) => a.motif === "injustifiee").length;
-            const justifiees = absPeriode.filter((a) => a.motif === "justifiee").length;
+        <div className="mt-5 space-y-8">
+          {absencesParAnnee.map(({ anneeScolaire, trimestres }) => {
+            const total = trimestres.reduce((n, t) => n + t.elements.length, 0);
             return (
-              <section key={periode} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-                <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-4">
-                  <h3 className="font-semibold text-surface">{periode}</h3>
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-sm font-semibold text-surface">
-                    {absPeriode.length} absence{absPeriode.length > 1 ? "s" : ""}
-                  </span>
+              <BlocAnnee
+                key={anneeScolaire}
+                anneeScolaire={anneeScolaire}
+                enCours={enCours.anneeScolaire}
+                resume={`${total} absence${total > 1 ? "s" : ""}`}
+              >
+                <div className="grid gap-5 lg:grid-cols-3">
+                  {trimestres.map((groupe) => {
+                    const absPeriode = groupe.elements;
+                    const injustifiees = absPeriode.filter((a) => a.motif === "injustifiee").length;
+                    const justifiees = absPeriode.filter((a) => a.motif === "justifiee").length;
+                    return (
+                      <section key={groupe.periode} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+                        <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-4">
+                          <h4 className="font-semibold text-surface">{groupe.periode}</h4>
+                          <span className="rounded-full bg-white/15 px-3 py-1 text-sm font-semibold text-surface">
+                            {absPeriode.length} absence{absPeriode.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                        {absPeriode.length > 0 ? (
+                          <div className="divide-y divide-border">
+                            <div className="flex items-center justify-between px-5 py-3">
+                              <span className="text-sm font-medium text-ink-secondary">Injustifiées</span>
+                              <span className="font-semibold text-ink">{injustifiees}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-5 py-3">
+                              <span className="text-sm font-medium text-ink-secondary">Justifiées</span>
+                              <span className="font-semibold text-ink">{justifiees}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="px-5 py-5 text-ink-secondary">Aucune absence enregistrée.</p>
+                        )}
+                      </section>
+                    );
+                  })}
                 </div>
-                {absPeriode.length > 0 ? (
-                  <div className="divide-y divide-border">
-                    <div className="flex items-center justify-between px-5 py-3">
-                      <span className="text-sm font-medium text-ink-secondary">Injustifiées</span>
-                      <span className="font-semibold text-ink">{injustifiees}</span>
-                    </div>
-                    <div className="flex items-center justify-between px-5 py-3">
-                      <span className="text-sm font-medium text-ink-secondary">Justifiées</span>
-                      <span className="font-semibold text-ink">{justifiees}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="px-5 py-5 text-ink-secondary">Aucune absence enregistrée.</p>
-                )}
-              </section>
+              </BlocAnnee>
             );
           })}
         </div>
@@ -182,7 +208,7 @@ export default async function EtudiantPage() {
           <p className="text-sm text-ink-secondary">{etudiant.notes.length} note{etudiant.notes.length > 1 ? "s" : ""}</p>
         </div>
         <div className="mt-5">
-          <AccordeonTrimestres groupes={groupes} notesColorees={false} />
+          <AccordeonTrimestres annees={annees} enCours={enCours} notesColorees={false} />
         </div>
       </section>
     </main>

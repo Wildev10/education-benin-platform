@@ -53,7 +53,7 @@ function ficheElwin(etablissementId = MON_ETAB) {
     ],
     alertes: [
       {
-        type: "baisse_moyenne", niveauRisque: "eleve", statut: "active", periode: "Trimestre 2",
+        type: "baisse_moyenne", niveauRisque: "eleve", statut: "active", periode: "Trimestre 2", anneeScolaire: "2025-2026",
         moyenneAvant: 13.5, moyenneApres: 8.335, ecartPourcent: 38.26, createdAt: new Date("2026-10-03T10:00:00Z"),
       },
       {
@@ -214,6 +214,14 @@ describe("Fiche élève Excel — contenu relu", () => {
     expect(moyen.getCell(3).fill).toMatchObject({ fgColor: { argb: "FFFEF3C7" } });
     expect(eleve.getCell(8).value).toBe(38.3); // baisse en %
     expect(moyen.getCell(9).value).toBe(6); // alerte d'absences : nombre d'absences
+  });
+
+  it("alertes : la période porte son année (l'historique couvre plusieurs années)", () => {
+    const f = classeur.getWorksheet("Alertes")!;
+    const titres = ligneCommencantPar(f, "Détectée le");
+    const colonne = (titres.values as unknown[]).indexOf("Période");
+    expect(f.getRow(titres.number + 1).getCell(colonne).value).toBe("Trimestre 2 2025-2026");
+    expect(f.getRow(titres.number + 2).getCell(colonne).value).toBe("Trimestre 1"); // ancienne alerte sans année
   });
 });
 

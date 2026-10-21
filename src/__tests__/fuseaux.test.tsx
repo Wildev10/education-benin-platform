@@ -86,8 +86,8 @@ describe("rendu identique sur un serveur en UTC et dans un navigateur à New Yor
   };
 
   it("fiche élève admin (cause de l'erreur d'hydratation n° 418)", () => {
-    const serveur = rendreDans("UTC", () => renderToStaticMarkup(<AdminStudentDetail student={eleve} />));
-    const navigateur = rendreDans("America/New_York", () => renderToStaticMarkup(<AdminStudentDetail student={eleve} />));
+    const serveur = rendreDans("UTC", () => renderToStaticMarkup(<AdminStudentDetail student={eleve} enCours={{ anneeScolaire: "2026-2027", periode: "Trimestre 1" }} />));
+    const navigateur = rendreDans("America/New_York", () => renderToStaticMarkup(<AdminStudentDetail student={eleve} enCours={{ anneeScolaire: "2026-2027", periode: "Trimestre 1" }} />));
     expect(navigateur).toBe(serveur);
     expect(serveur).toContain("21 oct. 2026");
     expect(serveur).not.toContain("20 oct. 2026");

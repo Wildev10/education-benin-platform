@@ -7,7 +7,8 @@ import { Toast, Confirm } from "@/lib/swal";
 import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { MessageEcritureHorsLigne, TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
-import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
+import { BlocAnnee } from "@/components/notes/BlocAnnee";
+import { TRIMESTRES as periodes, grouperNotesParAnnee, grouperParAnnee } from "@/lib/notes-trimestres";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { IconeAlerte } from "@/components/ui/Icones";
 import { FUSEAU_BENIN, jourIsoAuBenin } from "@/lib/dates";
@@ -66,6 +67,7 @@ function fusionnerAlerte(alertes: AlerteEleve[], alerte: AlerteSaisie): AlerteEl
     niveauRisque: alerte.niveauRisque,
     statut: alerte.statut,
     periode: alerte.periode,
+    anneeScolaire: alerte.anneeScolaire,
     moyenneAvant: alerte.moyenneAvant,
     moyenneApres: alerte.moyenneApres,
     ecartPourcent: alerte.ecartPourcent,
@@ -132,7 +134,7 @@ export default function StudentDetail({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<MessageSaisie | null>(null);
   const [error, setError] = useState("");
-  const [derniereSaisie, setDerniereSaisie] = useState<{ id: string; periode: string } | null>(null);
+  const [derniereSaisie, setDerniereSaisie] = useState<{ id: string; periode: string; anneeScolaire: string } | null>(null);
 
   const [absences, setAbsences] = useState(initialAbsences);
   const [absDate, setAbsDate] = useState(() => jourIsoAuBenin(new Date()));
@@ -154,12 +156,8 @@ export default function StudentDetail({
     if (JOUR_ISO.test(jour)) setAbsPeriode(periodeScolaireDuJour(jour).periode);
   }
 
-  const notesParPeriode = useMemo(() => grouperNotesParTrimestre(notes), [notes]);
-
-  const absencesParPeriode = useMemo(
-    () => periodes.map((nom) => ({ nom, absences: absences.filter((a) => a.periode === nom) })),
-    [absences]
-  );
+  const notesParAnnee = useMemo(() => grouperNotesParAnnee(notes, anneeScolaire), [notes, anneeScolaire]);
+  const absencesParAnnee = useMemo(() => grouperParAnnee(absences, anneeScolaire), [absences, anneeScolaire]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -183,7 +181,7 @@ export default function StudentDetail({
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Impossible d'enregistrer la note.");
       setNotes((current) => [data, ...current]);
-      setDerniereSaisie({ id: data.id, periode: data.periode });
+      setDerniereSaisie({ id: data.id, periode: data.periode, anneeScolaire: data.anneeScolaire });
       const alerte = (data.alerte ?? null) as AlerteSaisie | null;
       const retour = messageSaisie(
         "note",
@@ -299,7 +297,8 @@ export default function StudentDetail({
           </div>
           <div className="mt-5">
             <AccordeonTrimestres
-              groupes={notesParPeriode}
+              annees={notesParAnnee}
+              enCours={{ anneeScolaire, periode: periodeParDefaut }}
               derniereSaisie={derniereSaisie}
               libelleVide="Aucune note enregistrée."
             />
@@ -411,62 +410,76 @@ export default function StudentDetail({
             </span>
           </div>
           <div className="mt-5 space-y-4">
-            {absencesParPeriode.map((groupe) => (
-              <section
-                key={groupe.nom}
-                className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
-              >
-                <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-3.5">
-                  <h3 className="font-semibold text-surface">{groupe.nom}</h3>
-                  {groupe.absences.length > 0 && (
-                    <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-surface">
-                      {groupe.absences.length}
-                    </span>
-                  )}
-                </div>
-                {groupe.absences.length > 0 ? (
-                  <ul className="divide-y divide-border">
-                    {groupe.absences.map((abs) => (
-                      <li
-                        key={abs.id}
-                        className="flex items-center justify-between gap-4 px-5 py-3"
+            {absencesParAnnee.map(({ anneeScolaire: annee, trimestres }) => {
+              const total = trimestres.reduce((n, t) => n + t.elements.length, 0);
+              return (
+                <BlocAnnee
+                  key={annee}
+                  anneeScolaire={annee}
+                  enCours={anneeScolaire}
+                  resume={`${total} absence${total > 1 ? "s" : ""}`}
+                >
+                  <div className="space-y-4">
+                    {trimestres.map((groupe) => (
+                      <section
+                        key={groupe.periode}
+                        className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
                       >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                              abs.motif === "injustifiee"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-emerald-100 text-emerald-800"
-                            }`}
-                          >
-                            {abs.motif === "injustifiee" ? "Injustifiée" : "Justifiée"}
-                          </span>
-                          <span className="text-sm text-ink-secondary">
-                            {formatDate(abs.date)}
-                          </span>
+                        <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-3.5">
+                          <h4 className="font-semibold text-surface">{groupe.periode}</h4>
+                          {groupe.elements.length > 0 && (
+                            <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-surface">
+                              {groupe.elements.length}
+                            </span>
+                          )}
                         </div>
-                        {peutSupprimerAbsence && (
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => void handleDeleteAbsence(abs.id)}
-                            disabled={horsLigne}
-                            title={horsLigne ? TITRE_HORS_LIGNE : undefined}
-                            aria-label={`Supprimer l'absence du ${formatDate(abs.date)}`}
-                          >
-                            Supprimer
-                          </Button>
+                        {groupe.elements.length > 0 ? (
+                          <ul className="divide-y divide-border">
+                            {groupe.elements.map((abs) => (
+                              <li
+                                key={abs.id}
+                                className="flex items-center justify-between gap-4 px-5 py-3"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                      abs.motif === "injustifiee"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-emerald-100 text-emerald-800"
+                                    }`}
+                                  >
+                                    {abs.motif === "injustifiee" ? "Injustifiée" : "Justifiée"}
+                                  </span>
+                                  <span className="text-sm text-ink-secondary">
+                                    {formatDate(abs.date)}
+                                  </span>
+                                </div>
+                                {peutSupprimerAbsence && (
+                                  <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => void handleDeleteAbsence(abs.id)}
+                                    disabled={horsLigne}
+                                    title={horsLigne ? TITRE_HORS_LIGNE : undefined}
+                                    aria-label={`Supprimer l'absence du ${formatDate(abs.date)}`}
+                                  >
+                                    Supprimer
+                                  </Button>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="px-5 py-5 text-sm text-ink-secondary">
+                            Aucune absence enregistrée.
+                          </p>
                         )}
-                      </li>
+                      </section>
                     ))}
-                  </ul>
-                ) : (
-                  <p className="px-5 py-5 text-sm text-ink-secondary">
-                    Aucune absence enregistrée.
-                  </p>
-                )}
-              </section>
-            ))}
+                  </div>
+                </BlocAnnee>
+              );
+            })}
           </div>
         </section>
 

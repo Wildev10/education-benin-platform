@@ -403,6 +403,7 @@ export default function AdminDashboard({
                         <span className={`font-bold tabular-nums ${moyenneCls(e.moyenneGenerale)}`}>
                           {e.moyenneGenerale.toFixed(2)}
                           <span className="font-normal text-ink-secondary">/20</span>
+                          <span className="block text-xs font-normal text-ink-secondary">{e.anneeMoyenne}</span>
                         </span>
                       )}
                     </td>

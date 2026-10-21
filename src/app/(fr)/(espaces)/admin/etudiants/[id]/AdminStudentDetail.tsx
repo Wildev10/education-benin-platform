@@ -11,7 +11,15 @@ import { useHorsLigne } from "@/components/pwa/PwaProvider";
 import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { SqueletteGraphiqueLigne } from "@/components/ui/Squelette";
-import { TRIMESTRES as periodes, grouperNotesParTrimestre } from "@/lib/notes-trimestres";
+import { BlocAnnee } from "@/components/notes/BlocAnnee";
+import {
+  grouperNotesParAnnee,
+  grouperParAnnee,
+  libelleCourt,
+  libellePeriode,
+  moyennesChronologiques,
+  type PeriodeScolaire,
+} from "@/lib/notes-trimestres";
 import { redirigerVersConnexion } from "@/lib/session-expiree";
 import { FUSEAU_BENIN } from "@/lib/dates";
 import { texteComparaison } from "@/lib/message-saisie";
@@ -35,6 +43,7 @@ type Alerte = {
   id: string;
   niveauRisque: string;
   periode: string;
+  anneeScolaire: string | null;
   moyenneAvant: number;
   moyenneApres: number;
   ecartPourcent: number;
@@ -67,18 +76,26 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: FUSEAU_BENIN }).format(new Date(value));
 }
 
-export default function AdminStudentDetail({ student }: { student: Student }) {
+export default function AdminStudentDetail({ student, enCours }: { student: Student; enCours: PeriodeScolaire }) {
   const [alerts, setAlerts] = useState(student.alertes);
   const mentionComparaison = useMemo(() => texteComparaison(comparerMoyennes(student.notes)), [student.notes]);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const horsLigne = useHorsLigne();
   const [error, setError] = useState("");
 
-  const groupedNotes = useMemo(() => grouperNotesParTrimestre(student.notes), [student.notes]);
+  const notesParAnnee = useMemo(() => grouperNotesParAnnee(student.notes, enCours.anneeScolaire), [student.notes, enCours]);
+  const absencesParAnnee = useMemo(() => grouperParAnnee(student.absences, enCours.anneeScolaire), [student.absences, enCours]);
 
-  const chartData = groupedNotes
-    .map(({ periode, moyenne }) => ({ periode: periode.replace("Trimestre ", "T"), moyenne }))
-    .filter((item): item is { periode: string; moyenne: number } => item.moyenne !== null);
+  // Un point par trimestre et par année, dans l'ordre chronologique
+  const chartData = useMemo(() => {
+    const points = moyennesChronologiques(student.notes);
+    const plusieursAnnees = new Set(points.map((p) => p.anneeScolaire)).size > 1;
+    return points.map((p) => ({
+      periode: libelleCourt(p, plusieursAnnees),
+      nom: libellePeriode(p.periode, p.anneeScolaire),
+      moyenne: p.moyenne,
+    }));
+  }, [student.notes]);
 
   async function markAsHandled(alertId: string) {
     const result = await Confirm.fire({
@@ -199,7 +216,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
           Notes par période et matière
         </h2>
         <div className="mt-5">
-          <AccordeonTrimestres groupes={groupedNotes} />
+          <AccordeonTrimestres annees={notesParAnnee} enCours={enCours} />
         </div>
       </section>
 
@@ -212,60 +229,74 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
           Absences par période
         </h2>
         {student.absences.length > 0 ? (
-          <div className="mt-5 grid gap-5 lg:grid-cols-3">
-            {periodes.map((periode) => {
-              const absPeriode = student.absences.filter((a) => a.periode === periode);
-              const injustifiees = absPeriode.filter((a) => a.motif === "injustifiee").length;
-              const justifiees = absPeriode.filter((a) => a.motif === "justifiee").length;
+          <div className="mt-5 space-y-8">
+            {absencesParAnnee.map(({ anneeScolaire, trimestres }) => {
+              const total = trimestres.reduce((n, t) => n + t.elements.length, 0);
               return (
-                <section
-                  key={periode}
-                  className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
+                <BlocAnnee
+                  key={anneeScolaire}
+                  anneeScolaire={anneeScolaire}
+                  enCours={enCours.anneeScolaire}
+                  resume={`${total} absence${total > 1 ? "s" : ""}`}
                 >
-                  <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-4">
-                    <h3 className="font-semibold text-surface">{periode}</h3>
-                    {absPeriode.length > 0 && (
-                      <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-surface">
-                        {absPeriode.length}
-                      </span>
-                    )}
+                  <div className="grid gap-5 lg:grid-cols-3">
+                    {trimestres.map((groupe) => {
+                      const absPeriode = groupe.elements;
+                      const injustifiees = absPeriode.filter((a) => a.motif === "injustifiee").length;
+                      const justifiees = absPeriode.filter((a) => a.motif === "justifiee").length;
+                      return (
+                        <section
+                          key={groupe.periode}
+                          className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
+                        >
+                          <div className="flex items-center justify-between gap-3 border-b border-border bg-ink px-5 py-4">
+                            <h4 className="font-semibold text-surface">{groupe.periode}</h4>
+                            {absPeriode.length > 0 && (
+                              <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-surface">
+                                {absPeriode.length}
+                              </span>
+                            )}
+                          </div>
+                          {absPeriode.length > 0 ? (
+                            <div className="p-5">
+                              <div className="mb-4 flex gap-3">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
+                                  {injustifiees} injustifiée{injustifiees > 1 ? "s" : ""}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                                  {justifiees} justifiée{justifiees > 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <ul className="divide-y divide-border border-t border-border pt-3">
+                                {absPeriode.map((abs) => (
+                                  <li
+                                    key={abs.id}
+                                    className="flex items-center justify-between py-2 text-sm"
+                                  >
+                                    <span className="text-ink-secondary">{formatDate(abs.date)}</span>
+                                    <span
+                                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                        abs.motif === "injustifiee"
+                                          ? "bg-red-100 text-red-800"
+                                          : "bg-emerald-100 text-emerald-800"
+                                      }`}
+                                    >
+                                      {abs.motif === "injustifiee" ? "Injustifiée" : "Justifiée"}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : (
+                            <p className="px-5 py-5 text-sm text-ink-secondary">
+                              Aucune absence enregistrée.
+                            </p>
+                          )}
+                        </section>
+                      );
+                    })}
                   </div>
-                  {absPeriode.length > 0 ? (
-                    <div className="p-5">
-                      <div className="mb-4 flex gap-3">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
-                          {injustifiees} injustifiée{injustifiees > 1 ? "s" : ""}
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                          {justifiees} justifiée{justifiees > 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      <ul className="divide-y divide-border border-t border-border pt-3">
-                        {absPeriode.map((abs) => (
-                          <li
-                            key={abs.id}
-                            className="flex items-center justify-between py-2 text-sm"
-                          >
-                            <span className="text-ink-secondary">{formatDate(abs.date)}</span>
-                            <span
-                              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                abs.motif === "injustifiee"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-emerald-100 text-emerald-800"
-                              }`}
-                            >
-                              {abs.motif === "injustifiee" ? "Injustifiée" : "Justifiée"}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <p className="px-5 py-5 text-sm text-ink-secondary">
-                      Aucune absence enregistrée.
-                    </p>
-                  )}
-                </section>
+                </BlocAnnee>
               );
             })}
           </div>
@@ -309,7 +340,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
                     <Badge variant={statusVariant(alert.statut)}>
                       {alert.statut === "active" ? "Active" : "Traitée"}
                     </Badge>
-                    <span className="text-sm font-semibold text-ink">{alert.periode}</span>
+                    <span className="text-sm font-semibold text-ink">{libellePeriode(alert.periode, alert.anneeScolaire)}</span>
                   </div>
                   {alert.statut === "active" && (
                     <Button
@@ -349,7 +380,7 @@ export default function AdminStudentDetail({ student }: { student: Student }) {
                   </div>
                   <div>
                     <dt className="text-sm font-semibold text-ink-secondary">Période</dt>
-                    <dd className="mt-1 font-semibold text-ink">{alert.periode}</dd>
+                    <dd className="mt-1 font-semibold text-ink">{libellePeriode(alert.periode, alert.anneeScolaire)}</dd>
                   </div>
                 </dl>
               </article>

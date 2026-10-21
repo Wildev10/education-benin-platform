@@ -21,16 +21,27 @@ export async function getStatsEtablissements(alertesActives?: Promise<AlerteActi
         where: { statut: "active" },
         select: { niveauRisque: true, etudiant: { select: { etablissementId: true } } },
       }),
-    prisma.note.groupBy({ by: ["etudiantId"], _avg: { valeur: true } }),
+    prisma.note.groupBy({ by: ["etudiantId", "anneeScolaire"], _avg: { valeur: true } }),
   ]);
 
-  const moyenneEtudiant = new Map(moyennesParEtudiant.map((m) => [m.etudiantId, m._avg.valeur]));
+  // Moyenne de chaque élève pour chaque année scolaire
+  const moyennesEtudiant = new Map<string, Map<string, number>>();
+  for (const m of moyennesParEtudiant) {
+    if (m._avg.valeur === null) continue;
+    const parAnnee = moyennesEtudiant.get(m.etudiantId) ?? new Map<string, number>();
+    parAnnee.set(m.anneeScolaire, m._avg.valeur);
+    moyennesEtudiant.set(m.etudiantId, parAnnee);
+  }
 
   return etablissements
     .map(({ etudiants, ...etablissement }) => {
       const alertesEtab = alertes.filter((a) => a.etudiant.etablissementId === etablissement.id);
+      // Année la plus récente de l'établissement, comme le tableau de bord du
+      // directeur : deux années ne sont jamais mélangées dans une moyenne
+      const anneeMoyenne =
+        etudiants.flatMap((e) => [...(moyennesEtudiant.get(e.id)?.keys() ?? [])]).sort().at(-1) ?? null;
       const moyennes = etudiants
-        .map((e) => moyenneEtudiant.get(e.id))
+        .map((e) => (anneeMoyenne ? moyennesEtudiant.get(e.id)?.get(anneeMoyenne) : undefined))
         .filter((m): m is number => typeof m === "number");
       const nbEtudiants = etudiants.length;
 
@@ -39,6 +50,7 @@ export async function getStatsEtablissements(alertesActives?: Promise<AlerteActi
         nbEtudiants,
         nbAlertesActives: alertesEtab.length,
         nbAlertesElevees: alertesEtab.filter((a) => a.niveauRisque === "eleve").length,
+        anneeMoyenne,
         moyenneGenerale: moyennes.length
           ? round(moyennes.reduce((s, m) => s + m, 0) / moyennes.length, 2)
           : null,

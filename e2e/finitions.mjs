@@ -1,10 +1,10 @@
 // Finitions visuelles : page 404 (rôles, fiches hors périmètre), notes par
-// trimestre en accordéon (souris, clavier, ARIA), squelettes de chargement
+// année scolaire puis par trimestre en accordéon (souris, clavier, ARIA), squelettes de chargement
 // (forme, animation réduite, contraste élevé) et stabilité de la mise en page
 // (CLS mesuré dans le navigateur) à 375 px et 1280 px.
 // Captures dans e2e/resultats/captures/finitions. Aucune écriture en base.
 import path from "node:path";
-import { BASE, COMPTES, connecter, creerRapport, dossierResultats, getJson, lancerNavigateur, ouvrir } from "./commun.mjs";
+import { AUJOURDHUI, BASE, COMPTES, connecter, creerRapport, dossierResultats, getJson, lancerNavigateur, ouvrir } from "./commun.mjs";
 
 const rapport = creerRapport("Finitions visuelles");
 const { check } = rapport;
@@ -25,11 +25,14 @@ const largeurPage = (page) => page.evaluate(() => document.documentElement.scrol
 const moyenne = (notes) => notes.reduce((t, n) => t + n.valeur, 0) / notes.length;
 const TRIMESTRES = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
 
-/** Trimestre ouvert attendu : le plus récent qui a des notes, sinon le dernier. */
-function ouvertAttendu(notes) {
-  const avecNotes = TRIMESTRES.filter((t) => notes.some((n) => n.periode === t));
-  return avecNotes.at(-1) ?? TRIMESTRES.at(-1);
-}
+// Trimestre en cours au Bénin (même règle que src/lib/annee-scolaire.ts) : le seul ouvert par défaut
+const [anJour, moisJour] = AUJOURDHUI.split("-").map(Number);
+const debutAnnee = moisJour >= 9 ? anJour : anJour - 1;
+const ANNEE_EN_COURS = `${debutAnnee}-${debutAnnee + 1}`;
+const TRIMESTRE_EN_COURS = moisJour >= 9 ? "Trimestre 1" : moisJour <= 3 ? "Trimestre 2" : "Trimestre 3";
+
+/** Années affichées : celles des notes et l'année en cours, la plus récente d'abord. */
+const anneesAttendues = (notes) => [...new Set([ANNEE_EN_COURS, ...notes.map((n) => n.anneeScolaire)])].sort().reverse();
 
 // ══ 1. PAGE 404 ══════════════════════════════════════════════════════════════
 
@@ -130,34 +133,38 @@ const etatAccordeon = (page) =>
         ouvert: b.getAttribute("aria-expanded") === "true",
         panneauExiste: !!panneau,
         panneauVisible: !!panneau && !panneau.hidden && panneau.offsetHeight > 0,
+        cle: b.getAttribute("data-entete-trimestre"),
         etiquette: panneau?.getAttribute("aria-labelledby") === b.id,
         type: b.getAttribute("type"),
-        dansH3: b.parentElement.tagName === "H3",
+        dansH4: b.parentElement.tagName === "H4",
+        annee: b.closest("[data-annee]")?.getAttribute("data-annee"),
       };
     })
   );
 
 async function verifierAccordeon(page, nom, notes) {
   const etat = await etatAccordeon(page);
-  check(`${nom} : 3 trimestres, boutons dans un h3, aria-controls → panneau étiqueté`,
-    etat.length === 3 && etat.every((e) => e.type === "button" && e.dansH3 && e.panneauExiste && e.etiquette));
+  const annees = anneesAttendues(notes);
+  // Blocs d'année de l'accordéon des notes (ceux des absences n'ont pas d'en-tête de trimestre)
+  const titresAnnees = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-annee]")].filter((b) => b.querySelector("[data-entete-trimestre]")).map((b) => b.querySelector("h3").textContent)
+  );
+  check(`${nom} : une année par bloc (h3), la plus récente d'abord — ${annees.join(", ")}`,
+    titresAnnees.map((t) => t.replace(/\s*\(en cours\)/, "").replace(/\s+/g, " ").trim()).join() === annees.map((a) => `Année scolaire ${a}`).join(),
+    titresAnnees.join(" | "));
+  check(`${nom} : 3 trimestres par année, boutons dans un h4, aria-controls → panneau étiqueté`,
+    etat.length === 3 * annees.length && etat.every((e) => e.type === "button" && e.dansH4 && e.panneauExiste && e.etiquette) &&
+    etat.every((e, i) => e.annee === annees[Math.floor(i / 3)] && e.cle === `${e.annee}::${TRIMESTRES[i % 3]}`));
   check(`${nom} : aria-expanded cohérent avec le panneau affiché`, etat.every((e) => e.ouvert === e.panneauVisible));
 
-  if (notes) {
-    const attendu = ouvertAttendu(notes);
-    check(`${nom} : seul le trimestre le plus récent (${attendu}) est ouvert`,
-      etat.filter((e) => e.ouvert).length === 1 && etat.find((e) => e.ouvert)?.texte.startsWith(attendu), etat.map((e) => `${e.ouvert ? "▼" : "▶"} ${e.texte}`).join(" | "));
-    const moyennesOk = TRIMESTRES.every((t, i) => {
-      const duT = notes.filter((n) => n.periode === t);
-      return duT.length === 0 ? etat[i].texte.includes("Pas de moyenne") : etat[i].texte.includes(`${moyenne(duT).toFixed(1)}/20`) && etat[i].texte.includes(`${duT.length} note`);
-    });
-    check(`${nom} : chaque en-tête affiche sa moyenne et son nombre de notes, même replié`, moyennesOk);
-  } else {
-    const ouverts = etat.filter((e) => e.ouvert);
-    const avecNotes = etat.filter((e) => !e.texte.includes("Pas de moyenne"));
-    check(`${nom} : un seul trimestre ouvert, le plus récent qui a des notes`,
-      ouverts.length === 1 && ouverts[0].texte === (avecNotes.at(-1) ?? etat.at(-1)).texte, etat.map((e) => `${e.ouvert ? "▼" : "▶"} ${e.texte}`).join(" | "));
-  }
+  const attendu = `${ANNEE_EN_COURS}::${TRIMESTRE_EN_COURS}`;
+  check(`${nom} : seul le trimestre en cours (${TRIMESTRE_EN_COURS} ${ANNEE_EN_COURS}) est ouvert`,
+    etat.filter((e) => e.ouvert).length === 1 && etat.find((e) => e.ouvert)?.cle === attendu, etat.filter((e) => e.ouvert).map((e) => e.cle).join(" | "));
+  const moyennesOk = etat.every((e) => {
+    const duT = notes.filter((n) => `${n.anneeScolaire}::${n.periode}` === e.cle);
+    return duT.length === 0 ? e.texte.includes("Pas de moyenne") : e.texte.includes(`${moyenne(duT).toFixed(1)}/20`) && e.texte.includes(`${duT.length} note`);
+  });
+  check(`${nom} : chaque en-tête affiche la moyenne et le nombre de notes de son trimestre et de son année, même replié`, moyennesOk);
 
   // Souris : ouvrir puis replier le premier trimestre
   const premier = entetes(page).first();
@@ -182,8 +189,8 @@ async function verifierAccordeon(page, nom, notes) {
   const boucle = await focusIndex();
   await page.keyboard.press("Home");
   const debut = await focusIndex();
-  check(`${nom} : clavier — Entrée et Espace basculent, flèches/Début/Fin déplacent le focus`,
-    apresEntree === !avant && apresEspace === avant && bas === 1 && fin === 2 && boucle === 0 && debut === 0, `${bas},${fin},${boucle},${debut}`);
+  check(`${nom} : clavier — Entrée et Espace basculent, flèches/Début/Fin déplacent le focus (toutes années)`,
+    apresEntree === !avant && apresEspace === avant && bas === 1 && fin === etat.length - 1 && boucle === 0 && debut === 0, `${bas},${fin},${boucle},${debut}`);
 }
 
 /** GET JSON qui doit réussir : sinon, erreur explicite (statut et message de l'API). */
@@ -204,7 +211,7 @@ for (const e of elevesEns.slice(0, 10)) {
   }
 }
 eleve ??= await lireOk(admin, `/api/etudiants/${elevesEns[0].id}`);
-console.log(`   Fiche testée : ${eleve.notes.length} notes, trimestre ouvert attendu ${ouvertAttendu(eleve.notes)}`);
+console.log(`   Fiche testée : ${eleve.notes.length} notes, années ${anneesAttendues(eleve.notes).join(", ")}`);
 
 await ouvrir(admin, `/admin/etudiants/${eleve.id}`);
 await verifierAccordeon(admin, "Fiche admin", eleve.notes);
@@ -225,7 +232,7 @@ if (COMPTES.directeur) {
 
 const etudiant = await session(COMPTES.etudiant);
 await ouvrir(etudiant, "/etudiant");
-await verifierAccordeon(etudiant, "Espace étudiant", null);
+await verifierAccordeon(etudiant, "Espace étudiant", await lireOk(etudiant, "/api/notes"));
 await capture(etudiant, "etudiant-1280");
 await etudiant.context().close();
 

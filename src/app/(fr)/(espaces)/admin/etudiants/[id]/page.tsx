@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
 import { peutAccederEtudiant } from "@/lib/perimetre";
 import AdminStudentDetail from "./AdminStudentDetail";
 
@@ -31,6 +32,7 @@ export default async function AdminStudentPage({ params }: PageProps) {
           id: true,
           niveauRisque: true,
           periode: true,
+          anneeScolaire: true,
           moyenneAvant: true,
           moyenneApres: true,
           ecartPourcent: true,
@@ -55,5 +57,6 @@ export default async function AdminStudentPage({ params }: PageProps) {
     alertes: etudiant.alertes.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() })),
     absences: etudiant.absences.map((a) => ({ ...a, date: a.date.toISOString() })),
   };
-  return <AdminStudentDetail student={student} />;
+  // Trimestre en cours, calculé ici (heure du Bénin) : même rendu côté serveur et navigateur
+  return <AdminStudentDetail student={student} enCours={periodeScolaireAuBenin(new Date())} />;
 }

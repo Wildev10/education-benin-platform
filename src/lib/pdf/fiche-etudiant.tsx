@@ -8,6 +8,7 @@ import {
   ligneStyle,
   styles,
 } from "@/lib/pdf/commun";
+import { libellePeriode } from "@/lib/notes-trimestres";
 
 const PERIODES = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
 const ORDRE_MATIERES = ["Mathématiques", "Physique-Chimie", "SVT", "Français", "Anglais", "Histoire-Géo"];
@@ -25,6 +26,8 @@ export type DonneesFicheEtudiant = {
   alertes: {
     niveauRisque: string;
     periode: string;
+    /** Absente des anciennes alertes */
+    anneeScolaire?: string | null;
     statut: string;
     moyenneAvant: number;
     moyenneApres: number;
@@ -210,7 +213,7 @@ export function FicheEtudiantPdf({ etudiant, anneeScolaire, notes, absences, ale
                   <Text style={[styles.cellule, styles.gras, { width: "16%" }, ...(a.niveauRisque === "eleve" ? [styles.rouge] : [])]}>
                     {a.niveauRisque === "eleve" ? "Élevé" : "Moyen"}
                   </Text>
-                  <Text style={[styles.cellule, { width: "18%" }]}>{a.periode}</Text>
+                  <Text style={[styles.cellule, { width: "18%" }]}>{libellePeriode(a.periode, a.anneeScolaire)}</Text>
                   <Text style={[styles.cellule, { width: "22%", textAlign: "right" }]}>
                     {formatNote(a.moyenneAvant)} › {formatNote(a.moyenneApres)}
                   </Text>

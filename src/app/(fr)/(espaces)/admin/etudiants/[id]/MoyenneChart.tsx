@@ -10,13 +10,14 @@ import {
   YAxis,
 } from "recharts";
 
-type ChartPoint = { periode: string; moyenne: number };
+/** periode : libellé court de l'axe ; nom : libellé complet lu par les lecteurs d'écran */
+type ChartPoint = { periode: string; nom?: string; moyenne: number };
 
 export default function MoyenneChart({ data }: { data: ChartPoint[] }) {
   return (
     <div
       role="img"
-      aria-label={`Évolution de la moyenne par trimestre : ${data.map((p) => `${p.periode} ${p.moyenne.toFixed(1)} sur 20`).join(", ")}`}
+      aria-label={`Évolution de la moyenne par trimestre : ${data.map((p) => `${p.nom ?? p.periode} ${p.moyenne.toFixed(1)} sur 20`).join(", ")}`}
       className="mt-6 h-72 w-full"
     >
       <ResponsiveContainer width="100%" height="100%">
