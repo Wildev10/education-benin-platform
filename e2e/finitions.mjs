@@ -1,7 +1,8 @@
 // Finitions visuelles : page 404 (rôles, fiches hors périmètre), notes par
 // année scolaire puis par trimestre en accordéon (souris, clavier, ARIA), squelettes de chargement
 // (forme, animation réduite, contraste élevé) et stabilité de la mise en page
-// (CLS mesuré dans le navigateur) à 375 px et 1280 px.
+// (CLS mesuré dans le navigateur) à 375 px et 1280 px ; tableaux de bord : ligne « Mis à jour »,
+// actualisation (bouton, 5 minutes, retour sur l'onglet), chiffres clés sans doublon, en-tête.
 // Captures dans e2e/resultats/captures/finitions. Aucune écriture en base.
 import path from "node:path";
 import { AUJOURDHUI, BASE, COMPTES, connecter, creerRapport, dossierResultats, getJson, lancerNavigateur, ouvrir } from "./commun.mjs";
@@ -423,6 +424,127 @@ await ouvrir(tdbLarge, "/admin");
 await tdbLarge.locator("#alerts-title").scrollIntoViewIfNeeded();
 await tdbLarge.screenshot({ path: path.join(CAPTURES, "acces-alertes-1280.png") });
 await tdbLarge.context().close();
+
+// ══ Tableaux de bord : ligne « Mis à jour », actualisation, cartes, en-tête ══
+const dateDonnees = (page) => page.locator("[data-mise-a-jour] time").getAttribute("datetime");
+/** Attend de nouvelles données (instant différent de `avant`), sans rechargement de la page. */
+async function nouvellesDonnees(page, avant, delai = 20000) {
+  return page.waitForFunction((a) => document.querySelector("[data-mise-a-jour] time")?.getAttribute("datetime") !== a, avant, { timeout: delai })
+    .then(() => true, () => false);
+}
+const masquerOnglet = (page, masque) => page.evaluate((m) => {
+  Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (m ? "hidden" : "visible") });
+  document.dispatchEvent(new Event("visibilitychange"));
+}, masque);
+
+for (const [nomLargeur, options] of [["1280", undefined], ["375", MOBILE]]) {
+  const p = await session(COMPTES.admin, options);
+  await p.clock.install();
+  await ouvrir(p, "/admin");
+  const ligne = normaliser(await p.locator("[data-mise-a-jour] p").innerText());
+  const time = p.locator("[data-mise-a-jour] time");
+  check(`${nomLargeur} px, tableau de bord : « Tous les établissements · Mis à jour à 10 h 28 · à l'instant », heure et ancienneté sur une ligne`,
+    /^Tous les établissements (· )?Mis à jour à \d{1,2} h \d{2} ?, heure du Bénin · à l'instant$/.test(ligne) &&
+    (await p.locator("[data-mise-a-jour] span.whitespace-nowrap").evaluate((el) => el.getClientRects().length === 1)) &&
+    (await time.getAttribute("title")) === "Heure du Bénin", ligne);
+  const bouton = p.getByRole("button", { name: "Actualiser" });
+  const boite = await bouton.boundingBox();
+  check(`${nomLargeur} px : bouton « Actualiser » visible, dans l'écran`, (await bouton.isVisible()) && boite.x + boite.width <= (options?.largeur ?? 1280), JSON.stringify(boite));
+
+  // Trois chiffres clés, « Risque élevé » une seule fois (accès direct)
+  const cles = (await p.locator('section[aria-label="Chiffres clés"] article > div > p').allTextContents()).map(normaliser);
+  check(`${nomLargeur} px : chiffres clés sans doublon du risque élevé`,
+    JSON.stringify(cles) === JSON.stringify(["Étudiants suivis", "Établissements", "Alertes actives"]) &&
+    (await p.locator('section[aria-label="Chiffres clés"]').getByText(/risque\sélevé/i).count()) === 0 &&
+    (await p.locator('nav[aria-label="Accès direct aux alertes"]').getByText(/risque\sélevé/i).count()) === 1, cles.join(", "));
+  const boitesCles = await p.locator('section[aria-label="Chiffres clés"] article').evaluateAll((a) => a.map((x) => x.getBoundingClientRect().x));
+  const boitesAcces = await p.locator('nav[aria-label="Accès direct aux alertes"] li').evaluateAll((a) => a.map((x) => x.getBoundingClientRect().x));
+  if (!options) check("1280 px : chiffres clés et accès directs alignés sur les mêmes trois colonnes",
+    boitesCles.length === 3 && boitesCles.every((x, i) => Math.abs(x - boitesAcces[i]) < 1), `${boitesCles} / ${boitesAcces}`);
+
+  // Aucun mot seul sur la dernière ligne d'un accès direct
+  const orphelins = await p.locator('nav[aria-label="Accès direct aux alertes"] a span.block').evaluateAll((spans) => spans.filter((span) => {
+    const noeud = span.firstChild;
+    const texte = noeud?.textContent ?? "";
+    const debutDernier = texte.search(/\S+$/);
+    if (debutDernier <= 0) return false;
+    const range = document.createRange();
+    range.setStart(noeud, debutDernier);
+    range.setEnd(noeud, texte.length);
+    const dernier = range.getClientRects()[0];
+    range.setStart(noeud, 0);
+    range.setEnd(noeud, debutDernier - 1);
+    const rects = [...range.getClientRects()];
+    return rects.length > 0 && rects.every((r) => Math.abs(r.top - dernier.top) > 2);
+  }).map((s) => s.textContent));
+  check(`${nomLargeur} px : pas de mot orphelin dans les accès directs (« jours »)`, orphelins.length === 0, orphelins.join(" | "));
+
+  // En-tête : prénom et nom, initiales des deux
+  const profil = (await getJson(p, "/api/profil")).corps;
+  const avatar = normaliser(await p.locator('button[aria-label="Menu utilisateur"] div[aria-hidden="true"]').innerText());
+  const attendu = `${profil.prenom[0]}${profil.nom[0]}`.toUpperCase();
+  const nomEnTete = p.locator('button[aria-label="Menu utilisateur"] p').first();
+  check(`${nomLargeur} px, en-tête : initiales « ${attendu} »${options ? "" : ` et « ${profil.prenom} ${profil.nom} »`}`,
+    avatar === attendu && (options ? true : normaliser(await nomEnTete.innerText()) === `${profil.prenom} ${profil.nom}`), `${avatar} / ${await nomEnTete.innerText()}`);
+  await p.screenshot({ path: path.join(CAPTURES, `tableau-de-bord-${nomLargeur}.png`) });
+
+  if (!options) {
+    // Actualisation sans rechargement : marqueur JS et position des sections conservés
+    await p.evaluate(() => { window.__pageInitiale = true; });
+    const titreAvant = await p.locator("#alerts-title").evaluate((el) => el.getBoundingClientRect().top);
+    let avant = await dateDonnees(p);
+    await bouton.click();
+    const manuelle = await nouvellesDonnees(p, avant);
+    await p.locator('[data-mise-a-jour] [role="status"]', { hasText: "Données mises à jour" }).waitFor({ timeout: 5000 }).catch(() => {});
+    check("Actualiser : nouvelles données sans recharger la page, annonce aux lecteurs d'écran, mise en page stable",
+      manuelle && (await p.evaluate(() => window.__pageInitiale === true)) &&
+      /Données mises à jour/.test(await p.locator('[data-mise-a-jour] [role="status"]').textContent()) &&
+      Math.abs((await p.locator("#alerts-title").evaluate((el) => el.getBoundingClientRect().top)) - titreAvant) < 1);
+
+    // Toutes les 5 minutes, onglet visible
+    avant = await dateDonnees(p);
+    await p.clock.fastForward("04:30");
+    await p.waitForTimeout(1500);
+    const tropTot = (await dateDonnees(p)) !== avant;
+    await p.clock.fastForward("00:35");
+    check("Actualisation automatique au bout de 5 minutes, pas avant", !tropTot && (await nouvellesDonnees(p, avant)) && (await p.evaluate(() => window.__pageInitiale === true)));
+
+    // Onglet masqué : rien ; retour sur l'onglet : tout de suite
+    avant = await dateDonnees(p);
+    await masquerOnglet(p, true);
+    await p.clock.fastForward("06:00");
+    await p.waitForTimeout(1500);
+    const pendantMasque = (await dateDonnees(p)) !== avant;
+    await masquerOnglet(p, false);
+    check("Onglet masqué : pas d'actualisation ; retour sur l'onglet : actualisation immédiate",
+      !pendantMasque && (await nouvellesDonnees(p, avant, 10000)) && (await p.evaluate(() => window.__pageInitiale === true)));
+  }
+  await p.context().close();
+}
+
+if (COMPTES.directeur) {
+  const dir = await session(COMPTES.directeur);
+  await ouvrir(dir, "/directeur");
+  const ligneDir = normaliser(await dir.locator("[data-mise-a-jour] p").innerText());
+  const avantDir = await dateDonnees(dir);
+  await dir.getByRole("button", { name: "Actualiser" }).click();
+  check("Directeur : ligne « Mis à jour à … » et bouton Actualiser",
+    /^Mis à jour à \d{1,2} h \d{2} ?, heure du Bénin · à l'instant$/.test(ligneDir) && (await nouvellesDonnees(dir, avantDir)), ligneDir);
+  await dir.context().close();
+} else {
+  rapport.ignorer("Directeur : ligne « Mis à jour »", "E2E_DIRECTEUR_EMAIL et E2E_DIRECTEUR_MOT_DE_PASSE non définis");
+}
+
+// En-tête des autres rôles : initiales du prénom et du nom
+for (const role of ["enseignant", "etudiant"]) {
+  const p = await session(COMPTES[role]);
+  const profil = (await getJson(p, "/api/profil")).corps;
+  const avatar = normaliser(await p.locator('button[aria-label="Menu utilisateur"] div[aria-hidden="true"]').innerText());
+  const nomEnTete = normaliser(await p.locator('button[aria-label="Menu utilisateur"] p').first().innerText());
+  check(`En-tête ${role} : « ${profil.prenom} ${profil.nom} », initiales « ${avatar} »`,
+    avatar === `${profil.prenom[0]}${profil.nom[0]}`.toUpperCase() && nomEnTete === `${profil.prenom} ${profil.nom}`, `${avatar} / ${nomEnTete}`);
+  await p.context().close();
+}
 
 // Préférences d'accessibilité : le bouton les enregistre, l'hydratation ne les écrase pas
 const acces = await session(COMPTES.enseignant);

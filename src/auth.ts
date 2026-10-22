@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { nomComplet } from "@/lib/nom-utilisateur";
 import { verifierRateLimit, enregistrerEchec, reinitialiserCompteur } from "@/lib/rate-limit";
 
 class RateLimitError extends CredentialsSignin {
@@ -57,7 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return {
           id: user.id,
           email: user.email,
-          name: user.nom,
+          name: nomComplet(user.prenom, user.nom),
           role: user.role,
           etudiantId: user.etudiantId,
           etablissementId: user.etablissementId,

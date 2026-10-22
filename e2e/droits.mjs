@@ -157,9 +157,9 @@ try {
       .map((s) => s.outerHTML.slice(0, 80))
   );
   check("Admin, tableau de bord : ni emoji ni pictogramme, icônes accessibles", await sobre(admin), fautifs.join(" | "));
-  const sousTitre = (await admin.locator("main p", { hasText: "Périmètre" }).first().innerText()).replace(/\s+/g, " ");
-  check("Admin, tableau de bord : sous-titre factuel (périmètre et date des données)",
-    /^Périmètre : tous les établissements\. Données du .+, heure du Bénin\.$/.test(sousTitre), sousTitre);
+  const sousTitre = (await admin.locator("[data-mise-a-jour] p").first().innerText()).replace(/\s+/g, " ");
+  check("Admin, tableau de bord : ligne d'information (périmètre, heure des données, ancienneté)",
+    /^Tous les établissements · Mis à jour à \d{1,2} h \d{2} ?, heure du Bénin · (à l'instant|il y a \d+ min)$/.test(sousTitre), sousTitre);
   await ouvrir(admin, "/admin/utilisateurs");
   check("Admin, comptes : ni emoji ni pictogramme, « Voir la fiche » sans flèche", (await sobre(admin)) && (await admin.getByText("Fiche →").count()) === 0);
   check("Admin : gestion des comptes (Nouveau compte, Modifier, Supprimer)",

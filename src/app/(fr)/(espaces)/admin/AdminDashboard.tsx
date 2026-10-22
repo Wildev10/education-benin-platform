@@ -59,7 +59,6 @@ type Stats = {
   etudiants: number;
   etablissements: number;
   alertesActives: number;
-  alertesEleve: number;
 };
 
 /** Repère de couleur de chaque accès direct (bordure gauche), cohérent avec les badges de risque. */
@@ -91,12 +90,6 @@ const iconAlertes = (
   </svg>
 );
 
-const iconElevé = (
-  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-    <path d="M11 2L2 19h18L11 2z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" fill="currentColor" fillOpacity="0.15" />
-    <path d="M11 9v4M11 15.5v.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-);
 
 export default function AdminDashboard({
   initialAlerts,
@@ -111,9 +104,14 @@ export default function AdminDashboard({
   raccourcis: Raccourci[];
 }) {
   const router = useRouter();
-  const [alerts, setAlerts] = useState(initialAlerts);
-  const [stats, setStats] = useState(initialStats);
-  const [statsEtablissements, setStatsEtablissements] = useState(initialStatsEtablissements);
+  // Les données viennent de la page serveur, recalculée à chaque actualisation
+  // (router.refresh) : rien n'est recopié dans l'état, sinon l'actualisation
+  // automatique n'aurait pas d'effet. Seules les alertes que l'on vient de
+  // traiter sont retirées tout de suite, en attendant les nouvelles données.
+  const [traitees, setTraitees] = useState<string[]>([]);
+  const alerts = initialAlerts.filter((alert) => !traitees.includes(alert.id));
+  const stats = { ...initialStats, alertesActives: Math.max(0, initialStats.alertesActives - (initialAlerts.length - alerts.length)) };
+  const statsEtablissements = initialStatsEtablissements;
   const [processingId, setProcessingId] = useState<string | null>(null);
   const horsLigne = useHorsLigne();
   const [error, setError] = useState("");
@@ -143,22 +141,9 @@ export default function AdminDashboard({
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Impossible de traiter l'alerte.");
 
-      const handledAlert = alerts.find((alert) => alert.id === alertId);
-      setAlerts((current) => current.filter((alert) => alert.id !== alertId));
-      setStats((current) => ({
-        ...current,
-        alertesActives: Math.max(0, current.alertesActives - 1),
-        alertesEleve:
-          handledAlert?.niveauRisque === "eleve"
-            ? Math.max(0, current.alertesEleve - 1)
-            : current.alertesEleve,
-      }));
+      setTraitees((current) => [...current, alertId]);
       void Toast.fire({ icon: "success", title: "Alerte marquée comme traitée." });
-      router.refresh(); // compteurs des accès directs recalculés côté serveur
-      void fetch("/api/admin/stats/etablissements")
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data: StatsEtablissement[] | null) => data && setStatsEtablissements(data))
-        .catch(() => {});
+      router.refresh(); // chiffres, accès directs et établissements recalculés côté serveur
     } catch (requestError) {
       setError(
         requestError instanceof Error ? requestError.message : "Une erreur est survenue."
@@ -171,8 +156,9 @@ export default function AdminDashboard({
 
   return (
     <>
-      {/* ── Stat cards ─────────────────────────────────────────── */}
-      <section aria-label="Chiffres clés" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* ── Chiffres clés : le volume suivi. Le détail des alertes (risque élevé,
+           absences, 7 derniers jours) est dans les accès directs, sur les mêmes colonnes dès 1024 px. */}
+      <section aria-label="Chiffres clés" className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Étudiants suivis"
           value={stats.etudiants}
@@ -188,13 +174,6 @@ export default function AdminDashboard({
           value={stats.alertesActives}
           icon={iconAlertes}
           tone="warning"
-        />
-        <StatCard
-          label="Risque élevé"
-          value={stats.alertesEleve}
-          sublabel="à examiner en priorité"
-          icon={iconElevé}
-          tone="danger"
         />
       </section>
 
@@ -239,7 +218,7 @@ export default function AdminDashboard({
 
         {/* Accès directs : la page Alertes déjà filtrée, avec le nombre d'alertes actives de chaque vue */}
         <nav aria-label="Accès direct aux alertes" className="mt-5">
-          <ul className="grid gap-3 sm:grid-cols-3">
+          <ul className="grid gap-4 lg:grid-cols-3">
             {raccourcis.map((r) => (
               <li key={r.cle}>
                 <Link
@@ -249,10 +228,11 @@ export default function AdminDashboard({
                 >
                   <span className="min-w-10 text-3xl font-bold tabular-nums text-ink">{r.total}</span>
                   <span className="min-w-0">
-                    <span className="block font-semibold text-ink underline decoration-transparent underline-offset-4 group-hover:decoration-current">
+                    {/* text-pretty : jamais un mot seul (« jours ») sur la dernière ligne, sans empêcher le retour à la ligne */}
+                    <span className="block text-pretty font-semibold text-ink underline decoration-transparent underline-offset-4 group-hover:decoration-current">
                       {r.libelle}
                     </span>
-                    <span className="block text-sm text-ink-secondary">{r.precision}</span>
+                    <span className="block text-pretty text-sm text-ink-secondary">{r.precision}</span>
                   </span>
                 </Link>
               </li>

@@ -11,6 +11,7 @@ import {
 import { GraphiqueEvolution, GraphiqueNiveaux } from "./DirecteurCharts";
 import { ExportExcelButton } from "@/components/ExportPdfButton";
 import { IconeEtablissement } from "@/components/ui/Icones";
+import { MiseAJourDonnees } from "@/components/MiseAJourDonnees";
 import { FUSEAU_BENIN } from "@/lib/dates";
 import { formaterBaisse, formaterNombre, formaterPourcent } from "@/lib/format";
 
@@ -68,7 +69,9 @@ export default async function DirecteurPage() {
   if (acces.statut === "interdit") redirect("/");
   if (acces.statut === "sans-etablissement") return <SansEtablissement />;
 
-  const tdb = await getTableauDeBordDirecteur(acces.etablissementId);
+  // Instant des données affichées (la page est recalculée à chaque chargement et actualisation)
+  const maintenant = new Date();
+  const tdb = await getTableauDeBordDirecteur(acces.etablissementId, maintenant);
   if (!tdb) return <SansEtablissement />;
 
   const { etablissement, alertes } = tdb;
@@ -86,6 +89,9 @@ export default async function DirecteurPage() {
           Département {etablissement.departement} · {etablissement.commune}
           {tdb.anneeScolaire && <> · Année scolaire {tdb.anneeScolaire}</>}
         </p>
+        <div className="mt-3">
+          <MiseAJourDonnees misAJourLe={maintenant.toISOString()} />
+        </div>
         <div className="mt-5">
           <ExportExcelButton
             href={`/api/etablissements/${etablissement.id}/eleves/xlsx`}

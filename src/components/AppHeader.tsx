@@ -9,6 +9,7 @@ import NotificationBell from "@/components/NotificationBell";
 import { usePwa } from "@/components/pwa/PwaProvider";
 import { SynchroUtilisateurPwa } from "@/components/pwa/SynchroUtilisateurPwa";
 import { viderCachesPwa } from "@/lib/pwa";
+import { initiales } from "@/lib/nom-utilisateur";
 
 export default function AppHeader({
   name,
@@ -26,13 +27,7 @@ export default function AppHeader({
   const containerRef = useRef<HTMLDivElement>(null);
   const { installationDisponible, installer } = usePwa();
 
-  const initials = name
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const initials = initiales(name);
 
   // Close on outside click
   useEffect(() => {
