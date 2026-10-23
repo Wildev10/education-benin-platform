@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useCouleursGraphique } from "@/lib/couleurs-graphiques";
 import type { PointEvolution } from "@/lib/tableau-de-bord-directeur";
 import { formaterNombre } from "@/lib/format";
 
@@ -18,6 +19,7 @@ import { formaterNombre } from "@/lib/format";
 const LARGEUR_ETIQUETTES_COURTES = 300;
 
 export default function EvolutionMoyenneChart({ data }: { data: PointEvolution[] }) {
+  const c = useCouleursGraphique();
   const [etroit, setEtroit] = useState(false);
   return (
     <div
@@ -29,30 +31,30 @@ export default function EvolutionMoyenneChart({ data }: { data: PointEvolution[]
     >
       <ResponsiveContainer width="100%" height="100%" onResize={(largeur) => setEtroit(largeur < LARGEUR_ETIQUETTES_COURTES)}>
         <LineChart data={data} margin={{ top: 16, right: 16, bottom: 4, left: 0 }}>
-          <CartesianGrid strokeDasharray="4 4" stroke="#E5E5E5" vertical={false} />
+          <CartesianGrid strokeDasharray="4 4" stroke={c.grille} vertical={false} />
           <XAxis
             dataKey="periode"
             interval={0}
             padding={{ left: 28, right: 28 }}
-            tick={{ fill: "#404040", fontSize: 12 }}
+            tick={{ fill: c.libelle, fontSize: 12 }}
             tickFormatter={(periode: string) => (etroit ? periode.replace(/^Trimestre\s*/, "T") : periode)}
-            axisLine={{ stroke: "#E5E5E5" }}
+            axisLine={{ stroke: c.grille }}
             tickLine={false}
           />
           <YAxis
             domain={[0, 20]}
             ticks={[0, 5, 10, 15, 20]}
-            tick={{ fill: "#6B6B6B", fontSize: 12 }}
+            tick={{ fill: c.axe, fontSize: 12 }}
             axisLine={false}
             tickLine={false}
             width={28}
           />
-          <ReferenceLine y={10} stroke="#B91C1C" strokeDasharray="4 4" strokeOpacity={0.5} />
+          <ReferenceLine y={10} stroke={c.seuil} strokeDasharray="4 4" strokeOpacity={c.opaciteSeuil} />
           <Tooltip
             formatter={(value) => [`${formaterNombre(Number(value), 2)}/20`, "Moyenne"]}
             contentStyle={{
               borderRadius: "12px",
-              border: "1px solid #E5E5E5",
+              border: `1px solid ${c.bordureInfobulle}`,
               boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
             }}
           />
@@ -60,10 +62,10 @@ export default function EvolutionMoyenneChart({ data }: { data: PointEvolution[]
             type="monotone"
             dataKey="moyenne"
             name="Moyenne / 20"
-            stroke="#F97316"
+            stroke={c.trait}
             strokeWidth={3}
-            dot={{ r: 6, fill: "#fff", stroke: "#F97316", strokeWidth: 2.5 }}
-            activeDot={{ r: 8, fill: "#C2410C", stroke: "#fff", strokeWidth: 2 }}
+            dot={{ r: 6, fill: "#fff", stroke: c.trait, strokeWidth: 2.5 }}
+            activeDot={{ r: 8, fill: c.pointActif, stroke: "#fff", strokeWidth: 2 }}
           />
         </LineChart>
       </ResponsiveContainer>

@@ -70,7 +70,7 @@ La plateforme s'installe comme une application (PWA). Les pages et les données 
 
 ### Accessibilité et langues
 
-- Contraste élevé, taille du texte ajustable, lecture à voix haute, sur toutes les pages (y compris la 404). Sur téléphone et tablette, ces commandes sont dans le menu utilisateur.
+- Contraste élevé (niveau AAA : fond clair, textes à 7:1 au moins, couleurs d'état assombries et toujours doublées d'un libellé, bordures de 2 px, repère de focus épais), taille du texte ajustable, lecture à voix haute, sur toutes les pages (y compris la 404). Le mode « couleurs forcées » de Windows est respecté à part. Sur téléphone et tablette, ces commandes sont dans le menu utilisateur.
 - Squelettes de chargement à la forme du contenu, respectant la réduction des animations et le contraste élevé.
 - **Responsive vérifié de 320 px à 1920 px** (téléphones, tablettes, ordinateurs, téléphone en paysage), au zoom de 200 % et avec la plus grande taille de texte : pas de défilement horizontal, tableaux qui défilent dans leur cadre (ombre au bord quand des colonnes restent à voir), zones à toucher d'au moins 44 × 44 px sur écran tactile.
 - **Accueil et connexion en français et en anglais** (`/en`, `/en/login`) : sélecteur FR/EN mémorisé, voix de lecture anglaise sur les pages anglaises. Après connexion, l'application est en français.
@@ -119,7 +119,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 ## Qualité
 
 - **593 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base, données de démonstration (cas de la démo à chaque trimestre), format français des nombres et libellé des périodes.
-- **1 903 vérifications navigateur** (10 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, réactivation, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), aucun nombre décimal au format anglais ni période « Trimestre 1 2026-2027 » sur les pages principales de chaque rôle, cloche comprise, responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
+- **2 099 vérifications navigateur** (11 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, réactivation, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), aucun nombre décimal au format anglais ni période « Trimestre 1 2026-2027 » sur les pages principales de chaque rôle, cloche comprise, responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), mode contraste élevé sur les pages des 4 rôles (textes à 7:1, couleurs d'état, focus, cloche, fenêtres, graphiques, couleurs forcées de Windows), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---
@@ -234,7 +234,7 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 npm test          # 593 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
-npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits, fuseaux, nombres, responsive
+npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits, fuseaux, nombres, responsive, contraste
 ```
 
 `npm run e2e` fait le build, lance `next start` sur le port 3100, exécute les scénarios de `e2e/` avec Google Chrome, puis arrête le serveur. Il refuse de démarrer si la base du `.env` figure dans `PROTECTED_DB_HOSTS`.

@@ -265,8 +265,17 @@ for (const [largeur, hauteur] of [[1280, 900], [375, 812]]) {
     await h.evaluate(() => localStorage.setItem("accessibility-contrast", "high"));
     await h.goto(`${BASE}/login`);
     await h.waitForFunction(() => document.documentElement.dataset.theme === "high-contrast");
-    const couleurs = await h.locator("main svg").first().evaluate((el) => getComputedStyle(el).color);
-    check("Contraste élevé : icônes au trait en blanc", couleurs === "rgb(255, 255, 255)", couleurs);
+    const icone = await h.locator("main svg").first().evaluate((el) => {
+      const lum = (c) => {
+        const [r, g, b] = c.match(/\d+(\.\d+)?/g).map(Number).map((v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      let fond = el.parentElement;
+      while (fond && getComputedStyle(fond).backgroundColor === "rgba(0, 0, 0, 0)") fond = fond.parentElement;
+      const [a, b] = [lum(getComputedStyle(el).color), lum(getComputedStyle(fond).backgroundColor)].sort((x, y) => y - x);
+      return (a + 0.05) / (b + 0.05);
+    });
+    check("Contraste élevé : icônes au trait visibles sur leur fond (≥ 3:1)", icone >= 3, icone.toFixed(2));
     await h.evaluate(() => localStorage.setItem("accessibility-contrast", "default"));
   }
   await h.context().close();

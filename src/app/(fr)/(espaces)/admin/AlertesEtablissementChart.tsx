@@ -10,11 +10,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useCouleursGraphique } from "@/lib/couleurs-graphiques";
 import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 
 type Point = { nom: string; nbAlertesActives: number };
 
 export default function AlertesEtablissementChart({ data }: { data: Point[] }) {
+  const c = useCouleursGraphique();
   return (
     <div
       role="img"
@@ -24,11 +26,11 @@ export default function AlertesEtablissementChart({ data }: { data: Point[] }) {
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 40, bottom: 4, left: 0 }}>
-          <CartesianGrid stroke="#E5E5E5" horizontal={false} />
+          <CartesianGrid stroke={c.grille} horizontal={false} />
           <XAxis
             type="number"
             allowDecimals={false}
-            tick={{ fill: "#6B6B6B", fontSize: 12 }}
+            tick={{ fill: c.axe, fontSize: 12 }}
             axisLine={false}
             tickLine={false}
           />
@@ -36,24 +38,24 @@ export default function AlertesEtablissementChart({ data }: { data: Point[] }) {
             type="category"
             dataKey="nom"
             width={140}
-            tick={{ fill: "#404040", fontSize: 12 }}
-            axisLine={{ stroke: "#E5E5E5" }}
+            tick={{ fill: c.libelle, fontSize: 12 }}
+            axisLine={{ stroke: c.grille }}
             tickLine={false}
           />
           <Tooltip
-            cursor={{ fill: "#FFF7ED" }}
+            cursor={{ fill: c.survol }}
             formatter={(value) => [value, "Alertes actives"]}
             contentStyle={{
               borderRadius: "12px",
-              border: "1px solid #E5E5E5",
+              border: `1px solid ${c.bordureInfobulle}`,
               boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
             }}
           />
-          <Bar dataKey="nbAlertesActives" fill="#F97316" barSize={20} radius={[0, 4, 4, 0]}>
+          <Bar dataKey="nbAlertesActives" fill={c.trait} barSize={20} radius={[0, 4, 4, 0]}>
             <LabelList
               dataKey="nbAlertesActives"
               position="right"
-              style={{ fill: "#0A0A0A", fontSize: 12, fontWeight: 600 }}
+              style={{ fill: c.valeur, fontSize: 12, fontWeight: 600 }}
             />
           </Bar>
         </BarChart>

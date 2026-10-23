@@ -279,9 +279,9 @@ describe("Squelettes de chargement", () => {
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.squelette,\s*\.squelette-trace\s*\{\s*animation: none;/);
   });
 
-  it("contraste élevé : blocs gris visibles malgré le fond noir forcé, sans pulsation", () => {
+  it("contraste élevé : blocs gris foncé visibles sur le fond clair, sans pulsation", () => {
     const regle = css.match(/html\[data-theme="high-contrast"\] \.squelette \{([^}]*)\}/)?.[1] ?? "";
-    expect(regle).toContain("background-color: #8a8a8a !important");
+    expect(regle).toContain("background-color: #767676");
     expect(regle).toContain("animation: none");
     expect(css).toMatch(/@media \(forced-colors: active\)\s*\{\s*\.squelette/);
   });

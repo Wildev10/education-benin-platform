@@ -11,7 +11,7 @@ import { createWriteStream } from "node:fs";
 import path from "node:path";
 import { BASE, HOTE_BASE, PORT, RACINE, dossierResultats } from "./commun.mjs";
 
-const SCENARIOS = ["connexions", "excel", "pagination", "finitions", "notifications", "langues", "droits", "fuseaux", "nombres", "responsive"];
+const SCENARIOS = ["connexions", "excel", "pagination", "finitions", "notifications", "langues", "droits", "fuseaux", "nombres", "responsive", "contraste"];
 const NEXT = path.join(RACINE, "node_modules", "next", "dist", "bin", "next");
 
 const args = process.argv.slice(2);

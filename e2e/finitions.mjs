@@ -360,13 +360,13 @@ await pReduit.locator("main h1").first().waitFor();
 const sReduit = await observerSquelette(pReduit, lienNav(pReduit, NAV.admin, "Alertes"), "alertes-mouvement-reduit");
 check("prefers-reduced-motion : les squelettes ne sont pas animés", sReduit.vu && sReduit.animation === "none", sReduit.animation);
 
-// Contraste élevé : blocs gris sur fond noir
+// Contraste élevé : blocs gris foncé sur fond clair
 await pReduit.evaluate(() => localStorage.setItem("accessibility-contrast", "high"));
 await pReduit.reload();
 await pReduit.waitForFunction(() => document.documentElement.dataset.theme === "high-contrast");
 const sContraste = await observerSquelette(pReduit, lienNav(pReduit, NAV.admin, "Absences"), "absences-contraste-eleve");
-check("Contraste élevé : blocs visibles (gris #8a8a8a sur noir), sans pulsation",
-  sContraste.vu && sContraste.fond === "rgb(138, 138, 138)" && sContraste.animation === "none", `${sContraste.fond}, ${sContraste.animation}`);
+check("Contraste élevé : blocs visibles (gris #767676 sur fond clair), sans pulsation",
+  sContraste.vu && sContraste.fond === "rgb(118, 118, 118)" && sContraste.animation === "none", `${sContraste.fond}, ${sContraste.animation}`);
 await pReduit.evaluate(() => localStorage.setItem("accessibility-contrast", "default"));
 await reduit.close();
 
@@ -407,16 +407,20 @@ check("375 px : accès directs empilés et dans l'écran, pas de défilement hor
   boitesAcces.every((b) => b.x >= 0 && b.droite <= 375) && boitesAcces[1].y > boitesAcces[0].y && (await largeurPage(tdbMobile)) <= 375);
 await tdbMobile.locator("#alerts-title").scrollIntoViewIfNeeded();
 await tdbMobile.screenshot({ path: path.join(CAPTURES, "acces-alertes-375.png") });
-// Contraste élevé : bordures et textes blancs sur noir, accès toujours lisibles
+// Contraste élevé : texte noir sur blanc, bordure de 2 px foncée, bande d'état gardée (rouge foncé)
 await tdbMobile.evaluate(() => localStorage.setItem("accessibility-contrast", "high"));
 await tdbMobile.reload();
 await tdbMobile.waitForFunction(() => document.documentElement.dataset.theme === "high-contrast");
 const styleContraste = await tdbMobile.locator('[data-raccourci="eleve"]').evaluate((el) => {
   const s = getComputedStyle(el);
-  return { bordure: s.borderLeftColor, texte: getComputedStyle(el.querySelector("span")).color, fond: s.backgroundColor };
+  return {
+    bande: `${s.borderLeftWidth} ${s.borderLeftColor}`, bordure: `${s.borderTopWidth} ${s.borderTopColor}`,
+    texte: getComputedStyle(el.querySelector("span")).color, fond: s.backgroundColor,
+  };
 });
-check("Contraste élevé : accès directs en blanc sur noir, bordure visible",
-  styleContraste.bordure === "rgb(255, 255, 255)" && styleContraste.texte === "rgb(255, 255, 255)" && styleContraste.fond === "rgb(0, 0, 0)", JSON.stringify(styleContraste));
+check("Contraste élevé : accès directs en noir sur blanc, bordure de 2 px foncée, bande rouge foncé de 4 px",
+  styleContraste.bande === "4px rgb(153, 27, 27)" && styleContraste.bordure === "2px rgb(77, 77, 77)" &&
+    styleContraste.texte === "rgb(0, 0, 0)" && styleContraste.fond === "rgb(255, 255, 255)", JSON.stringify(styleContraste));
 await tdbMobile.evaluate(() => localStorage.setItem("accessibility-contrast", "default"));
 await tdbMobile.context().close();
 const tdbLarge = await session(COMPTES.admin);
@@ -561,11 +565,14 @@ const iconesCommandes = await acces.evaluate(() =>
     const bouton = [...document.querySelectorAll("button")].find((b) => b.textContent.trim().startsWith(nom) && b.offsetParent);
     const svg = bouton?.querySelector("svg");
     const r = svg?.getBoundingClientRect();
-    return { nom, couleur: svg && getComputedStyle(svg).color, decorative: svg?.getAttribute("aria-hidden") === "true", visible: !!r && r.width > 0 && r.height > 0 };
+    return {
+      nom, couleur: svg && getComputedStyle(svg).color, texte: bouton && getComputedStyle(bouton).color,
+      decorative: svg?.getAttribute("aria-hidden") === "true", visible: !!r && r.width > 0 && r.height > 0,
+    };
   })
 );
-check("Contraste élevé : icônes au trait des commandes (contraste, lecture) blanches, visibles, décoratives ; libellés conservés",
-  iconesCommandes.every((i) => i.couleur === "rgb(255, 255, 255)" && i.visible && i.decorative) &&
+check("Contraste élevé : icônes au trait des commandes (contraste, lecture) de la couleur du libellé, visibles, décoratives ; libellés conservés",
+  iconesCommandes.every((i) => i.couleur && i.couleur === i.texte && i.visible && i.decorative) &&
   (await acces.getByRole("button", { name: "Lire" }).count()) >= 1,
   JSON.stringify(iconesCommandes));
 const stocke = await acces.evaluate(() => localStorage.getItem("accessibility-contrast"));

@@ -9,12 +9,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useCouleursGraphique } from "@/lib/couleurs-graphiques";
 import { formaterNombre } from "@/lib/format";
 
 /** periode : libellé court de l'axe ; nom : libellé complet lu par les lecteurs d'écran */
 type ChartPoint = { periode: string; nom?: string; moyenne: number };
 
 export default function MoyenneChart({ data }: { data: ChartPoint[] }) {
+  const c = useCouleursGraphique();
   return (
     <div
       role="img"
@@ -23,17 +25,17 @@ export default function MoyenneChart({ data }: { data: ChartPoint[] }) {
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 16, right: 24, bottom: 12, left: 0 }}>
-          <CartesianGrid strokeDasharray="4 4" stroke="#E5E5E5" vertical={false} />
+          <CartesianGrid strokeDasharray="4 4" stroke={c.grille} vertical={false} />
           <XAxis
             dataKey="periode"
-            tick={{ fill: "#404040", fontSize: 13 }}
-            axisLine={{ stroke: "#E5E5E5" }}
+            tick={{ fill: c.libelle, fontSize: 13 }}
+            axisLine={{ stroke: c.grille }}
             tickLine={false}
           />
           <YAxis
             domain={[0, 20]}
             ticks={[0, 5, 10, 15, 20]}
-            tick={{ fill: "#6B6B6B", fontSize: 12 }}
+            tick={{ fill: c.axe, fontSize: 12 }}
             axisLine={false}
             tickLine={false}
             width={28}
@@ -42,7 +44,7 @@ export default function MoyenneChart({ data }: { data: ChartPoint[] }) {
             formatter={(value) => [`${formaterNombre(Number(value), 2)}/20`, "Moyenne"]}
             contentStyle={{
               borderRadius: "12px",
-              border: "1px solid #E5E5E5",
+              border: `1px solid ${c.bordureInfobulle}`,
               boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
             }}
           />
@@ -50,10 +52,10 @@ export default function MoyenneChart({ data }: { data: ChartPoint[] }) {
             type="monotone"
             dataKey="moyenne"
             name="Moyenne / 20"
-            stroke="#F97316"
+            stroke={c.trait}
             strokeWidth={3}
-            dot={{ r: 6, fill: "#fff", stroke: "#F97316", strokeWidth: 2.5 }}
-            activeDot={{ r: 8, fill: "#C2410C", stroke: "#fff", strokeWidth: 2 }}
+            dot={{ r: 6, fill: "#fff", stroke: c.trait, strokeWidth: 2.5 }}
+            activeDot={{ r: 8, fill: c.pointActif, stroke: "#fff", strokeWidth: 2 }}
           />
         </LineChart>
       </ResponsiveContainer>
