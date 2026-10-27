@@ -221,6 +221,10 @@ export default function AssistantChat() {
           </div>
         )}
 
+        <p id="assistant-avertissement" data-avertissement-assistant className="mb-4 rounded-lg border border-border bg-page px-4 py-3 text-sm text-ink-secondary">
+          N&apos;indiquez aucun nom ni donnée personnelle d&apos;élève : votre question peut être transmise à un service d&apos;IA externe (Google Gemini).
+        </p>
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <label htmlFor="assistant-question" className="mb-2 block text-sm font-semibold text-ink">
@@ -233,6 +237,7 @@ export default function AssistantChat() {
               onChange={(e) => setQuestion(e.target.value)}
               disabled={sending}
               placeholder="Ex. Combien d'étudiants sont en Terminale D ?"
+              aria-describedby="assistant-avertissement"
               className="w-full rounded-lg border border-border px-4 py-3 text-ink placeholder:text-ink-secondary/50 transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark disabled:bg-page"
             />
           </div>

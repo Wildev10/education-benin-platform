@@ -5,9 +5,11 @@ import type { RaisonIndisponible } from "@/lib/ai-query";
 import { analyserSansIA } from "@/lib/assistant-fallback";
 import { chargerReferentiel, exemplesQuestions } from "@/lib/assistant-referentiel";
 import type { Filtres, Referentiel, Requete } from "@/lib/assistant-referentiel";
+import { filtreEtudiantsAccessibles } from "@/lib/perimetre";
 import { prisma } from "@/lib/prisma";
 
 type Mode = "ia" | "sans_ia";
+type FiltrePerimetre = { etablissementId?: string; id?: string };
 
 export async function POST(request: Request) {
   const access = await requireRole(["admin", "enseignant", "directeur"]);
@@ -23,7 +25,9 @@ export async function POST(request: Request) {
     }
     const question: string = body.question;
 
-    const ref = await chargerReferentiel();
+    // Périmètre appliqué au référentiel (donc à la consigne Gemini) et à chaque requête.
+    const perimetre = filtreEtudiantsAccessibles(access.user);
+    const ref = await chargerReferentiel(perimetre);
     const resultat = await interpreterQuestion(question, ref);
 
     let requete: Requete | null;
@@ -33,17 +37,20 @@ export async function POST(request: Request) {
     if (resultat.statut === "ok") {
       requete = resultat.requete;
     } else {
-      // Cas (a) : Gemini en erreur sur tous les modèles -> analyseur sans IA.
+      // Cas (a) : Gemini en erreur sur tous les modèles, ou désactivé -> analyseur sans IA.
       raison = resultat.raison;
       mode = "sans_ia";
       requete = analyserSansIA(question, ref);
-      console.error(
-        `[assistant] Gemini indisponible (${raison}), mode sans IA : ${requete ? requete.type : "question non comprise"}`
+      const journal = raison === "desactive" ? console.info : console.error;
+      journal(
+        `[assistant] Gemini ${raison === "desactive" ? "désactivé" : `indisponible (${raison})`}, mode sans IA : ${requete ? requete.type : "question non comprise"}`
       );
       if (!requete) {
         return reponseTexte(
-          `L'assistant est temporairement indisponible, réessayez dans quelques minutes. Le mode simple n'a pas compris votre question non plus. ${exemples()}`,
-          "indisponible",
+          raison === "desactive"
+            ? `Je n'ai pas compris votre question. ${exemples()}`
+            : `L'assistant est temporairement indisponible, réessayez dans quelques minutes. Le mode simple n'a pas compris votre question non plus. ${exemples()}`,
+          raison === "desactive" ? "sans_ia" : "indisponible",
           raison
         );
       }
@@ -65,12 +72,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const lignes =
-      requete.type === "etudiants"
-        ? await rechercherEtudiants(requete.filtres)
+    // Hors périmètre (enseignant ou directeur sans établissement) : aucune ligne.
+    const lignes = !perimetre
+      ? []
+      : requete.type === "etudiants"
+        ? await rechercherEtudiants(requete.filtres, perimetre)
         : requete.type === "absences"
-          ? await rechercherAbsences(requete.filtres)
-          : await rechercherAlertes(requete.filtres);
+          ? await rechercherAbsences(requete.filtres, perimetre)
+          : await rechercherAlertes(requete.filtres, perimetre);
 
     const groupes = requete.regrouperPar
       ? compter(lignes, requete.regrouperPar)
@@ -79,7 +88,7 @@ export async function POST(request: Request) {
       requete.type === "alertes" || requete.type === "absences"
         ? new Set((lignes as Array<{ etudiantId: string }>).map((a) => a.etudiantId)).size
         : null;
-    const reponse = construireReponse(requete, lignes.length, groupes, mode, etudiantsDistincts);
+    const reponse = construireReponse(requete, lignes.length, groupes, mode, etudiantsDistincts, raison);
     console.info(
       `[assistant] ${mode} : ${requete.type}, ${lignes.length} résultat(s)`
     );
@@ -117,9 +126,11 @@ function valeursPossibles(ref: Referentiel) {
   return `Établissements : ${ref.etablissements.join(", ")}. Communes : ${ref.communes.join(", ")}. Départements : ${ref.departements.join(", ")}. Niveaux : ${ref.niveaux.join(", ")}.`;
 }
 
-// Toutes les valeurs de `filtres` viennent de la liste blanche (validerRequete).
-function conditionsEtudiant(filtres: Filtres) {
+// Toutes les valeurs de `filtres` viennent de la liste blanche (validerRequete) ;
+// `perimetre` vient de filtreEtudiantsAccessibles et borne toujours la requête.
+function conditionsEtudiant(filtres: Filtres, perimetre: FiltrePerimetre) {
   return {
+    ...perimetre,
     ...(filtres.etablissement || filtres.departement || filtres.commune
       ? {
           etablissement: {
@@ -138,38 +149,54 @@ type Ligne = {
   etablissement: { nom: string };
 };
 
-async function rechercherEtudiants(filtres: Filtres) {
+// Champs strictement nécessaires à l'affichage et au regroupement : ni date de
+// naissance, ni sexe, ni identifiants de l'établissement.
+const selectionEleve = {
+  nom: true,
+  prenom: true,
+  niveau: true,
+  etablissement: { select: { nom: true, departement: true } },
+} as const;
+
+async function rechercherEtudiants(filtres: Filtres, perimetre: FiltrePerimetre) {
   return prisma.etudiant.findMany({
     where: {
-      ...conditionsEtudiant(filtres),
+      ...conditionsEtudiant(filtres, perimetre),
       ...(filtres.periode
         ? { notes: { some: { periode: filtres.periode } } }
         : {}),
     },
-    include: { etablissement: true },
+    select: { id: true, ...selectionEleve },
   });
 }
 
-async function rechercherAbsences(filtres: Filtres) {
+async function rechercherAbsences(filtres: Filtres, perimetre: FiltrePerimetre) {
   return prisma.absence.findMany({
     where: {
       ...(filtres.motifAbsence ? { motif: filtres.motifAbsence } : {}),
       ...(filtres.periode ? { periode: filtres.periode } : {}),
-      etudiant: conditionsEtudiant(filtres),
+      etudiant: conditionsEtudiant(filtres, perimetre),
     },
-    include: { etudiant: { include: { etablissement: true } } },
+    select: { id: true, etudiantId: true, motif: true, periode: true, etudiant: { select: selectionEleve } },
   });
 }
 
-async function rechercherAlertes(filtres: Filtres) {
+async function rechercherAlertes(filtres: Filtres, perimetre: FiltrePerimetre) {
   return prisma.alerte.findMany({
     where: {
       ...(filtres.niveauRisque ? { niveauRisque: filtres.niveauRisque } : {}),
       ...(filtres.statutAlerte ? { statut: filtres.statutAlerte } : {}),
       ...(filtres.periode ? { periode: filtres.periode } : {}),
-      etudiant: conditionsEtudiant(filtres),
+      etudiant: conditionsEtudiant(filtres, perimetre),
     },
-    include: { etudiant: { include: { etablissement: true } } },
+    select: {
+      id: true,
+      etudiantId: true,
+      niveauRisque: true,
+      statut: true,
+      periode: true,
+      etudiant: { select: selectionEleve },
+    },
   });
 }
 
@@ -202,7 +229,8 @@ function construireReponse(
   total: number,
   groupes: Array<[string, number]> | null,
   mode: Mode,
-  etudiantsDistincts: number | null
+  etudiantsDistincts: number | null,
+  raison?: RaisonIndisponible
 ) {
   const { type, filtres } = requete;
   const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
@@ -241,7 +269,8 @@ function construireReponse(
     phrase = `Il y a ${pluriel(total, nom)}${qualificatif}${concernant}${decrireFiltres(filtres)}${total > 10 ? " (les 10 premiers sont affichés)" : ""}.`;
   }
 
-  return mode === "sans_ia"
-    ? `${phrase} (Calculé sans IA : l'assistant IA est temporairement indisponible.)`
-    : phrase;
+  if (mode === "ia") return phrase;
+  return raison === "desactive"
+    ? `${phrase} (Calculé sans IA.)`
+    : `${phrase} (Calculé sans IA : l'assistant IA est temporairement indisponible.)`;
 }

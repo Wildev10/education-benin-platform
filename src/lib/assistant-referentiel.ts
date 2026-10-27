@@ -38,12 +38,25 @@ export const exemplesQuestions = [
   "Combien d'absences injustifiées ce trimestre ?",
 ];
 
-export async function chargerReferentiel(): Promise<Referentiel> {
+const PERIODES = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
+
+/**
+ * Référentiel borné au périmètre : hors admin, seul l'établissement de
+ * l'utilisateur figure dans les listes (et donc dans la consigne envoyée à
+ * Gemini). `filtre` vient de filtreEtudiantsAccessibles ; null = listes vides.
+ */
+export async function chargerReferentiel(
+  filtre: { etablissementId?: string; id?: string } | null
+): Promise<Referentiel> {
+  if (!filtre) {
+    return { etablissements: [], departements: [], communes: [], niveaux: [], periodes: PERIODES };
+  }
   const [etablissements, niveaux] = await Promise.all([
     prisma.etablissement.findMany({
+      ...(filtre.etablissementId ? { where: { id: filtre.etablissementId } } : {}),
       select: { nom: true, departement: true, commune: true },
     }),
-    prisma.etudiant.findMany({ select: { niveau: true }, distinct: ["niveau"] }),
+    prisma.etudiant.findMany({ where: filtre, select: { niveau: true }, distinct: ["niveau"] }),
   ]);
 
   return {
@@ -51,7 +64,7 @@ export async function chargerReferentiel(): Promise<Referentiel> {
     departements: unique(etablissements.map((e) => e.departement)),
     communes: unique(etablissements.map((e) => e.commune)),
     niveaux: unique(niveaux.map((n) => n.niveau)),
-    periodes: ["Trimestre 1", "Trimestre 2", "Trimestre 3"],
+    periodes: PERIODES,
   };
 }
 

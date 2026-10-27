@@ -32,6 +32,27 @@ const statut = (page, methode, url, corps) =>
     [methode, url, corps]
   );
 
+/** Question posée à l'assistant avec la session du rôle : corps JSON de la réponse. */
+const poser = (page, question) =>
+  page.evaluate(
+    async (q) => (await fetch("/api/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q }) })).json(),
+    question
+  );
+
+/** Assistant borné au périmètre : une seule école dans la répartition et dans les résultats, sans date de naissance. */
+async function verifierAssistant(page, role) {
+  await ouvrir(page, "/enseignant/assistant");
+  check(`${role}, assistant : avertissement « aucun nom d'élève » affiché`, (await page.locator("[data-avertissement-assistant]").count()) === 1);
+  const repartition = await poser(page, "Répartition des étudiants par établissement");
+  const groupes = (repartition.reponse.split(" — ")[1] ?? "").split(" ; ").filter(Boolean);
+  check(`${role}, assistant : répartition par établissement limitée à son école`, groupes.length === 1, repartition.reponse);
+  const liste = await poser(page, "Liste les alertes actives");
+  const ecoles = new Set(liste.donnees.map((a) => a.etudiant?.etablissement?.nom));
+  check(`${role}, assistant : alertes renvoyées de son école seulement, sans date de naissance ni sexe`,
+    ecoles.size <= 1 && liste.donnees.every((a) => !("dateNaissance" in a.etudiant) && !("sexe" in a.etudiant)),
+    `${liste.donnees.length} résultat(s), écoles : ${[...ecoles].join(", ")}`);
+}
+
 const libellesNav = async (page) => (await page.locator("nav[aria-label^='Navigation'] a:visible").allTextContents()).map((t) => t.replace(/\s+\d+$/, "").trim());
 const visible = async (page, nom) => (await page.getByRole("button", { name: nom }).filter({ visible: true }).count()) > 0;
 const cloche = (page) => page.locator('button[aria-haspopup="true"][aria-label^="Notifications"]');
@@ -103,6 +124,7 @@ try {
   }
   check("Enseignant : l'API ouvre la cloche (200) et refuse la gestion des comptes (403)",
     (await statut(ens, "GET", "/api/notifications/alertes")) === 200 && (await statut(ens, "GET", "/api/admin/utilisateurs")) === 403);
+  await verifierAssistant(ens, "Enseignant");
   await ens.context().close();
 
   // ── DIRECTEUR ──────────────────────────────────────────────────────────────
@@ -139,6 +161,7 @@ try {
       (await statut(dir, "PATCH", `/api/alertes/${alerteDir?.id ?? "inexistante"}`, { statut: "traitee" })) === 403);
     check("Directeur : l'absence de test n'a pas été supprimée par l'appel refusé",
       (await base.query(`SELECT 1 FROM "Absence" WHERE id = $1`, [idAbsence])).rowCount === 1);
+    await verifierAssistant(dir, "Directeur");
     await dir.context().close();
   } else {
     rapport.ignorer("Directeur : droits affichés", "E2E_DIRECTEUR_EMAIL et E2E_DIRECTEUR_MOT_DE_PASSE non définis");
@@ -169,6 +192,9 @@ try {
   check("Admin, fiche : « Retour au tableau de bord », ni emoji ni pictogramme", (await admin.getByRole("link", { name: "Retour au tableau de bord" }).count()) === 1 && (await sobre(admin)));
   check("Admin, fiche : consultation et exports, sans formulaire de saisie",
     (await visible(admin, /Exporter en PDF/)) && !(await visible(admin, /Enregistrer la note|Enregistrer l'absence/)));
+  const repartitionAdmin = await poser(admin, "Répartition des étudiants par établissement");
+  check("Admin, assistant : répartition nationale (plusieurs établissements)",
+    (repartitionAdmin.reponse.split(" — ")[1] ?? "").split(" ; ").length > 1, repartitionAdmin.reponse);
   await admin.context().close();
 } finally {
   const supprimees = await nettoyer();

@@ -110,6 +110,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 - **Aucune fuite d'existence.** Une fiche hors périmètre répond exactement comme une fiche inexistante (404), sans révéler qu'un élève existe. L'étudiant ne voit que ses propres données.
 - **Limitation des tentatives de connexion.** Après 5 échecs en 10 minutes, l'adresse IP est bloquée 15 minutes.
 - **Mots de passe hachés avec bcrypt**, mots de passe temporaires tirés au hasard de façon cryptographique, demande de mot de passe oublié sans fuite d'information.
+- **Assistant sans données d'élèves envoyées à l'IA.** Gemini ne reçoit que la question et la liste des établissements, communes et niveaux du périmètre de l'utilisateur ; il renvoie un filtre, vérifié contre cette liste, et la recherche se fait dans la base, bornée au périmètre. Les résultats ne contiennent que le nom, le niveau et l'établissement. L'écran demande de n'indiquer aucun nom d'élève dans la question.
 - **Journal d'audit** des actions sensibles : notes, absences, alertes, comptes, mots de passe.
 - **Garde-fou de production.** Les scripts d'écriture refusent de s'exécuter sur la base de production, ou si la liste des bases protégées est vide.
 - **Dépendances à jour.** Next.js 16.4.2 et Prisma 7.10.1. La migration vers Prisma 7 a supprimé les 3 vulnérabilités de sa chaîne. `npm audit` signale encore 5 alertes, toutes dans les outils de vérification du code (`eslint-config-next`), qui ne font pas partie de l'application déployée.
@@ -128,7 +129,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 - **Règle d'alerte simple et explicable**, sans apprentissage automatique.
 - **Notifications dans l'application uniquement**, sans SMS ni email.
-- **Assistant avec mode de secours.** Le quota gratuit de Gemini est limité ; une fois dépassé, l'assistant répond sans IA, à partir de requêtes structurées.
+- **Assistant avec mode de secours.** Le quota gratuit de Gemini est limité ; une fois dépassé, l'assistant répond sans IA, à partir de requêtes structurées. `ASSISTANT_SANS_IA=true` coupe complètement l'appel à Gemini.
 - **Mot de passe oublié traité par l'admin.** Aucun serveur email n'est configuré : l'admin génère un mot de passe temporaire et le communique.
 - **Données de démonstration fictives** : 9 établissements aux noms inventés (aucun établissement connu ne les porte), environ 300 élèves aux noms béninois, notes et absences de l'année scolaire précédente et de l'année en cours jusqu'au jour du seed. Les alertes suivent les règles de l'application. Générées par `src/lib/demo/generer.ts`.
 - **Limitation des tentatives par instance de serveur** : le compteur est gardé en mémoire.
@@ -212,6 +213,7 @@ Créez un fichier `.env` à partir de `.env.example` :
 | `DATABASE_URL` | Connexion à la branche **dev** sur Neon (jamais la production). `sslmode=verify-full` est conseillé : `pg` traite déjà `require` comme `verify-full`, mais `require` deviendra moins strict avec `pg` v9 |
 | `AUTH_SECRET` | À générer avec `openssl rand -base64 32` |
 | `GEMINI_API_KEY` | Depuis [aistudio.google.com](https://aistudio.google.com) |
+| `ASSISTANT_SANS_IA` | `true` pour ne jamais appeler Gemini : l'assistant répond seulement avec l'analyseur local. Vide ou absente (par défaut) : Gemini d'abord, analyseur local en secours |
 | `PROTECTED_DB_HOSTS` | Hôte(s) de la base de production, séparés par des virgules (garde-fou) |
 | `NEXT_PUBLIC_SENTRY_DSN` | Depuis sentry.io (facultatif en local) |
 

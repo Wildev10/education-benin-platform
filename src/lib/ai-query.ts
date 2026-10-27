@@ -3,7 +3,9 @@ import { validerRequete } from "@/lib/assistant-referentiel";
 import type { Referentiel, Requete } from "@/lib/assistant-referentiel";
 
 // Erreur d'appel Gemini (a) ou réponse exploitable (b) : jamais mélangés.
+// "desactive" : appel coupé volontairement par ASSISTANT_SANS_IA (pas une panne).
 export type RaisonIndisponible =
+  | "desactive"
   | "quota"
   | "surcharge"
   | "cle"
@@ -60,10 +62,20 @@ Si la question ne concerne pas ces données, retourne type "inconnu" et filtres 
 Retourne exclusivement l'objet JSON demandé.`;
 }
 
+/**
+ * ASSISTANT_SANS_IA="true" : aucune question n'est envoyée à Gemini, seul
+ * l'analyseur local répond. Absente ou toute autre valeur : comportement normal.
+ */
+export function assistantSansIA() {
+  return process.env.ASSISTANT_SANS_IA?.trim().toLowerCase() === "true";
+}
+
 export async function interpreterQuestion(
   question: string,
   ref: Referentiel
 ): Promise<ResultatIA> {
+  if (assistantSansIA()) return { statut: "indisponible", raison: "desactive" };
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("[assistant] GEMINI_API_KEY absente de l'environnement");
