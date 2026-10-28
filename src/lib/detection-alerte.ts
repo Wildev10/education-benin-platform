@@ -2,6 +2,7 @@ import type { Alerte } from "@/generated/prisma/client";
 import type { AlerteSaisie } from "@/lib/message-saisie";
 import { prisma } from "@/lib/prisma";
 import { comparerMoyennes, compterAbsencesRecentes, estAggravation } from "@/lib/regles-alerte";
+import { etapeAggravation, statutSuivi } from "@/lib/suivi-alertes";
 
 // Règles pures, réexportées pour les appels existants
 export {
@@ -22,7 +23,7 @@ export type DetailDetection = {
   alerteId?: string;
   /** Niveau avant une aggravation ; absent pour une création */
   niveauPrecedent?: string;
-  /** L'alerte aggravée avait été traitée : elle redevient active */
+  /** L'alerte aggravée était résolue : elle est rouverte (Nouvelle) */
   reactivee: boolean;
   periode: string;
   anneeScolaire: string;
@@ -45,6 +46,7 @@ export function alerteSaisie(detail: DetailDetection | null): AlerteSaisie | nul
     niveauPrecedent: detail.niveauPrecedent ?? null,
     reactivee: detail.reactivee,
     statut: alerte.statut,
+    suiviDepuis: alerte.suiviDepuis?.toISOString() ?? null,
     periode: alerte.periode,
     anneeScolaire: alerte.anneeScolaire,
     moyenneAvant: alerte.moyenneAvant,
@@ -59,7 +61,7 @@ type Constat =Omit<DetailDetection, "issue" | "alerte" | "alerteId" | "niveauPre
 /**
  * Une seule alerte par élève, type, période et année scolaire, quel que soit
  * son statut (les anciennes alertes sans année comptent pour toute année).
- * Elle est créée, ou aggravée (Moyen → Élevé, réactivée si elle était traitée,
+ * Elle est créée, ou aggravée (Moyen → Élevé, rouverte si elle était résolue,
  * avec une date d'aggravation qui notifie la cloche). Niveau égal ou en baisse : rien.
  */
 async function enregistrer(etudiantId: string, constat: Constat, simulation: boolean): Promise<DetailDetection | null> {
@@ -75,6 +77,10 @@ async function enregistrer(etudiantId: string, constat: Constat, simulation: boo
 
   if (existante) {
     if (!estAggravation(existante, constat.niveauRisque)) return null;
+    // Résolue : rouverte en Nouvelle. En cours de suivi : le suivi continue.
+    // L'étape est écrite dans la même requête que la mise à jour.
+    const rouverte = existante.statut !== "active";
+    const etape = etapeAggravation(statutSuivi(existante), existante.niveauRisque, constat.niveauRisque);
     const alerte = simulation
       ? undefined
       : await prisma.alerte.update({
@@ -85,6 +91,8 @@ async function enregistrer(etudiantId: string, constat: Constat, simulation: boo
             ecartPourcent: constat.ecartPourcent,
             statut: "active",
             niveauModifieLe: new Date(),
+            ...(rouverte ? { suiviDepuis: null, resolueLe: null } : {}),
+            suivis: { create: etape },
           },
         });
     return {

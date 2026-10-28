@@ -17,6 +17,10 @@ const selectionAlerte = {
   moyenneApres: true,
   ecartPourcent: true,
   createdAt: true,
+  suiviDepuis: true,
+  resolueLe: true,
+  // Dernière étape du suivi : affichée dans les listes et les exports
+  suivis: { select: { action: true, auteurNom: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 1 },
   etudiant: {
     select: {
       id: true,

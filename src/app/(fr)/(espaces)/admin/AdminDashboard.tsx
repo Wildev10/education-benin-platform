@@ -2,22 +2,16 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { StatCard } from "@/components/ui/StatCard";
-import { Badge, riskVariant } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
-import { Toast, Confirm } from "@/lib/swal";
-import { useHorsLigne } from "@/components/pwa/PwaProvider";
-import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
 import { SqueletteGraphiqueBarres } from "@/components/ui/Squelette";
 import { hauteurGraphiqueBarres } from "@/lib/graphiques";
 import type { StatsEtablissement } from "@/lib/stats-etablissements";
 import { libellePeriode } from "@/lib/notes-trimestres";
 import { formaterBaisse, formaterNombre, formaterPourcent } from "@/lib/format";
 import type { CleRaccourci, Raccourci } from "@/lib/raccourcis-alertes";
-import { redirigerVersConnexion } from "@/lib/session-expiree";
+import type { PilotageSuivi } from "@/lib/pilotage-suivi";
 import { IconeValide } from "@/components/ui/Icones";
 import { CadreDefilant } from "@/components/ui/CadreDefilant";
 
@@ -47,6 +41,8 @@ type Alert = {
   moyenneAvant: number;
   moyenneApres: number;
   ecartPourcent: number;
+  statut: string;
+  suiviDepuis: string | null;
   etudiant: {
     id: string;
     nom: string;
@@ -96,63 +92,21 @@ export default function AdminDashboard({
   initialStats,
   initialStatsEtablissements,
   raccourcis,
+  pilotage,
 }: {
   initialAlerts: Alert[];
   initialStats: Stats;
   initialStatsEtablissements: StatsEtablissement[];
   /** Accès directs vers la page Alertes filtrée, comptés côté serveur */
   raccourcis: Raccourci[];
+  pilotage: PilotageSuivi;
 }) {
-  const router = useRouter();
   // Les données viennent de la page serveur, recalculée à chaque actualisation
-  // (router.refresh) : rien n'est recopié dans l'état, sinon l'actualisation
-  // automatique n'aurait pas d'effet. Seules les alertes que l'on vient de
-  // traiter sont retirées tout de suite, en attendant les nouvelles données.
-  const [traitees, setTraitees] = useState<string[]>([]);
-  const alerts = initialAlerts.filter((alert) => !traitees.includes(alert.id));
-  const stats = { ...initialStats, alertesActives: Math.max(0, initialStats.alertesActives - (initialAlerts.length - alerts.length)) };
+  // (router.refresh) : rien n'est recopié dans l'état. L'admin consulte
+  // seulement : le suivi des alertes est fait par l'établissement.
+  const alerts = initialAlerts;
+  const stats = initialStats;
   const statsEtablissements = initialStatsEtablissements;
-  const [processingId, setProcessingId] = useState<string | null>(null);
-  const horsLigne = useHorsLigne();
-  const [error, setError] = useState("");
-
-
-  async function markAsHandled(alertId: string) {
-    const result = await Confirm.fire({
-      title: "Êtes-vous sûr ?",
-      text: "Cette action est irréversible.",
-      icon: "warning",
-      showCancelButton: true,
-    });
-    if (!result.isConfirmed) return;
-    setProcessingId(alertId);
-    setError("");
-
-    try {
-      const response = await fetch(`/api/alertes/${alertId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ statut: "traitee" }),
-      });
-      if (response.status === 401) {
-        redirigerVersConnexion();
-        return;
-      }
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Impossible de traiter l'alerte.");
-
-      setTraitees((current) => [...current, alertId]);
-      void Toast.fire({ icon: "success", title: "Alerte marquée comme traitée." });
-      router.refresh(); // chiffres, accès directs et établissements recalculés côté serveur
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error ? requestError.message : "Une erreur est survenue."
-      );
-      void Toast.fire({ icon: "error", title: "Erreur lors de la mise à jour." });
-    } finally {
-      setProcessingId(null);
-    }
-  }
 
   return (
     <>
@@ -240,11 +194,42 @@ export default function AdminDashboard({
           </ul>
         </nav>
 
-        {error && (
-          <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 font-medium text-red-800">
-            {error}
-          </p>
-        )}
+        {/* Pilotage du suivi : consultation seule, le suivi est fait par les établissements */}
+        <section aria-labelledby="pilotage-suivi-titre" data-pilotage-suivi className="mt-5 rounded-xl border border-border bg-surface px-4 py-4">
+          <h3 id="pilotage-suivi-titre" className="font-semibold text-ink">Suivi par les établissements</h3>
+          <dl className="mt-3 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <dt className="text-sm text-ink-secondary">Nouvelles, sans action</dt>
+              <dd className="text-xl font-bold tabular-nums text-ink">
+                <Link href="/admin/alertes?statut=nouvelle" className="inline-flex min-h-11 min-w-11 items-center underline decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark">
+                  {pilotage.nouvelles}
+                </Link>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-ink-secondary">En cours de suivi</dt>
+              <dd className="text-xl font-bold tabular-nums text-ink">
+                <Link href="/admin/alertes?statut=en_suivi" className="inline-flex min-h-11 min-w-11 items-center underline decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark">
+                  {pilotage.enSuivi}
+                </Link>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-ink-secondary">Résolues cette année</dt>
+              <dd className="text-xl font-bold tabular-nums text-ink">
+                <Link href="/admin/alertes?statut=traitee" className="inline-flex min-h-11 min-w-11 items-center underline decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark">
+                  {pilotage.resolues}
+                </Link>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-ink-secondary">Délai moyen avant la première action</dt>
+              <dd className="text-xl font-bold tabular-nums text-ink">
+                {pilotage.delaiMoyenJours === null ? "—" : `${formaterNombre(pilotage.delaiMoyenJours)} j`}
+              </dd>
+            </div>
+          </dl>
+        </section>
 
         {alerts.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-8 py-10 text-center">
@@ -271,6 +256,7 @@ export default function AdminDashboard({
                       <Badge variant={riskVariant(alert.niveauRisque)}>
                         Niveau {alert.niveauRisque === "eleve" ? "Élevé" : "Moyen"}
                       </Badge>
+                      <Badge variant={statusVariant(alert)} />
                     </div>
                     <p className="mt-1.5 text-ink-secondary">
                       {alert.etudiant.etablissement.nom}{" "}
@@ -279,14 +265,13 @@ export default function AdminDashboard({
                     </p>
                   </div>
 
-                  <Button
-                    variant="outline"
-                    disabled={processingId === alert.id || horsLigne}
-                    title={horsLigne ? TITRE_HORS_LIGNE : undefined}
-                    onClick={() => void markAsHandled(alert.id)}
+                  <Link
+                    href={`/admin/etudiants/${alert.etudiant.id}#alerte-${alert.id}`}
+                    className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-ink-secondary transition hover:border-brand hover:bg-brand-light hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2"
                   >
-                    {processingId === alert.id ? "Mise à jour…" : "Marquer comme traitée"}
-                  </Button>
+                    Voir le suivi
+                    <span className="sr-only"> de {alert.etudiant.prenom} {alert.etudiant.nom}</span>
+                  </Link>
                 </div>
 
                 <dl className="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-3">

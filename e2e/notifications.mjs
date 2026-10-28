@@ -1,7 +1,7 @@
 // Alertes de décrochage, de la saisie de l'enseignant à la cloche : message après
 // chaque saisie, liste des alertes de la fiche, cloche de l'enseignant et de
 // l'admin (30 jours, lu / non lu enregistré côté serveur et partagé entre
-// appareils), réactivation d'une alerte traitée qui s'aggrave, import CSV.
+// appareils), réouverture d'une alerte résolue qui s'aggrave, import CSV.
 //
 // Écrit dans la base de DEV (la garde de commun.mjs refuse une base protégée) :
 // deux élèves de test, leurs notes, absences, alertes, un compte élève pour
@@ -74,7 +74,7 @@ const session = async (compte, options) => {
 };
 
 const lireAlertes = async (etudiantId) =>
-  (await base.query(`SELECT id, type, "niveauRisque", "niveauModifieLe", statut, "createdAt" FROM "Alerte" WHERE "etudiantId" = $1`, [etudiantId])).rows;
+  (await base.query(`SELECT id, type, "niveauRisque", "niveauModifieLe", statut, "suiviDepuis", "createdAt" FROM "Alerte" WHERE "etudiantId" = $1`, [etudiantId])).rows;
 
 const cloche = (page) => page.locator('button[aria-haspopup="true"][aria-label^="Notifications"]');
 const dropdown = (page) => page.getByRole("dialog", { name: "Dernières alertes" });
@@ -203,21 +203,51 @@ try {
   check("Autre appareil : la même alerte y est déjà lue (date de consultation partagée)",
     entreeMobile && etatMobile.vuesLe >= entreeMobile.date, `${etatMobile.vuesLe} / ${entreeMobile?.date}`);
 
-  // ── 7. Alerte traitée, puis aggravation : réactivée ──────────────────────────
-  const traitement = await admin.evaluate(async (id) => (await fetch(`/api/alertes/${id}`, {
-    method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ statut: "traitee" }),
+  // ── 7. Suivi dans la fiche : action obligatoire, historique affiché ────────
+  await ens.getByRole("button", { name: "Ajouter une action" }).click();
+  const formulaire = ens.locator("[data-formulaire-suivi]");
+  await formulaire.getByRole("button", { name: "Enregistrer l'action" }).click();
+  check("Suivi : sans action choisie, l'enregistrement est refusé avec un message",
+    /Choisissez l'action menée/.test(await texte(formulaire.locator('[role="alert"]'))));
+  await formulaire.getByLabel("Entretien avec l'élève").check();
+  await formulaire.getByLabel("Commentaire").fill("Entretien e2e : l'élève reconnaît un manque de travail.");
+  const reponseSuivi = ens.waitForResponse((r) => r.url().endsWith(`/api/alertes/${alerteMoyen.id}/suivis`));
+  await formulaire.getByRole("button", { name: "Enregistrer l'action" }).click();
+  check("Suivi : action enregistrée (201)", (await reponseSuivi).status() === 201);
+  await ens.locator("[data-historique-suivi]").waitFor();
+  const carte = await texte(alertesFiche);
+  check("Fiche : statut « En cours de suivi » et historique (action, auteur, commentaire) sans recharger",
+    /En cours de suivi/.test(carte) && /Entretien avec l'élève/.test(carte) && /Fulbert Gbaguidi|Gbaguidi/.test(carte) && /manque de travail/.test(carte), carte.slice(0, 200));
+
+  // ── 8. Alerte résolue par l'enseignant, puis aggravation : rouverte ─────────
+  const resolution = await ens.evaluate(async (id) => (await fetch(`/api/alertes/${id}/suivis`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ transition: "resoudre", action: "entretien_eleve", commentaire: "Entretien e2e : alerte résolue pour le test." }),
   })).status, alerteMoyen.id);
-  check("Admin : alerte Moyen marquée comme traitée", traitement === 200);
+  check("Enseignant : alerte Moyen résolue (action et commentaire)", resolution === 201);
+  check("Admin : le suivi lui est refusé (consultation seule, 403)",
+    (await admin.evaluate(async (id) => (await fetch(`/api/alertes/${id}/suivis`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transition: "rouvrir", commentaire: "Tentative de l'admin, refusée." }),
+    })).status, alerteMoyen.id)) === 403);
   // Moyenne (12 + 12,5 + 3) / 3 = 9,17 contre 15 : −39 % et < 10 → Élevé
   const message3 = await saisirNote(ens, 3);
   const apres = await lireAlertes(etudiantId);
-  check(`Note 3/20 : « Alerte réactivée et aggravée : Moyen → Élevé pour ${nomComplet} »`,
-    message3.startsWith(`Alerte réactivée et aggravée : Moyen → Élevé pour ${nomComplet}`), message3);
-  check("Base : la même alerte, redevenue active, niveau Élevé, date d'aggravation remplie",
-    apres.length === 1 && apres[0].statut === "active" && apres[0].niveauRisque === "eleve" && apres[0].niveauModifieLe instanceof Date,
+  check(`Note 3/20 : « Alerte rouverte et aggravée : Moyen → Élevé pour ${nomComplet} »`,
+    message3.startsWith(`Alerte rouverte et aggravée : Moyen → Élevé pour ${nomComplet}`), message3);
+  check("Base : la même alerte, rouverte (Nouvelle), niveau Élevé, date d'aggravation remplie",
+    apres.length === 1 && apres[0].statut === "active" && apres[0].suiviDepuis === null && apres[0].niveauRisque === "eleve" && apres[0].niveauModifieLe instanceof Date,
     `${apres.length} alerte(s), ${apres[0]?.statut}, ${apres[0]?.niveauRisque}`);
-  check("Fiche : l'historique affiche l'alerte à jour (Élevé, active)",
-    (await alertesFiche.count()) === 1 && /Risque élevé/.test(await texte(alertesFiche)) && /Active/.test(await texte(alertesFiche)));
+  const etapes = (await base.query(`SELECT action, "statutAvant", "statutApres", "auteurId" FROM "SuiviAlerte" WHERE "alerteId" = $1 ORDER BY "createdAt"`, [alerteMoyen.id])).rows;
+  check("Base : historique entretien (En cours), résolution par l'enseignant, puis réouverture automatique par la détection",
+    etapes.length === 3 && etapes[0].statutApres === "en_suivi" && etapes[1].statutAvant === "en_suivi" && etapes[1].statutApres === "resolue" &&
+      etapes[1].auteurId !== null && etapes[2].action === "reouverture_auto" && etapes[2].statutApres === "nouvelle" && etapes[2].auteurId === null,
+    etapes.map((e) => `${e.action}:${e.statutAvant}→${e.statutApres}`).join(", "));
+  await ens.reload();
+  await ens.waitForLoadState("networkidle");
+  check("Fiche : l'alerte à jour (Élevé, Nouvelle) et son historique (Réouverture automatique)",
+    (await alertesFiche.count()) === 1 && /Risque élevé/.test(await texte(alertesFiche)) && /Nouvelle/.test(await texte(alertesFiche)) &&
+      /Réouverture automatique/.test(await texte(alertesFiche)));
   const libelleAggr = await rafraichirCloche(mobile);
   const vueAggr = await ouvrirEtLire(mobile, prenom);
   const boite = await dropdown(mobile).boundingBox();
@@ -229,14 +259,14 @@ try {
   await mobile.screenshot({ path: path.join(CAPTURES, "aggravation-375.png") });
   await mobile.context().close();
 
-  // ── 8. Absence isolée : enregistrée, sans alerte (5 injustifiées nécessaires) ─
+  // ── 9. Absence isolée : enregistrée, sans alerte (5 injustifiées nécessaires) ─
   const reponseAbs = ens.waitForResponse((r) => r.url().endsWith("/api/absences") && r.request().method() === "POST");
   await ens.getByRole("button", { name: "Enregistrer l'absence" }).click();
   await reponseAbs;
   const messageAbs = await texte(ens.locator("#new-absence-title ~ div [data-retour]"));
   check("Absence injustifiée isolée : « Absence enregistrée », sans alerte", messageAbs.startsWith("Absence enregistrée") && messageAbs.includes("Aucune alerte"), messageAbs);
 
-  // ── 9. Directeur ─────────────────────────────────────────────────────────────
+  // ── 10. Directeur ─────────────────────────────────────────────────────────────
   if (COMPTES.directeur) {
     const dir = await session(COMPTES.directeur);
     const etabDir = (await getJson(dir, "/api/etudiants?page=1")).corps.elements[0]?.etablissement?.id;
@@ -248,7 +278,7 @@ try {
     rapport.ignorer("Périmètre directeur", "E2E_DIRECTEUR_EMAIL et E2E_DIRECTEUR_MOT_DE_PASSE non définis");
   }
 
-  // ── 10. Import CSV : mêmes règles, après toutes les lignes ───────────────────
+  // ── 11. Import CSV : mêmes règles, après toutes les lignes ───────────────────
   const idImport = `e2e-import-${suffixe}`;
   const prenomImport = `Import${suffixe}`;
   const emailImport = `e2e-import-${suffixe}@edutech.test`;

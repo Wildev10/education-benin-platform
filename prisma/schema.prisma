@@ -80,10 +80,35 @@ model Alerte {
   // Date de la dernière aggravation (Moyen → Élevé) d'une alerte active ;
   // null si le niveau n'a jamais monté. Sert aux notifications de la cloche.
   niveauModifieLe DateTime?
+  // Suivi (src/lib/suivi-alertes.ts) : statut "active" + suiviDepuis = En cours
+  // de suivi, "active" sans suiviDepuis = Nouvelle, "traitee" = Résolue.
+  suiviDepuis     DateTime?
+  resolueLe       DateTime?
+  suivis          SuiviAlerte[]
 
   @@index([etudiantId])
   @@index([statut, createdAt])
   @@index([niveauModifieLe])
+}
+
+// Une étape du suivi d'une alerte : action menée, commentaire, auteur et date.
+// auteurId null : action du système (réouverture automatique) ou compte supprimé ;
+// auteurNom garde le nom affiché au moment de l'action.
+model SuiviAlerte {
+  id          String   @id @default(cuid())
+  alerteId    String
+  alerte      Alerte   @relation(fields: [alerteId], references: [id], onDelete: Cascade)
+  auteurId    String?
+  auteur      User?    @relation(fields: [auteurId], references: [id], onDelete: SetNull)
+  auteurNom   String
+  action      String   // "entretien_eleve" | "parents_convoques" | "soutien_scolaire" | "autre" | "reouverture" | "reouverture_auto"
+  commentaire String
+  statutAvant String   // "nouvelle" | "en_suivi" | "resolue"
+  statutApres String
+  createdAt   DateTime @default(now())
+
+  @@index([alerteId, createdAt])
+  @@index([auteurId])
 }
 
 model Absence {
@@ -117,6 +142,7 @@ model User {
   notificationsVuesLe DateTime?
   actionLogs       ActionLog[]
   resetRequests    ResetRequest[]
+  suivisAlertes    SuiviAlerte[]
 }
 
 model ResetRequest {

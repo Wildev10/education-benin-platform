@@ -5,7 +5,20 @@ import type { Prisma } from "@/generated/prisma/client";
 
 export type FiltreNiveau = "eleve" | "moyen";
 export type FiltreType = "notes" | "absences";
-export type FiltreStatut = "active" | "traitee" | "toutes";
+/**
+ * "active" : ouvertes (Nouvelles et En cours de suivi) ; "traitee" : Résolues.
+ * Valeurs gardées dans l'URL pour que les anciens liens restent valables.
+ */
+export type FiltreStatut = "active" | "nouvelle" | "en_suivi" | "traitee" | "toutes";
+const STATUTS: FiltreStatut[] = ["active", "nouvelle", "en_suivi", "traitee", "toutes"];
+
+export const LIBELLES_FILTRE_STATUT: Record<FiltreStatut, string> = {
+  active: "Ouvertes (nouvelles et en suivi)",
+  nouvelle: "Nouvelles",
+  en_suivi: "En cours de suivi",
+  traitee: "Résolues",
+  toutes: "Toutes",
+};
 
 export type FiltresAlertes = {
   niveau?: FiltreNiveau;
@@ -58,7 +71,7 @@ export function lireFiltres(params: ParamsEntree): FiltresAlertes {
   return {
     niveau: niveau === "eleve" || niveau === "moyen" ? niveau : undefined,
     type: type === "notes" || type === "absences" ? type : undefined,
-    statut: statut === "active" || statut === "traitee" || statut === "toutes" ? statut : STATUT_PAR_DEFAUT,
+    statut: STATUTS.includes(statut as FiltreStatut) ? (statut as FiltreStatut) : STATUT_PAR_DEFAUT,
     du: dateValide(lire(params, "du")),
     au: dateValide(lire(params, "au")),
     etablissement: lire(params, "etablissement"),
@@ -123,7 +136,9 @@ export function construireWhereAlertes(
   const where: Prisma.AlerteWhereInput = {};
   const etudiant: Prisma.EtudiantWhereInput = {};
 
-  if (filtres.statut !== "toutes") where.statut = filtres.statut;
+  if (filtres.statut === "nouvelle") Object.assign(where, { statut: "active", suiviDepuis: null });
+  else if (filtres.statut === "en_suivi") Object.assign(where, { statut: "active", suiviDepuis: { not: null } });
+  else if (filtres.statut !== "toutes") where.statut = filtres.statut;
   if (filtres.niveau) where.niveauRisque = filtres.niveau;
   if (filtres.type) where.type = typeEnBase[filtres.type];
 
@@ -165,9 +180,14 @@ function formaterJour(iso: string) {
 /** Résumé lisible des filtres actifs (en-tête du PDF, annonces). */
 export function decrireFiltres(filtres: FiltresAlertes, nomEtablissement?: string): string[] {
   const lignes: string[] = [];
-  lignes.push(
-    filtres.statut === "active" ? "Alertes actives" : filtres.statut === "traitee" ? "Alertes traitées" : "Tous statuts"
-  );
+  const statuts: Record<FiltreStatut, string> = {
+    active: "Alertes ouvertes",
+    nouvelle: "Alertes nouvelles",
+    en_suivi: "Alertes en cours de suivi",
+    traitee: "Alertes résolues",
+    toutes: "Tous statuts",
+  };
+  lignes.push(statuts[filtres.statut]);
   if (filtres.niveau) lignes.push(`Risque ${filtres.niveau === "eleve" ? "élevé" : "moyen"}`);
   if (filtres.type) lignes.push(filtres.type === "notes" ? "Type : notes" : "Type : absences");
   if (filtres.du && filtres.au) lignes.push(`Du ${formaterJour(filtres.du)} au ${formaterJour(filtres.au)}`);

@@ -110,6 +110,44 @@ describe.each(Object.keys(DATES))("Données de démo, lancées en %s", (nom) => 
     }
   });
 
+  it("suivi des alertes : étapes datées entre la détection et le jour du seed, statuts cohérents", () => {
+    const alertes = new Map(d.alertes.map((a) => [a.id, a]));
+    for (const e of d.suivis) {
+      const a = alertes.get(e.alerteId)!;
+      expect(e.createdAt.getTime()).toBeGreaterThan(a.createdAt.getTime());
+      expect(e.createdAt.getTime()).toBeLessThan(date.getTime());
+      expect(e.commentaire.length).toBeGreaterThanOrEqual(10);
+    }
+    for (const a of d.alertes) {
+      const etapes = d.suivis.filter((e) => e.alerteId === a.id);
+      if (etapes.length === 0) {
+        expect(a).toMatchObject({ statut: "active", suiviDepuis: null, resolueLe: null });
+        continue;
+      }
+      expect(etapes[0].statutAvant).toBe("nouvelle");
+      expect(a.suiviDepuis).toEqual(etapes[0].createdAt);
+      const derniere = etapes.at(-1)!;
+      expect(a.statut).toBe(derniere.statutApres === "resolue" ? "traitee" : "active");
+      if (a.statut === "traitee") expect(a.resolueLe).toEqual(derniere.createdAt);
+    }
+  });
+
+  it("suivi au CEG Zopah : Rodrigue et Inoussa en cours de suivi par les comptes de démo, Adéola et Sèna nouvelles", () => {
+    const alerteDe = (cle: keyof typeof CAS) => d.alertes.find((a) => a.etudiantId === d.cas[cle].id)!;
+    const etapesDe = (cle: keyof typeof CAS) => d.suivis.filter((e) => e.alerteId === alerteDe(cle).id);
+    for (const cle of ["chute", "absences"] as const) {
+      // Une alerte détectée moins d'un jour avant le seed reste nouvelle
+      if (date.getTime() - alerteDe(cle).createdAt.getTime() < 25 * 60 * 60 * 1000) continue;
+      expect(alerteDe(cle).statut).toBe("active");
+      expect(alerteDe(cle).suiviDepuis).not.toBeNull();
+      expect(etapesDe(cle).every((e) => e.auteur === "enseignant" || e.auteur === "directeur")).toBe(true);
+    }
+    for (const cle of ["baisse", "aggravation"] as const) {
+      expect(alerteDe(cle)).toMatchObject({ statut: "active", suiviDepuis: null });
+      expect(etapesDe(cle)).toEqual([]);
+    }
+  });
+
   it("Sèna Dossou : une note ne change rien, la deuxième fait passer l'alerte de Moyen à Élevé", () => {
     const notes = notesDe(d, d.cas.aggravation.id);
     const saisir = (...valeurs: number[]) => {

@@ -20,7 +20,8 @@ export async function GET(_request: Request, context: RouteContext) {
         etablissement: true,
         inscriptions: true,
         notes: true,
-        alertes: true,
+        // L'élève ne voit pas ses alertes (ni leur existence)
+        alertes: access.user.role === "etudiant" ? false : true,
         absences: { orderBy: { date: "desc" } },
       },
     });

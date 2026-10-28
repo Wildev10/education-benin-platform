@@ -11,6 +11,7 @@ export type AlerteSaisie = {
   niveauPrecedent: string | null;
   reactivee: boolean;
   statut: string;
+  suiviDepuis: string | null;
   periode: string;
   anneeScolaire: string | null;
   moyenneAvant: number;
@@ -45,7 +46,7 @@ export function messageSaisie(
   const titre =
     alerte.issue === "creee"
       ? `Alerte déclenchée : niveau ${niveau(alerte.niveauRisque)} pour ${nom}`
-      : `Alerte ${alerte.reactivee ? "réactivée et aggravée" : "aggravée"} : ${niveau(alerte.niveauPrecedent)} → ${niveau(alerte.niveauRisque)} pour ${nom}`;
+      : `Alerte ${alerte.reactivee ? "rouverte et aggravée" : "aggravée"} : ${niveau(alerte.niveauPrecedent)} → ${niveau(alerte.niveauRisque)} pour ${nom}`;
   const periode = libellePeriode(alerte.periode, alerte.anneeScolaire);
   const constat =
     alerte.type === "absences"

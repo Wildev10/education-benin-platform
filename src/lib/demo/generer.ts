@@ -51,9 +51,24 @@ export type AlerteDemo = PeriodeRef & {
   moyenneAvant: number;
   moyenneApres: number;
   ecartPourcent: number;
-  statut: "active";
+  /** "active" : Nouvelle (sans suiviDepuis) ou En cours de suivi ; "traitee" : Résolue */
+  statut: "active" | "traitee";
   createdAt: Date;
   niveauModifieLe: Date | null;
+  suiviDepuis: Date | null;
+  resolueLe: Date | null;
+};
+/** Étape du suivi d'une alerte. `auteur` : compte de démonstration auteur (null : enseignant d'un autre établissement, sans compte). */
+export type SuiviDemo = {
+  id: string;
+  alerteId: string;
+  auteur: "enseignant" | "directeur" | null;
+  auteurNom: string;
+  action: "entretien_eleve" | "parents_convoques" | "soutien_scolaire" | "autre";
+  commentaire: string;
+  statutAvant: "nouvelle" | "en_suivi";
+  statutApres: "en_suivi" | "resolue";
+  createdAt: Date;
 };
 export type JournalDemo = {
   id: string;
@@ -77,6 +92,8 @@ export type DonneesDemo = {
   notes: NoteDemo[];
   absences: AbsenceDemo[];
   alertes: AlerteDemo[];
+  /** Historique du suivi des alertes (quelques alertes en cours de suivi ou résolues) */
+  suivis: SuiviDemo[];
   /** Historique des saisies du trimestre en cours dans l'établissement de la démo (par l'enseignant) */
   journal: JournalDemo[];
   comptes: Record<RoleCompte, CompteDemo>;
@@ -663,6 +680,8 @@ export function genererDonneesDemo(maintenant: Date): DonneesDemo {
         statut: "active",
         createdAt: derniere,
         niveauModifieLe: null,
+        suiviDepuis: null,
+        resolueLe: null,
       });
     }
 
@@ -687,9 +706,13 @@ export function genererDonneesDemo(maintenant: Date): DonneesDemo {
         statut: "active",
         createdAt: dates[4],
         niveauModifieLe: recentes.niveauRisque === "eleve" ? dates[9] : null,
+        suiviDepuis: null,
+        resolueLe: null,
       });
     }
   }
+
+  const suivis = genererSuivis(alertes, eleves.map((e) => e.etudiant), demoId, maintenant);
 
   // Historique : saisies du trimestre en cours dans l'établissement de la démo
   const etudiantsDemo = new Map(eleves.filter((e) => e.etudiant.etablissementId === demoId).map((e) => [e.etudiant.id, e.etudiant]));
@@ -737,6 +760,7 @@ export function genererDonneesDemo(maintenant: Date): DonneesDemo {
     notes: notes.sort((a, b) => comparerPeriodes(a, b) || a.createdAt.getTime() - b.createdAt.getTime()),
     absences,
     alertes,
+    suivis,
     journal,
     comptes: {
       admin: { ...NOMS_COMPTES.admin, etablissementId: null, etudiantId: null },
@@ -747,4 +771,136 @@ export function genererDonneesDemo(maintenant: Date): DonneesDemo {
     cas,
     avertissements,
   };
+}
+
+// ── Suivi des alertes ────────────────────────────────────────────────────────
+
+const HEURE_MS = 60 * 60 * 1000;
+const JOUR_MS = 24 * HEURE_MS;
+
+/** Enseignants (fictifs) des autres établissements, auteurs de leurs suivis : pas de compte. */
+const ENSEIGNANTS_AUTRES = ["Clément Hounkanrin", "Rachidatou Sanni", "Gérard Tossou", "Albertine Dossa", "Maxime Kiki", "Odile Ahouandjinou"];
+
+type EtapeModele = Pick<SuiviDemo, "action" | "commentaire"> & { auteur: "enseignant" | "directeur"; apresJours: number };
+
+/** Historique du CEG Zopah : chute (Rodrigue) et absences (Inoussa) en cours de suivi ; Adéola et Sèna restent nouvelles. */
+const SUIVIS_DEMO: Partial<Record<CleCas, EtapeModele[]>> = {
+  chute: [
+    {
+      auteur: "enseignant",
+      action: "entretien_eleve",
+      apresJours: 1,
+      commentaire: "Entretien après le cours de mathématiques. Rodrigue dit ne plus suivre depuis le chapitre sur les fonctions et ne rend plus ses exercices. Il accepte de venir à la permanence du mercredi.",
+    },
+    {
+      auteur: "directeur",
+      action: "parents_convoques",
+      apresJours: 3,
+      commentaire: "Mère reçue au bureau. Elle ignorait la baisse des notes. Suivi des devoirs à la maison convenu, cahier de liaison signé chaque vendredi. Nouveau point dans trois semaines.",
+    },
+  ],
+  absences: [
+    {
+      auteur: "directeur",
+      action: "parents_convoques",
+      apresJours: 2,
+      commentaire: "Père convoqué : Inoussa aide sa mère au marché le lundi matin. Il s'engage à le libérer les jours de classe. Contrôle de la présence chaque lundi par le surveillant.",
+    },
+  ],
+};
+
+/** Étapes pour les alertes des autres établissements : une sur trois suivie, une sur cinq résolue. */
+const MODELES_AUTRES: { suivi: Omit<EtapeModele, "auteur">[]; resolution?: Omit<EtapeModele, "auteur"> }[] = [
+  {
+    suivi: [{ action: "entretien_eleve", apresJours: 2, commentaire: "Entretien individuel : fatigue liée aux trajets (plus d'une heure à pied). Place changée au premier rang, point avec le professeur principal." }],
+  },
+  {
+    suivi: [{ action: "soutien_scolaire", apresJours: 3, commentaire: "Inscrit au soutien de français et de mathématiques organisé le samedi matin par l'établissement." }],
+    resolution: { action: "soutien_scolaire", apresJours: 12, commentaire: "Présent à toutes les séances de soutien ; les deux dernières interrogations sont au-dessus de 11. Alerte close, à surveiller au prochain conseil de classe." },
+  },
+  {
+    suivi: [
+      { action: "parents_convoques", apresJours: 2, commentaire: "Tante tutrice reçue : l'élève garde ses jeunes frères l'après-midi. Organisation revue avec la famille." },
+      { action: "autre", apresJours: 6, commentaire: "Signalé à l'assistante sociale de la circonscription pour un accompagnement de la famille." },
+    ],
+  },
+  {
+    suivi: [{ action: "entretien_eleve", apresJours: 1, commentaire: "Entretien : l'élève a été malade deux semaines (paludisme), certificat présenté. Plan de rattrapage des cours manqués avec les camarades." }],
+    resolution: { action: "autre", apresJours: 9, commentaire: "Cours rattrapés, notes de nouveau dans la moyenne de la classe. Alerte résolue." },
+  },
+];
+
+/**
+ * Historique du suivi, daté après la détection et avant `maintenant`. Les
+ * alertes concernées passent En cours de suivi (suiviDepuis) ou Résolues
+ * (statut "traitee", resolueLe). Une alerte détectée il y a moins d'un jour
+ * reste nouvelle.
+ */
+function genererSuivis(alertes: AlerteDemo[], etudiants: EtudiantDemo[], demoId: string, maintenant: Date): SuiviDemo[] {
+  const alea = creerAlea(GRAINE + 4);
+  const id = creerIdentifiants(GRAINE + 5);
+  const etablissementDe = new Map(etudiants.map((e) => [e.id, e.etablissementId]));
+  const casDe = new Map<string, CleCas>();
+  for (const cle of Object.keys(CAS) as CleCas[]) {
+    const e = etudiants.find((x) => x.prenom === CAS[cle].prenom && x.nom === CAS[cle].nom && etablissementDe.get(x.id) === demoId);
+    if (e) casDe.set(e.id, cle);
+  }
+
+  const suivis: SuiviDemo[] = [];
+  /** Écrit les étapes ; false si l'alerte est trop récente pour un suivi daté. */
+  function appliquer(alerte: AlerteDemo, etapes: (EtapeModele & { auteurNom: string; auteurCompte: SuiviDemo["auteur"] })[], resolue: boolean) {
+    const debut = alerte.createdAt.getTime();
+    const fin = maintenant.getTime() - HEURE_MS;
+    if (fin - debut < JOUR_MS) return;
+    let precedent = debut;
+    const dates = etapes.map((etape, i) => {
+      // Dans l'ordre, au plus tard une heure avant maintenant, en heures de bureau (9 h à 16 h, heure du Bénin)
+      const restantes = etapes.length - i;
+      const cible = Math.min(debut + etape.apresJours * JOUR_MS, fin - (restantes - 1) * HEURE_MS);
+      const jour = new Date(Math.max(cible, precedent + HEURE_MS));
+      jour.setUTCHours(8 + Math.floor(alea() * 7), Math.floor(alea() * 60), 0, 0);
+      const t = Math.min(Math.max(jour.getTime(), precedent + 10 * 60 * 1000), fin);
+      precedent = t;
+      return new Date(t);
+    });
+    etapes.forEach((etape, i) => {
+      const derniere = i === etapes.length - 1;
+      suivis.push({
+        id: id(),
+        alerteId: alerte.id,
+        auteur: etape.auteurCompte,
+        auteurNom: etape.auteurNom,
+        action: etape.action,
+        commentaire: etape.commentaire,
+        statutAvant: i === 0 ? "nouvelle" : "en_suivi",
+        statutApres: resolue && derniere ? "resolue" : "en_suivi",
+        createdAt: dates[i],
+      });
+    });
+    alerte.suiviDepuis = dates[0];
+    if (resolue) {
+      alerte.statut = "traitee";
+      alerte.resolueLe = dates[dates.length - 1];
+    }
+  }
+
+  const nomCompte = (role: "enseignant" | "directeur") => `${NOMS_COMPTES[role].prenom} ${NOMS_COMPTES[role].nom}`;
+  let rang = 0;
+  for (const alerte of [...alertes].sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    if (etablissementDe.get(alerte.etudiantId) === demoId) {
+      const cle = casDe.get(alerte.etudiantId);
+      const modele = cle ? SUIVIS_DEMO[cle] : undefined;
+      if (modele) appliquer(alerte, modele.map((e) => ({ ...e, auteurNom: nomCompte(e.auteur), auteurCompte: e.auteur })), false);
+      continue;
+    }
+    rang++;
+    const resolue = rang % 5 === 0;
+    if (!resolue && rang % 3 !== 0) continue;
+    const auteurNom = choisir(ENSEIGNANTS_AUTRES, alea);
+    const avecResolution = MODELES_AUTRES.filter((m) => !resolue || m.resolution);
+    const modele = choisir(avecResolution, alea);
+    const etapes = [...modele.suivi, ...(resolue && modele.resolution ? [modele.resolution] : [])];
+    appliquer(alerte, etapes.map((e) => ({ ...e, auteur: "enseignant" as const, auteurNom, auteurCompte: null })), resolue);
+  }
+  return suivis.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 }

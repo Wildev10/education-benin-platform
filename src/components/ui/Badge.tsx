@@ -1,9 +1,11 @@
 import { IconeAlerte, IconeValide } from "@/components/ui/Icones";
+import { statutSuivi } from "@/lib/suivi-alertes";
 type BadgeVariant =
   | "risk-eleve"
   | "risk-moyen"
-  | "status-active"
-  | "status-traitee"
+  | "status-nouvelle"
+  | "status-en-suivi"
+  | "status-resolue"
   | "role-admin"
   | "role-enseignant"
   | "role-etudiant"
@@ -13,8 +15,9 @@ type BadgeVariant =
 const variantCls: Record<BadgeVariant, string> = {
   "risk-eleve": "border-red-300 bg-red-50 text-red-900",
   "risk-moyen": "border-amber-300 bg-amber-50 text-amber-950",
-  "status-active": "border-red-300 bg-red-50 text-red-900",
-  "status-traitee": "border-emerald-300 bg-emerald-50 text-emerald-900",
+  "status-nouvelle": "border-red-300 bg-red-50 text-red-900",
+  "status-en-suivi": "border-blue-300 bg-blue-50 text-blue-900",
+  "status-resolue": "border-emerald-300 bg-emerald-50 text-emerald-900",
   "role-admin": "border-red-300 bg-red-50 text-red-800",
   "role-enseignant": "border-emerald-300 bg-emerald-50 text-emerald-800",
   "role-etudiant": "border-blue-300 bg-blue-50 text-blue-800",
@@ -26,14 +29,15 @@ const variantCls: Record<BadgeVariant, string> = {
 const prefix: Partial<Record<BadgeVariant, typeof IconeAlerte>> = {
   "risk-eleve": IconeAlerte,
   "risk-moyen": IconeAlerte,
-  "status-traitee": IconeValide,
+  "status-resolue": IconeValide,
 };
 
 const labels: Record<BadgeVariant, string> = {
   "risk-eleve": "Élevé",
   "risk-moyen": "Moyen",
-  "status-active": "Active",
-  "status-traitee": "Traitée",
+  "status-nouvelle": "Nouvelle",
+  "status-en-suivi": "En cours de suivi",
+  "status-resolue": "Résolue",
   "role-admin": "Admin",
   "role-enseignant": "Enseignant",
   "role-etudiant": "Étudiant",
@@ -73,8 +77,10 @@ export function riskVariant(niveau: string): BadgeVariant {
   return niveau === "eleve" ? "risk-eleve" : "risk-moyen";
 }
 
-export function statusVariant(statut: string): BadgeVariant {
-  return statut === "active" ? "status-active" : "status-traitee";
+/** Badge du statut de suivi (Nouvelle, En cours de suivi, Résolue), libellé compris. */
+export function statusVariant(alerte: { statut: string; suiviDepuis?: Date | string | null }): BadgeVariant {
+  const variantes = { nouvelle: "status-nouvelle", en_suivi: "status-en-suivi", resolue: "status-resolue" } as const;
+  return variantes[statutSuivi(alerte)];
 }
 
 export function roleVariant(role: string): BadgeVariant {

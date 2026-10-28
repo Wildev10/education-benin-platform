@@ -22,16 +22,20 @@ vi.mock("@react-pdf/renderer", async (orig) => ({
 vi.mock("@/lib/pdf/fiche-etudiant", () => ({ FicheEtudiantPdf: vi.fn(() => null) }));
 
 const prismaMock = {
-  alerte: { findUnique: vi.fn(), update: vi.fn() },
+  alerte: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  suiviAlerte: { create: vi.fn() },
+  user: { findUnique: vi.fn() },
   absence: { findUnique: vi.fn(), delete: vi.fn(), findMany: vi.fn(), create: vi.fn() },
   note: { findMany: vi.fn(), create: vi.fn() },
   inscription: { findMany: vi.fn() },
   etudiant: { findUnique: vi.fn() },
 };
-vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+// Transaction : les mêmes modèles simulés, appelés en séquence
+const $transaction = vi.fn(async (fn: (tx: typeof prismaMock) => unknown) => fn(prismaMock));
+vi.mock("@/lib/prisma", () => ({ prisma: { ...prismaMock, $transaction } }));
 
 // Import AFTER mocks are set up
-const alertesId = await import("@/app/api/alertes/[id]/route");
+const alertesSuivis = await import("@/app/api/alertes/[id]/suivis/route");
 const absencesId = await import("@/app/api/absences/[id]/route");
 const absences = await import("@/app/api/absences/route");
 const notes = await import("@/app/api/notes/route");
@@ -81,61 +85,66 @@ beforeEach(() => {
   prismaMock.inscription.findMany.mockResolvedValue([]);
 });
 
-// ── PATCH /api/alertes/[id] ──────────────────────────────────────────────────
+// ── POST /api/alertes/[id]/suivis ────────────────────────────────────────────
 
-describe("PATCH /api/alertes/[id]", () => {
+describe("POST /api/alertes/[id]/suivis", () => {
   function alerte(etudiant: typeof ELEVE_A_MOI) {
-    return { id: `alerte-${etudiant.id}`, etudiantId: etudiant.id, statut: "active", etudiant };
+    return { id: `alerte-${etudiant.id}`, etudiantId: etudiant.id, statut: "active", suiviDepuis: null, etudiant };
   }
-  const traiter = (id: string) =>
-    alertesId.PATCH(json(`/api/alertes/${id}`, "PATCH", { statut: "traitee" }), ctx(id));
+  const suivre = (id: string) =>
+    alertesSuivis.POST(
+      json(`/api/alertes/${id}/suivis`, "POST", { transition: "suivre", action: "parents_convoques", commentaire: "Parents reçus ce matin au bureau." }),
+      ctx(id)
+    );
 
   beforeEach(() => {
-    prismaMock.alerte.update.mockImplementation(({ where }) => Promise.resolve({ id: where.id, statut: "traitee" }));
+    prismaMock.alerte.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.user.findUnique.mockResolvedValue({ nom: "Sossou", prenom: "Bernadette" });
   });
 
-  it("enseignant : forcer l'id d'une alerte d'un autre établissement → 404, rien n'est modifié", async () => {
+  it("enseignant : forcer l'id d'une alerte d'un autre établissement → 404, rien n'est écrit", async () => {
     mockRequireRole.mockResolvedValue(ENSEIGNANT);
     prismaMock.alerte.findUnique.mockResolvedValue(alerte(ELEVE_AUTRE));
-    const res = await traiter("alerte-eleve-autre");
+    const res = await suivre("alerte-eleve-autre");
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "Alerte introuvable" });
-    expect(prismaMock.alerte.update).not.toHaveBeenCalled();
+    expect(prismaMock.alerte.updateMany).not.toHaveBeenCalled();
+    expect(prismaMock.suiviAlerte.create).not.toHaveBeenCalled();
   });
 
   it("hors périmètre et inexistante donnent exactement la même réponse", async () => {
-    mockRequireRole.mockResolvedValue(ENSEIGNANT);
+    mockRequireRole.mockResolvedValue(DIRECTEUR);
     prismaMock.alerte.findUnique.mockResolvedValue(null);
-    const inexistante = await traiter("n-existe-pas");
+    const inexistante = await suivre("n-existe-pas");
     prismaMock.alerte.findUnique.mockResolvedValue(alerte(ELEVE_AUTRE));
-    const horsPerimetre = await traiter("alerte-eleve-autre");
+    const horsPerimetre = await suivre("alerte-eleve-autre");
     expect([inexistante.status, await inexistante.json()]).toEqual([horsPerimetre.status, await horsPerimetre.json()]);
   });
 
-  it("enseignant sans établissement : ne peut traiter aucune alerte", async () => {
-    mockRequireRole.mockResolvedValue(ENSEIGNANT_SANS_ETAB);
+  it.each([
+    ["enseignant sans établissement", ENSEIGNANT_SANS_ETAB],
+    ["directeur sans établissement", DIRECTEUR_SANS_ETAB],
+  ])("%s : ne peut suivre aucune alerte (404)", async (_r, utilisateur) => {
+    mockRequireRole.mockResolvedValue(utilisateur);
     prismaMock.alerte.findUnique.mockResolvedValue(alerte(ELEVE_A_MOI));
-    expect((await traiter("alerte-eleve-a-moi")).status).toBe(404);
-    expect(prismaMock.alerte.update).not.toHaveBeenCalled();
+    expect((await suivre("alerte-eleve-a-moi")).status).toBe(404);
+    expect(prismaMock.suiviAlerte.create).not.toHaveBeenCalled();
   });
 
-  it("enseignant : traite une alerte de son établissement", async () => {
-    mockRequireRole.mockResolvedValue(ENSEIGNANT);
+  it.each([
+    ["enseignant", ENSEIGNANT],
+    ["directeur", DIRECTEUR],
+  ])("%s : suit une alerte de son établissement (201)", async (_r, utilisateur) => {
+    mockRequireRole.mockResolvedValue(utilisateur);
     prismaMock.alerte.findUnique.mockResolvedValue(alerte(ELEVE_A_MOI));
-    expect((await traiter("alerte-eleve-a-moi")).status).toBe(200);
-    expect(prismaMock.alerte.update).toHaveBeenCalledOnce();
+    expect((await suivre("alerte-eleve-a-moi")).status).toBe(201);
+    expect(prismaMock.suiviAlerte.create).toHaveBeenCalledOnce();
   });
 
-  it("admin : traite toutes les alertes", async () => {
-    mockRequireRole.mockResolvedValue(ADMIN);
-    prismaMock.alerte.findUnique.mockResolvedValue(alerte(ELEVE_AUTRE));
-    expect((await traiter("alerte-eleve-autre")).status).toBe(200);
-  });
-
-  it("directeur : toujours refusé (rôle non autorisé)", async () => {
+  it("admin : refusé (consultation seule)", async () => {
     mockRequireRole.mockResolvedValue(Response.json({ error: "Acces interdit" }, { status: 403 }));
-    expect((await traiter("alerte-eleve-a-moi")).status).toBe(403);
-    expect(mockRequireRole).toHaveBeenCalledWith(["admin", "enseignant"]);
+    expect((await suivre("alerte-eleve-a-moi")).status).toBe(403);
+    expect(mockRequireRole).toHaveBeenCalledWith(["enseignant", "directeur"]);
   });
 });
 
@@ -304,6 +313,20 @@ describe("GET /api/etudiants/[id]", () => {
     mockRequireRole.mockResolvedValue(ETUDIANT);
     prismaMock.etudiant.findUnique.mockResolvedValue(ELEVE_A_MOI);
     expect((await lire(ELEVE_A_MOI.id)).status).toBe(200);
+  });
+
+  it("étudiant : ses alertes ne sont pas lues (ni statut, ni commentaires, ni existence)", async () => {
+    mockRequireRole.mockResolvedValue(ETUDIANT);
+    prismaMock.etudiant.findUnique.mockResolvedValue(ELEVE_A_MOI);
+    await lire(ELEVE_A_MOI.id);
+    expect(prismaMock.etudiant.findUnique.mock.calls[0][0].include.alertes).toBe(false);
+  });
+
+  it("enseignant : les alertes de la fiche sont lues", async () => {
+    mockRequireRole.mockResolvedValue(ENSEIGNANT);
+    prismaMock.etudiant.findUnique.mockResolvedValue(ELEVE_A_MOI);
+    await lire(ELEVE_A_MOI.id);
+    expect(prismaMock.etudiant.findUnique.mock.calls[0][0].include.alertes).toBe(true);
   });
 
   it("directeur : élève de son établissement → 200", async () => {

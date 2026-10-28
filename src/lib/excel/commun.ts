@@ -19,7 +19,8 @@ const COULEURS_NIVEAU: Record<string, { fond: string; texte: string }> = {
 
 export const LIBELLES_NIVEAU: Record<string, string> = { eleve: "Élevé", moyen: "Moyen" };
 export const LIBELLES_TYPE: Record<string, string> = { baisse_moyenne: "Notes", absences: "Absences" };
-export const LIBELLES_STATUT: Record<string, string> = { active: "Active", traitee: "Traitée" };
+// Statut de suivi (Nouvelle, En cours de suivi, Résolue) : libelleStatut de src/lib/suivi-alertes.ts
+export { libelleStatut } from "@/lib/suivi-alertes";
 
 export type Colonne = {
   titre: string;

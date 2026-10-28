@@ -16,8 +16,8 @@ type Utilisateur = {
 
 const ROLES_ETABLISSEMENT = new Set(["enseignant", "directeur"]);
 
-/** Rôles autorisés à marquer une alerte comme traitée (le directeur consulte seulement). */
-export const ROLES_TRAITEMENT_ALERTES = ["admin", "enseignant"];
+/** Suivi des alertes (POST /api/alertes/[id]/suivis) : l'établissement agit, l'admin consulte. */
+export const ROLES_TRAITEMENT_ALERTES = ["enseignant", "directeur"];
 /** Supprimer une absence (DELETE /api/absences/[id]) : le directeur saisit mais ne supprime pas. */
 export const ROLES_SUPPRESSION_ABSENCE = ["admin", "enseignant"];
 /** Importer des notes par fichier CSV (POST /api/notes/import). */

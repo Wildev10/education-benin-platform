@@ -68,6 +68,8 @@ const ELEVE = (etablissementId: string) => ({
       moyenneApres: 8,
       ecartPourcent: 33,
       createdAt: new Date("2026-10-01T10:00:00Z"),
+      suiviDepuis: null,
+      suivis: [],
     },
   ],
 });
@@ -112,13 +114,13 @@ beforeEach(() => {
   }
 });
 
-// ── 1. Bouton « Marquer comme traitée » ──────────────────────────────────────
+// ── 1. Suivi des alertes (enseignant et directeur) ──────────────────────────────────────
 
 describe("peutTraiterAlertes", () => {
   it.each([
-    ["admin", true],
+    ["admin", false],
     ["enseignant", true],
-    ["directeur", false],
+    ["directeur", true],
     ["etudiant", false],
     [undefined, false],
   ])("%s → %s", (role, attendu) => {
@@ -127,7 +129,7 @@ describe("peutTraiterAlertes", () => {
 });
 
 describe("Fiche élève : section alertes", () => {
-  it("enseignant de l'établissement : alertes affichées avec le bouton", async () => {
+  it("enseignant de l'établissement : alertes affichées avec le suivi", async () => {
     mockAuth.mockResolvedValue(session("enseignant", MON_ETAB));
     prismaMock.etudiant.findUnique.mockResolvedValue(ELEVE(MON_ETAB));
     const { page } = await ouvrirFiche();
@@ -138,11 +140,11 @@ describe("Fiche élève : section alertes", () => {
     ]);
   });
 
-  it("directeur de l'établissement : alertes affichées sans le bouton", async () => {
+  it("directeur de l'établissement : alertes affichées avec le suivi", async () => {
     mockAuth.mockResolvedValue(session("directeur", MON_ETAB));
     prismaMock.etudiant.findUnique.mockResolvedValue(ELEVE(MON_ETAB));
     const { page } = await ouvrirFiche();
-    expect(propsDe(page, StudentDetailMock)?.peutTraiter).toBe(false);
+    expect(propsDe(page, StudentDetailMock)?.peutTraiter).toBe(true);
   });
 });
 

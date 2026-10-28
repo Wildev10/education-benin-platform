@@ -191,7 +191,7 @@ describe("decrireFiltres", () => {
   it("résume les filtres pour le PDF", () => {
     const f = lireFiltres(new URLSearchParams("niveau=eleve&type=notes&du=2026-10-01&au=2026-10-31&q=hane"));
     expect(decrireFiltres(f, "Collège Notre-Dame")).toEqual([
-      "Alertes actives",
+      "Alertes ouvertes",
       "Risque élevé",
       "Type : notes",
       "Du 01/10/2026 au 31/10/2026",
@@ -271,7 +271,7 @@ describe("GET /api/alertes/pdf", () => {
     expect(prismaMock.alerte.findMany.mock.calls[0][0].where.etudiant).toEqual({ etablissementId: MON_ETAB });
     // Le nom de l'autre établissement n'est même pas recherché pour l'en-tête
     expect(prismaMock.etablissement.findUnique).not.toHaveBeenCalled();
-    expect(propsPdf().filtres).toEqual(["Alertes actives"]);
+    expect(propsPdf().filtres).toEqual(["Alertes ouvertes"]);
   });
 
   it("l'étudiant est refusé", async () => {

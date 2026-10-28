@@ -128,7 +128,7 @@ const RANG_NIVEAU: Record<string, number> = { moyen: 1, eleve: 2 };
 /**
  * Le nouveau niveau dépasse celui de l'alerte existante (Moyen → Élevé). Seul
  * cas où une alerte existante est modifiée : un niveau égal ou en baisse ne
- * change rien. Une alerte traitée qui s'aggrave est réactivée.
+ * change rien. Une alerte résolue qui s'aggrave est rouverte.
  */
 export function estAggravation(alerte: { niveauRisque: string }, nouveauNiveau: string): boolean {
   return (

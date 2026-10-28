@@ -323,15 +323,18 @@ describe("GET /api/alertes/xlsx", () => {
 
     const f = (await lireClasseur(res)).getWorksheet("Alertes")!;
     expect(f.getCell("A3").value).toBe("Établissement : Lycée Mathieu Bouké");
-    expect(f.getCell("A5").value).toBe("Filtres : Alertes actives · Risque élevé · Type : notes · Lycée Mathieu Bouké");
+    expect(f.getCell("A5").value).toBe("Filtres : Alertes ouvertes · Risque élevé · Type : notes · Lycée Mathieu Bouké");
     const titres = ligneCommencantPar(f, "Nom");
     const ligne = f.getRow(titres.number + 1);
     expect(ligne.getCell(1).value).toBe("Rau");
     expect(ligne.getCell(6).value).toBe("Élevé");
     expect(ligne.getCell(6).fill).toMatchObject({ fgColor: { argb: "FFFEE2E2" } });
-    expect(ligne.getCell(9).value).toBe(11.15);
-    expect(ligne.getCell(10).value).toBe(8.5);
-    expect(ligne.getCell(10).numFmt).toBe("0.00");
+    // Statut de suivi et dernière action, puis les moyennes
+    expect(ligne.getCell(7).value).toBe("Nouvelle");
+    expect(f.getRow(titres.number).getCell(8).value).toBe("Dernière action");
+    expect(ligne.getCell(10).value).toBe(11.15);
+    expect(ligne.getCell(11).value).toBe(8.5);
+    expect(ligne.getCell(11).numFmt).toBe("0.00");
     expect(f.views[0]).toMatchObject({ state: "frozen", ySplit: titres.number });
   });
 });

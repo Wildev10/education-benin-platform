@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
-import { Toast, Confirm } from "@/lib/swal";
-import { useHorsLigne } from "@/components/pwa/PwaProvider";
-import { TITRE_HORS_LIGNE } from "@/components/pwa/BandeauHorsLigne";
+import { HistoriqueSuivi } from "@/components/alertes/HistoriqueSuivi";
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { SqueletteGraphiqueLigne } from "@/components/ui/Squelette";
 import { BlocAnnee } from "@/components/notes/BlocAnnee";
@@ -20,7 +17,7 @@ import {
   moyennesChronologiques,
   type PeriodeScolaire,
 } from "@/lib/notes-trimestres";
-import { redirigerVersConnexion } from "@/lib/session-expiree";
+import type { EtapeSuivi } from "@/lib/suivi-alertes";
 import { FUSEAU_BENIN } from "@/lib/dates";
 import { texteComparaison } from "@/lib/message-saisie";
 import { comparerMoyennes } from "@/lib/regles-alerte";
@@ -50,7 +47,9 @@ type Alerte = {
   moyenneApres: number;
   ecartPourcent: number;
   statut: string;
+  suiviDepuis: string | null;
   createdAt: string;
+  suivis: EtapeSuivi[];
 };
 
 type Absence = {
@@ -79,11 +78,9 @@ function formatDate(value: string) {
 }
 
 export default function AdminStudentDetail({ student, enCours }: { student: Student; enCours: PeriodeScolaire }) {
-  const [alerts, setAlerts] = useState(student.alertes);
+  // Consultation seule : le suivi des alertes est fait par l'établissement
+  const alerts = student.alertes;
   const mentionComparaison = useMemo(() => texteComparaison(comparerMoyennes(student.notes)), [student.notes]);
-  const [processingId, setProcessingId] = useState<string | null>(null);
-  const horsLigne = useHorsLigne();
-  const [error, setError] = useState("");
 
   const notesParAnnee = useMemo(() => grouperNotesParAnnee(student.notes, enCours.anneeScolaire), [student.notes, enCours]);
   const absencesParAnnee = useMemo(() => grouperParAnnee(student.absences, enCours.anneeScolaire), [student.absences, enCours]);
@@ -98,37 +95,6 @@ export default function AdminStudentDetail({ student, enCours }: { student: Stud
       moyenne: p.moyenne,
     }));
   }, [student.notes]);
-
-  async function markAsHandled(alertId: string) {
-    const result = await Confirm.fire({
-      title: "Êtes-vous sûr ?",
-      text: "Cette action est irréversible.",
-      icon: "warning",
-      showCancelButton: true,
-    });
-    if (!result.isConfirmed) return;
-    setProcessingId(alertId);
-    setError("");
-    try {
-      const response = await fetch(`/api/alertes/${alertId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ statut: "traitee" }),
-      });
-      if (response.status === 401) { redirigerVersConnexion(); return; }
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Impossible de traiter l'alerte.");
-      setAlerts((current) =>
-        current.map((alert) => (alert.id === alertId ? { ...alert, statut: data.statut } : alert))
-      );
-      void Toast.fire({ icon: "success", title: "Alerte marquée comme traitée." });
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Une erreur est survenue.");
-      void Toast.fire({ icon: "error", title: "Erreur lors de la mise à jour." });
-    } finally {
-      setProcessingId(null);
-    }
-  }
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
@@ -321,12 +287,6 @@ export default function AdminStudentDetail({ student, enCours }: { student: Stud
           <p className="mt-2 text-sm text-ink-secondary">{mentionComparaison}</p>
         )}
 
-        {error && (
-          <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 font-medium text-red-800">
-            {error}
-          </p>
-        )}
-
         {alerts.length > 0 ? (
           <div className="mt-5 space-y-4">
             {alerts.map((alert) => (
@@ -339,22 +299,9 @@ export default function AdminStudentDetail({ student, enCours }: { student: Stud
                     <Badge variant={riskVariant(alert.niveauRisque)}>
                       {alert.niveauRisque === "eleve" ? "Risque élevé" : "Risque moyen"}
                     </Badge>
-                    <Badge variant={statusVariant(alert.statut)}>
-                      {alert.statut === "active" ? "Active" : "Traitée"}
-                    </Badge>
+                    <Badge variant={statusVariant(alert)} />
                     <span className="text-sm font-semibold text-ink">{libellePeriode(alert.periode, alert.anneeScolaire)}</span>
                   </div>
-                  {alert.statut === "active" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={processingId === alert.id || horsLigne}
-                    title={horsLigne ? TITRE_HORS_LIGNE : undefined}
-                      onClick={() => void markAsHandled(alert.id)}
-                    >
-                      {processingId === alert.id ? "Mise à jour…" : "Marquer comme traitée"}
-                    </Button>
-                  )}
                 </div>
                 <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-5 min-[360px]:grid-cols-2 sm:grid-cols-4">
                   {alert.type === "absences" ? (
@@ -395,6 +342,7 @@ export default function AdminStudentDetail({ student, enCours }: { student: Stud
                     <dd className="mt-1 font-semibold text-ink">{libellePeriode(alert.periode, alert.anneeScolaire)}</dd>
                   </div>
                 </dl>
+                <HistoriqueSuivi etapes={alert.suivis} />
               </article>
             ))}
           </div>

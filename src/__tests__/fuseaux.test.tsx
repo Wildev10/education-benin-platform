@@ -79,7 +79,20 @@ describe("rendu identique sur un serveur en UTC et dans un navigateur à New Yor
         moyenneApres: 9,
         ecartPourcent: 25,
         statut: "active",
+        suiviDepuis: TARD_LE_SOIR,
         createdAt: TARD_LE_SOIR,
+        // Étape datée tard le soir : son heure doit aussi suivre le fuseau du Bénin
+        suivis: [
+          {
+            id: "s1",
+            auteurNom: "Fulbert Gbaguidi",
+            action: "entretien_eleve",
+            commentaire: "Entretien avec l'élève.",
+            statutAvant: "nouvelle",
+            statutApres: "en_suivi",
+            createdAt: TARD_LE_SOIR,
+          },
+        ],
       },
     ],
     absences: [{ id: "b1", date: TARD_LE_SOIR, motif: "injustifiee", periode: "Trimestre 1", anneeScolaire: "2026-2027" }],

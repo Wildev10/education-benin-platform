@@ -32,8 +32,10 @@ function pluriel(n: number, mot: string) {
 }
 
 const titres: Record<string, string> = {
-  active: "Rapport des alertes actives",
-  traitee: "Rapport des alertes traitées",
+  active: "Rapport des alertes ouvertes",
+  nouvelle: "Rapport des alertes nouvelles",
+  en_suivi: "Rapport des alertes en cours de suivi",
+  traitee: "Rapport des alertes résolues",
   toutes: "Rapport des alertes",
 };
 

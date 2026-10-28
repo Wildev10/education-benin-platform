@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
 import { peutAccederEtudiant } from "@/lib/perimetre";
+import { inclureSuivis } from "@/lib/suivis-server";
 import AdminStudentDetail from "./AdminStudentDetail";
 
 type PageProps = {
@@ -38,8 +39,11 @@ export default async function AdminStudentPage({ params }: PageProps) {
           moyenneApres: true,
           ecartPourcent: true,
           statut: true,
+          suiviDepuis: true,
           createdAt: true,
+          ...inclureSuivis,
         },
+        orderBy: { createdAt: "desc" },
       },
       absences: {
         select: { id: true, date: true, motif: true, periode: true, anneeScolaire: true },
@@ -55,7 +59,12 @@ export default async function AdminStudentPage({ params }: PageProps) {
     ...etudiant,
     dateNaissance: etudiant.dateNaissance.toISOString(),
     notes: etudiant.notes.map((n) => ({ ...n, createdAt: n.createdAt.toISOString() })),
-    alertes: etudiant.alertes.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() })),
+    alertes: etudiant.alertes.map((a) => ({
+      ...a,
+      createdAt: a.createdAt.toISOString(),
+      suiviDepuis: a.suiviDepuis?.toISOString() ?? null,
+      suivis: a.suivis.map((e) => ({ ...e, createdAt: e.createdAt.toISOString() })),
+    })),
     absences: etudiant.absences.map((a) => ({ ...a, date: a.date.toISOString() })),
   };
   // Trimestre en cours, calculé ici (heure du Bénin) : même rendu côté serveur et navigateur

@@ -59,15 +59,19 @@ function fusionnerAlerte(alertes: AlerteEleve[], alerte: AlerteSaisie): AlerteEl
     type: alerte.type,
     niveauRisque: alerte.niveauRisque,
     statut: alerte.statut,
+    suiviDepuis: alerte.suiviDepuis,
     periode: alerte.periode,
     anneeScolaire: alerte.anneeScolaire,
     moyenneAvant: alerte.moyenneAvant,
     moyenneApres: alerte.moyenneApres,
     ecartPourcent: alerte.ecartPourcent,
     createdAt: alerte.createdAt,
+    suivis: [],
   };
+  // Aggravation : l'historique déjà affiché est gardé (l'étape écrite par la
+  // détection apparaît au prochain chargement de la fiche)
   return alertes.some((a) => a.id === alerte.id)
-    ? alertes.map((a) => (a.id === alerte.id ? ligne : a))
+    ? alertes.map((a) => (a.id === alerte.id ? { ...ligne, suivis: a.suivis } : a))
     : [ligne, ...alertes];
 }
 
@@ -119,7 +123,7 @@ export default function StudentDetail({
   periodeParDefaut: string;
   /** Même règle que DELETE /api/absences/[id] (le directeur ne supprime pas) */
   peutSupprimerAbsence?: boolean;
-  /** Traiter une alerte : enseignant et admin. Directeur : consultation seule. */
+  /** Suivi des alertes : enseignant et directeur (même règle que POST /api/alertes/[id]/suivis). */
   peutTraiter?: boolean;
 }) {
   const horsLigne = useHorsLigne();
@@ -558,7 +562,10 @@ export default function StudentDetail({
         alertes={alertes}
         peutTraiter={peutTraiter}
         comparaison={comparaison}
-        onTraitee={(id) => setAlertes((courantes) => courantes.map((a) => (a.id === id ? { ...a, statut: "traitee" } : a)))}
+        notes={notes}
+        absences={absences}
+        periodeEnCours={{ anneeScolaire, periode: periodeParDefaut }}
+        onMiseAJour={(maj) => setAlertes((courantes) => courantes.map((a) => (a.id === maj.id ? maj : a)))}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
 import { peutAccederEtudiant, peutSupprimerAbsence, peutTraiterAlertes } from "@/lib/perimetre";
 import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
+import { inclureSuivis } from "@/lib/suivis-server";
 import StudentDetail from "./StudentDetail";
 
 export default async function EtudiantPage({
@@ -21,7 +22,7 @@ export default async function EtudiantPage({
       etablissement: true,
       notes: { orderBy: { createdAt: "desc" } },
       absences: { orderBy: { date: "desc" } },
-      alertes: { orderBy: { createdAt: "desc" } },
+      alertes: { orderBy: { createdAt: "desc" }, include: inclureSuivis },
     },
   });
 
@@ -79,12 +80,14 @@ export default async function EtudiantPage({
           type: a.type,
           niveauRisque: a.niveauRisque,
           statut: a.statut,
+          suiviDepuis: a.suiviDepuis?.toISOString() ?? null,
           periode: a.periode,
           anneeScolaire: a.anneeScolaire,
           moyenneAvant: a.moyenneAvant,
           moyenneApres: a.moyenneApres,
           ecartPourcent: a.ecartPourcent,
           createdAt: a.createdAt.toISOString(),
+          suivis: a.suivis.map((e) => ({ ...e, createdAt: e.createdAt.toISOString() })),
         }))}
       />
     </main>

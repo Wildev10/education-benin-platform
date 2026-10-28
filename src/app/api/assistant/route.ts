@@ -243,8 +243,8 @@ function construireReponse(
   if (type === "alertes") {
     const statut = filtres.statutAlerte
       ? filtres.statutAlerte === "active"
-        ? total > 1 ? "actives" : "active"
-        : total > 1 ? "traitées" : "traitée"
+        ? total > 1 ? "ouvertes" : "ouverte"
+        : total > 1 ? "résolues" : "résolue"
       : "";
     const risque = filtres.niveauRisque
       ? `de risque ${filtres.niveauRisque === "eleve" ? "élevé" : "moyen"}`

@@ -7,7 +7,7 @@ import {
   FORMAT_NOTE,
   FORMAT_POURCENT,
   LIBELLES_NIVEAU,
-  LIBELLES_STATUT,
+  libelleStatut,
   LIBELLES_TYPE,
   ajouterLigne,
   arrondi2,
@@ -34,10 +34,12 @@ export type DonneesFicheExcel = {
   anneeScolaire: string;
   notes: AnneeExport<{ matiere: string; valeur: number; periode: string; anneeScolaire: string }>;
   absences: AnneeExport<{ date: Date; motif: string; periode: string; anneeScolaire: string }>;
+  /** null : fiche de l'élève lui-même, sans feuille Alertes */
   alertes: {
     type: string;
     niveauRisque: string;
     statut: string;
+    suiviDepuis?: Date | null;
     periode: string;
     /** Absente des anciennes alertes */
     anneeScolaire?: string | null;
@@ -45,7 +47,7 @@ export type DonneesFicheExcel = {
     moyenneApres: number;
     ecartPourcent: number;
     createdAt: Date;
-  }[];
+  }[] | null;
   genereLe: Date;
 };
 
@@ -175,39 +177,42 @@ export function classeurFicheEleve(d: DonneesFicheExcel) {
   ajouterLigne(absences, { date: null, periode: `Justifiées ${contenuAbsences.annee}`, motif: absencesAnnee.length - injustifiees }).font = { bold: true };
   ajouterLigne(absences, { date: null, periode: `Total ${contenuAbsences.annee}`, motif: absencesAnnee.length }).font = { bold: true };
 
-  // ── Alertes ───────────────────────────────────────────────────────────────
-  const alertes = nouvelleFeuille(classeur, "Alertes", {
-    ...entete,
-    colonnes: [
-      { titre: "Détectée le", cle: "date", largeur: 14, format: FORMAT_DATE, alignement: "left" },
-      { titre: "Type", cle: "type", largeur: 12 },
-      { titre: "Niveau", cle: "niveau", largeur: 10 },
-      { titre: "Statut", cle: "statut", largeur: 10 },
-      { titre: "Période", cle: "periode", largeur: 22 },
-      { titre: "Moyenne avant", cle: "avant", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
-      { titre: "Moyenne après", cle: "apres", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
-      { titre: "Baisse", cle: "baisse", largeur: 11, format: FORMAT_POURCENT, alignement: "right" },
-      { titre: "Absences injustifiées", cle: "absences", largeur: 21, alignement: "right" },
-    ],
-  });
-  [...d.alertes]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .forEach((a) => {
-      const absence = a.type === "absences";
-      const ligne = ajouterLigne(alertes, {
-        date: a.createdAt,
-        type: LIBELLES_TYPE[a.type] ?? a.type,
-        niveau: LIBELLES_NIVEAU[a.niveauRisque] ?? a.niveauRisque,
-        statut: LIBELLES_STATUT[a.statut] ?? a.statut,
-        // L'historique couvre toutes les années : la période porte la sienne
-        periode: libellePeriode(a.periode, a.anneeScolaire),
-        avant: absence ? null : arrondi2(a.moyenneAvant),
-        apres: absence ? null : arrondi2(a.moyenneApres),
-        baisse: absence ? null : Math.round(a.ecartPourcent * 10) / 10,
-        absences: absence ? a.moyenneApres : null,
-      });
-      colorerNiveau(ligne.getCell("niveau"), a.niveauRisque);
+  // Fiche téléchargée par l'élève lui-même : pas de feuille Alertes (alertes = null)
+  if (d.alertes) {
+    // ── Alertes ───────────────────────────────────────────────────────────────
+    const alertes = nouvelleFeuille(classeur, "Alertes", {
+      ...entete,
+      colonnes: [
+        { titre: "Détectée le", cle: "date", largeur: 14, format: FORMAT_DATE, alignement: "left" },
+        { titre: "Type", cle: "type", largeur: 12 },
+        { titre: "Niveau", cle: "niveau", largeur: 10 },
+        { titre: "Statut", cle: "statut", largeur: 18 },
+        { titre: "Période", cle: "periode", largeur: 22 },
+        { titre: "Moyenne avant", cle: "avant", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
+        { titre: "Moyenne après", cle: "apres", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
+        { titre: "Baisse", cle: "baisse", largeur: 11, format: FORMAT_POURCENT, alignement: "right" },
+        { titre: "Absences injustifiées", cle: "absences", largeur: 21, alignement: "right" },
+      ],
     });
+    [...d.alertes]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .forEach((a) => {
+        const absence = a.type === "absences";
+        const ligne = ajouterLigne(alertes, {
+          date: a.createdAt,
+          type: LIBELLES_TYPE[a.type] ?? a.type,
+          niveau: LIBELLES_NIVEAU[a.niveauRisque] ?? a.niveauRisque,
+          statut: libelleStatut(a),
+          // L'historique couvre toutes les années : la période porte la sienne
+          periode: libellePeriode(a.periode, a.anneeScolaire),
+          avant: absence ? null : arrondi2(a.moyenneAvant),
+          apres: absence ? null : arrondi2(a.moyenneApres),
+          baisse: absence ? null : Math.round(a.ecartPourcent * 10) / 10,
+          absences: absence ? a.moyenneApres : null,
+        });
+        colorerNiveau(ligne.getCell("niveau"), a.niveauRisque);
+      });
+  }
 
   return classeur;
 }

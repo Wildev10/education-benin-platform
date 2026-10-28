@@ -35,8 +35,18 @@ Les règles s'appliquent à chaque saisie de note ou d'absence, et à l'import C
 - Les notes comparent la moyenne des **deux dernières périodes** de l'élève (trimestres, dans l'ordre des années scolaires), dès que la plus récente compte **au moins 2 notes**. Sans période précédente (nouvel élève), la fiche l'indique : « Pas encore de période de comparaison » ; les absences restent suivies.
 - Les absences comptent les absences injustifiées de la période la plus récente.
 - La saisie propose le trimestre et l'année scolaire du jour, au Bénin (année à partir de septembre ; trimestres septembre-décembre, janvier-mars, avril-août).
-- Une alerte par élève, type (notes ou absences) et période. Si elle passe de Moyen à Élevé, elle est mise à jour, sans doublon, et réactivée si elle avait été traitée.
+- Une alerte par élève, type (notes ou absences) et période. Si elle passe de Moyen à Élevé, elle est mise à jour, sans doublon, et rouverte (Nouvelle) si elle avait été résolue ; l'historique du suivi le note.
 - Après chaque saisie, l'enseignant voit soit « Alerte déclenchée : niveau Élevé pour [élève] » (ou « Alerte aggravée : Moyen → Élevé »), soit « Note enregistrée » / « Absence enregistrée », sans alerte. Le rapport d'import liste les alertes déclenchées.
+
+### Suivi des alertes
+
+- **Trois statuts** : Nouvelle (aucune action), En cours de suivi, Résolue.
+- **Une action et un commentaire à chaque étape** : entretien avec l'élève, parents convoqués, soutien scolaire ou autre action, avec un commentaire obligatoire (10 à 1 000 caractères). La résolution et la réouverture demandent aussi un commentaire.
+- **Historique sur la fiche élève** : pour chaque étape, l'action, la personne, la date et l'heure (heure du Bénin), le commentaire et le changement de statut. Les étapes écrites par la détection (aggravation, réouverture automatique) sont signées « Système ».
+- **Réouverture** d'une alerte résolue, à la main ou automatiquement si elle s'aggrave.
+- **Suggestion de clôture**, jamais automatique : quand la moyenne du trimestre le plus récent ne déclencherait plus l'alerte par rapport à la moyenne de référence, ou quand un nouveau trimestre compte moins de 5 absences injustifiées.
+- **Qui fait quoi** : l'enseignant et le directeur suivent les alertes des élèves de leur établissement ; l'administration consulte l'historique et pilote (alertes nouvelles, en cours de suivi, résolues dans l'année, délai moyen avant la première action) ; l'élève ne voit ni ses alertes, ni leur statut, ni les commentaires.
+- Les listes d'alertes montrent le statut et la dernière action, et mènent au suivi sur la fiche. Les exports Excel et PDF reprennent le statut ; l'Excel des alertes, la dernière action.
 
 ### Notifications en temps réel
 
@@ -51,15 +61,15 @@ Une cloche, dans l'en-tête de l'admin, du directeur et de l'enseignant, liste l
 ### Suivi des élèves
 
 - **Fiche élève** : informations, notes par année scolaire (la plus récente d'abord, avec sa moyenne annuelle) puis par trimestre, en accordéon (moyenne visible même replié, seul le trimestre en cours ouvert), absences par année et par trimestre, historique des alertes, et graphique d'évolution de la moyenne dans l'espace admin.
-- **Page Alertes** avec filtres avancés : recherche par nom, niveau de risque, type (notes ou absences), statut, établissement, dates de création.
+- **Page Alertes** avec filtres avancés : recherche par nom, niveau de risque, type (notes ou absences), statut (ouvertes, nouvelles, en cours de suivi, résolues, toutes), établissement, dates de création.
 - **Page Absences** : toutes les absences, filtrables par période, motif, année scolaire et établissement.
 - **Listes paginées côté serveur** (20, 50 ou 100 par page), avec filtres et taille conservés dans l'adresse.
 - Saisie des notes et des absences, import de notes par fichier CSV avec rapport d'erreurs.
 
 ### Exports
 
-- **PDF** : fiche de suivi d'un élève, rapport des alertes actives groupé par établissement.
-- **Excel** : fiche élève (4 feuilles), alertes (en respectant les filtres), liste des élèves d'un établissement.
+- **PDF** : fiche de suivi d'un élève, rapport des alertes ouvertes groupé par établissement.
+- **Excel** : fiche élève (4 feuilles ; 3 pour l'élève lui-même, sans ses alertes), alertes (en respectant les filtres, avec le statut de suivi et la dernière action), liste des élèves d'un établissement.
 - La fiche élève (PDF et Excel) porte sur l'année scolaire en cours au Bénin. Sans note ou sans absence cette année, elle l'indique (« Aucune note pour l'année 2026-2027 pour l'instant ») puis donne le récapitulatif de l'année précédente, avec son année. Partout (listes, tableaux de bord, cloche, exports), la période d'une alerte est suivie de son année.
 
 Chaque export ne contient que ce que l'utilisateur a le droit de voir.
@@ -93,7 +103,7 @@ Gestion des comptes (création, modification, suppression), demandes de mot de p
 | Supprimer une absence | — | ✓ | — | — |
 | Importer des notes (CSV) | — | ✓ | — | ✓ |
 | Pages Alertes et Absences | — | ✓ | ✓ | ✓ |
-| Traiter une alerte | — | ✓ | — | ✓ |
+| Suivre une alerte (actions, résolution, réouverture) | — | ✓ | ✓ | — (consultation et pilotage) |
 | Cloche de notifications | — | ✓ | ✓ | ✓ |
 | Exports PDF et Excel | Sa fiche (Excel) | ✓ | ✓ | ✓ |
 | Assistant | — | ✓ | ✓ | ✓ |
@@ -119,8 +129,8 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **593 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), périmètre des routes, droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base, données de démonstration (cas de la démo à chaque trimestre), format français des nombres et libellé des périodes.
-- **2 099 vérifications navigateur** (11 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, réactivation, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), aucun nombre décimal au format anglais ni période « Trimestre 1 2026-2027 » sur les pages principales de chaque rôle, cloche comprise, responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), mode contraste élevé sur les pages des 4 rôles (textes à 7:1, couleurs d'état, focus, cloche, fenêtres, graphiques, couleurs forcées de Windows), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
+- **648 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), suivi des alertes (transitions, saisie obligatoire, suggestion de clôture, réouverture automatique), périmètre des routes (dont l'assistant et le suivi), droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base, données de démonstration (cas de la démo à chaque trimestre), format français des nombres et libellé des périodes.
+- **2 110 vérifications navigateur** (11 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, suivi depuis la fiche, résolution puis réouverture automatique, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), aucun nombre décimal au format anglais ni période « Trimestre 1 2026-2027 » sur les pages principales de chaque rôle, cloche comprise, responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), mode contraste élevé sur les pages des 4 rôles (textes à 7:1, couleurs d'état, focus, cloche, fenêtres, graphiques, couleurs forcées de Windows), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---
@@ -150,13 +160,13 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 | Élève | Classe | Situation |
 |---|---|---|
-| Rodrigue Agossou | Première D | moyenne de 12,75 à 7,5 : alerte notes **Élevé** |
-| Adéola Akanni | Terminale C | moyenne de 14,5 à 12 : alerte notes **Moyen** |
-| Inoussa Maïga | 3ème | 7 absences injustifiées ce trimestre, surtout le lundi : alerte absences **Moyen** |
+| Rodrigue Agossou | Première D | moyenne de 12,75 à 7,5 : alerte notes **Élevé**, en cours de suivi (entretien par l'enseignant, parents convoqués par la directrice) |
+| Adéola Akanni | Terminale C | moyenne de 14,5 à 12 : alerte notes **Moyen**, nouvelle (pour montrer une première action) |
+| Inoussa Maïga | 3ème | 7 absences injustifiées ce trimestre, surtout le lundi : alerte absences **Moyen**, en cours de suivi (parents convoqués) |
 | Sèna Dossou | Seconde D | 6 notes à 11 de moyenne contre 13,5 : alerte **Moyen**, qui s'aggrave pendant la démo |
 | Nafissatou Gounou | 6ème | arrivée ce trimestre : « Pas encore de période de comparaison » |
 
-Pour Sèna Dossou, saisir deux notes dans le trimestre proposé, par exemple **6 puis 6** (ou 5 puis 7). La première affiche « Note enregistrée » ; la seconde, « Alerte aggravée : Moyen → Élevé ». Règle : première note d'au moins 4, et les deux font moins de 14. Les autres élèves du CEG Zopah n'ont aucune alerte. Le seed calcule les périodes à partir du jour où il est lancé : le relancer la veille de la démo.
+Pour Sèna Dossou, saisir deux notes dans le trimestre proposé, par exemple **6 puis 6** (ou 5 puis 7). La première affiche « Note enregistrée » ; la seconde, « Alerte aggravée : Moyen → Élevé ». Règle : première note d'au moins 4, et les deux font moins de 14. Les autres élèves du CEG Zopah n'ont aucune alerte. Dans les autres établissements, quelques alertes sont en cours de suivi ou résolues, pour le pilotage de l'admin. Le seed calcule les périodes à partir du jour où il est lancé : le relancer la veille de la démo.
 
 ---
 
@@ -195,6 +205,7 @@ Pour Sèna Dossou, saisir deux notes dans le trimestre proposé, par exemple **6
   - côté navigateur, Sentry ne remonte que les erreurs : ni Session Replay, ni envoi d'une session à chaque page.
 - **Région.** La base Neon est dans l'Ohio (`us-east-2`) et les fonctions Vercel à Cleveland (`cle1`). Une migration vers l'Europe a été étudiée puis reportée (gain d'environ 100 ms par requête, hébergement des données à décider) : mesures et procédure complète dans [docs/migration-region.md](docs/migration-region.md).
 - **Évolutions de schéma d'octobre 2026.** Colonnes `Alerte.niveauModifieLe` (date de la dernière aggravation) et `User.notificationsVuesLe` (dernière ouverture de la cloche), nullables, ajoutées de façon purement additive : l'ancien code reste compatible.
+- **Suivi des alertes (fin octobre 2026).** Colonnes `Alerte.suiviDepuis` et `Alerte.resolueLe` (nullables) et table `SuiviAlerte` (une ligne par étape). Purement additif, sans donnée à migrer : le statut affiché se déduit de `statut` (« active » ou « traitee », inchangé) et de `suiviDepuis`. À appliquer en production avant de déployer le code, et avant de relancer le seed (qui écrit l'historique de démonstration).
 
 ### Lancer en local
 
@@ -233,7 +244,7 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 ### Lancer les tests
 
 ```bash
-npm test          # 593 tests unitaires
+npm test          # 648 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
 npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits, fuseaux, nombres, responsive, contraste

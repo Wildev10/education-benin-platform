@@ -82,14 +82,24 @@ describe("analyserAlerte (notes)", () => {
     expect(prismaMock.alerte.create).not.toHaveBeenCalled();
   });
 
-  it("alerte Moyen traitée qui s'aggrave : réactivée (statut actif) et aggravée", async () => {
+  it("alerte Moyen résolue qui s'aggrave : rouverte en Nouvelle, aggravée, étape « réouverture automatique »", async () => {
     prismaMock.note.findMany.mockResolvedValue(ELEVE);
     prismaMock.alerte.findFirst.mockResolvedValue(alerte("moyen", "traitee"));
     const res = await analyserAlerte("etu-1");
     expect(res).toMatchObject({ issue: "mise_a_jour", niveauPrecedent: "moyen", niveauRisque: "eleve", reactivee: true });
     const data = prismaMock.alerte.update.mock.calls[0][0].data;
-    expect(data).toMatchObject({ statut: "active", niveauRisque: "eleve" });
+    expect(data).toMatchObject({ statut: "active", niveauRisque: "eleve", suiviDepuis: null, resolueLe: null });
     expect(data.niveauModifieLe).toBeInstanceOf(Date);
+    expect(data.suivis.create).toMatchObject({ action: "reouverture_auto", statutAvant: "resolue", statutApres: "nouvelle", auteurNom: "Système (détection automatique)" });
+  });
+
+  it("alerte Moyen en cours de suivi qui s'aggrave : le suivi continue, étape « aggravation détectée »", async () => {
+    prismaMock.note.findMany.mockResolvedValue(ELEVE);
+    prismaMock.alerte.findFirst.mockResolvedValue({ ...alerte("moyen", "active"), suiviDepuis: new Date("2026-10-01T10:00:00Z") });
+    await analyserAlerte("etu-1");
+    const data = prismaMock.alerte.update.mock.calls[0][0].data;
+    expect(data).not.toHaveProperty("suiviDepuis");
+    expect(data.suivis.create).toMatchObject({ action: "aggravation", statutAvant: "en_suivi", statutApres: "en_suivi" });
   });
 
   it("alerte Élevé traitée, toujours Élevé : rien (pas de réactivation sans aggravation)", async () => {

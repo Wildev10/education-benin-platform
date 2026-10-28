@@ -32,10 +32,11 @@ const ROLES = ["etudiant", "enseignant", "directeur", "admin"] as const;
 // ── Règles partagées par l'interface et l'API ────────────────────────────────
 
 describe("règles partagées", () => {
-  it("listes identiques aux droits d'avant (l'API n'a pas changé)", () => {
+  it("listes identiques à celles des routes de l'API", () => {
     expect(perimetre.ROLES_SUPPRESSION_ABSENCE).toEqual(["admin", "enseignant"]);
     expect(perimetre.ROLES_IMPORT_NOTES).toEqual(["admin", "enseignant"]);
-    expect(perimetre.ROLES_TRAITEMENT_ALERTES).toEqual(["admin", "enseignant"]);
+    // Suivi des alertes : l'établissement agit, l'admin consulte
+    expect(perimetre.ROLES_TRAITEMENT_ALERTES).toEqual(["enseignant", "directeur"]);
   });
 
   it.each(ROLES)("%s : suppression d'absence et import selon la règle", (role) => {

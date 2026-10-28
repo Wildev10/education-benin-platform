@@ -55,7 +55,7 @@ Filtres possibles (n'utilise que des valeurs EXACTES de ces listes, sinon omets 
 - niveau : ${ref.niveaux.join(" | ")}
 - periode : ${ref.periodes.join(" | ")}
 - niveauRisque (alertes seulement) : "moyen" ou "eleve"
-- statutAlerte (alertes seulement) : "active" ou "traitee"
+- statutAlerte (alertes seulement) : "active" (alerte ouverte : nouvelle ou en cours de suivi) ou "traitee" (alerte résolue)
 - motifAbsence (absences seulement) : "injustifiee" ou "justifiee"
 regrouperPar : "etablissement" ou "niveau" quand la question demande une répartition ou un nombre par établissement ou par niveau.
 Si la question ne concerne pas ces données, retourne type "inconnu" et filtres {}.

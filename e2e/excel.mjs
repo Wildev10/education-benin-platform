@@ -246,7 +246,9 @@ await ens.context().close();
 const etu = await session(COMPTES.etudiant);
 f = await telecharger(etu, etu.getByRole("button", { name: "Télécharger ma fiche (Excel)" }));
 const titre = f.classeur.getWorksheet("Identité").getCell("A2").value;
-check("Étudiant : sa propre fiche Excel", titre.startsWith("Fiche de suivi —") && f.classeur.worksheets.length === 4, `${titre} — ${f.nom}`);
+// L'élève ne voit pas ses alertes : 3 feuilles (Identité, Notes, Absences), sans « Alertes »
+check("Étudiant : sa propre fiche Excel, sans feuille Alertes", titre.startsWith("Fiche de suivi —") && f.classeur.worksheets.length === 3 && !f.classeur.getWorksheet("Alertes"),
+  `${titre} — ${f.nom} — ${f.classeur.worksheets.map((w) => w.name).join(", ")}`);
 // Un élève qui n'est pas lui : le premier des deux listes dont le nom diffère du sien
 const autreQueMoi = [ELEVE_AUTRE, ...listeAutre.elements, ...listeEns.elements].find((e) => !titre.endsWith(`${e.prenom} ${e.nom}`));
 check("Étudiant, forçage : fiche d'un autre élève → 404", (await statut(etu, `/api/etudiants/${autreQueMoi.id}/xlsx`)) === 404);

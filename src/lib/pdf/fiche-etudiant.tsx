@@ -13,6 +13,7 @@ import {
 import { messageAucun, titreRecapitulatif, type AnneeExport } from "@/lib/annee-export";
 import { libellePeriode } from "@/lib/notes-trimestres";
 import { comparerMatieres } from "@/lib/programme";
+import { libelleStatut } from "@/lib/suivi-alertes";
 
 type NotePdf = { matiere: string; valeur: number; periode: string; anneeScolaire: string };
 type AbsencePdf = { motif: string; periode: string; anneeScolaire: string };
@@ -36,6 +37,7 @@ export type DonneesFicheEtudiant = {
     /** Absente des anciennes alertes */
     anneeScolaire?: string | null;
     statut: string;
+    suiviDepuis?: Date | null;
     moyenneAvant: number;
     moyenneApres: number;
     ecartPourcent: number;
@@ -188,7 +190,7 @@ export function FicheEtudiantPdf({ etudiant, anneeScolaire, notes, absences, ale
             }}
           >
             <Text style={{ color: "#FFFFFF", fontFamily: "Helvetica-Bold", fontSize: 10 }}>
-              {alertesActives.length} alerte{alertesActives.length > 1 ? "s" : ""} active
+              {alertesActives.length} alerte{alertesActives.length > 1 ? "s" : ""} ouverte
               {alertesActives.length > 1 ? "s" : ""} — suivi prioritaire recommandé
             </Text>
           </View>
@@ -262,7 +264,7 @@ export function FicheEtudiantPdf({ etudiant, anneeScolaire, notes, absences, ale
                     {formatBaisse(a.ecartPourcent)}
                   </Text>
                   <Text style={[styles.cellule, styles.gras, { width: "14%" }, a.statut === "active" ? styles.rouge : { color: couleurs.vert }]}>
-                    {a.statut === "active" ? "Active" : "Traitée"}
+                    {libelleStatut(a)}
                   </Text>
                   <Text style={[styles.cellule, styles.gris, { width: "18%" }]}>{formatDateLongue(a.createdAt)}</Text>
                 </View>

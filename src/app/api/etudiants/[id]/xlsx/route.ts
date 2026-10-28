@@ -22,7 +22,8 @@ export async function GET(_request: Request, context: RouteContext) {
         etablissement: true,
         notes: { select: { matiere: true, valeur: true, periode: true, anneeScolaire: true } },
         absences: { select: { date: true, motif: true, periode: true, anneeScolaire: true } },
-        alertes: { orderBy: { createdAt: "desc" } },
+        // L'élève ne voit pas ses alertes (ni leur existence) : rien n'est lu pour lui
+        alertes: access.user.role === "etudiant" ? false : { orderBy: { createdAt: "desc" } },
       },
     });
 
@@ -41,7 +42,7 @@ export async function GET(_request: Request, context: RouteContext) {
       anneeScolaire,
       notes: selectionnerAnneeExport(etudiant.notes, anneeScolaire),
       absences: selectionnerAnneeExport(etudiant.absences, anneeScolaire),
-      alertes: etudiant.alertes,
+      alertes: access.user.role === "etudiant" ? null : etudiant.alertes,
       genereLe,
     });
     return reponseXlsx(classeur, nomFichierFiche({ etudiant, genereLe }));

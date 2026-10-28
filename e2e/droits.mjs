@@ -86,16 +86,16 @@ try {
   check("Étudiant : seul export proposé, l'Excel de sa fiche", await visible(etu, /Télécharger ma fiche/) && !(await visible(etu, /PDF/)));
   check("Étudiant : ni navigation d'espace, ni cloche, ni saisie, suppression, import ou traitement",
     (await libellesNav(etu)).length === 0 && (await cloche(etu).count()) === 0 &&
-    !(await visible(etu, /Enregistrer|Supprimer|Importer|Marquer comme traitée/)));
+    !(await visible(etu, /Enregistrer|Supprimer|Importer|Ajouter une action|Résoudre|Rouvrir/)));
   for (const adresse of ["/enseignant/import", "/admin/utilisateurs", "/enseignant/alertes"]) {
     const arrivee = await forcer(etu, adresse);
     check(`Étudiant : ${adresse} forcée → refusée (renvoyé vers ${arrivee})`, arrivee !== adresse);
   }
-  check("Étudiant : l'API refuse import, suppression d'absence, traitement d'alerte, cloche, exports d'alertes, comptes (403)",
+  check("Étudiant : l'API refuse import, suppression d'absence, suivi d'alerte, cloche, exports d'alertes, comptes (403)",
     (await Promise.all([
       statut(etu, "POST", "/api/notes/import"),
       statut(etu, "DELETE", "/api/absences/inexistante"),
-      statut(etu, "PATCH", "/api/alertes/inexistante", { statut: "traitee" }),
+      statut(etu, "POST", "/api/alertes/inexistante/suivis", { transition: "suivre" }),
       statut(etu, "GET", "/api/notifications/alertes"),
       statut(etu, "GET", "/api/alertes/xlsx"),
       statut(etu, "GET", "/api/admin/utilisateurs"),
@@ -115,7 +115,7 @@ try {
   check("Enseignant, fiche : saisie de notes et d'absences, et « Supprimer » sur les absences",
     (await visible(ens, "Enregistrer la note")) && (await visible(ens, "Enregistrer l'absence")) && (await boutonsSupprimerAbsence(ens).count()) > 0);
   await ouvrir(ens, "/enseignant/alertes");
-  check("Enseignant, alertes : « Marquer comme traitée » proposé", await visible(ens, "Marquer comme traitée"));
+  check("Enseignant, alertes : « Suivre l'alerte » proposé, vers la fiche", (await ens.getByRole("link", { name: /^Suivre l'alerte/ }).count()) > 0);
   await ouvrir(ens, "/enseignant/import");
   check("Enseignant : page d'import accessible", (await ens.locator('input[type="file"]').count()) === 1 && (await visible(ens, "Importer")));
   for (const adresse of ["/admin/utilisateurs", "/directeur"]) {
@@ -150,15 +150,17 @@ try {
       (await dir.locator("text=Injustifiée").count()) > 0 && (await boutonsSupprimerAbsence(dir).count()) === 0);
     check("Directeur, fiche : saisie de notes et d'absences proposée (autorisée par l'API)",
       (await visible(dir, "Enregistrer la note")) && (await visible(dir, "Enregistrer l'absence")));
-    check("Directeur, fiche : pas de « Marquer comme traitée »", !(await visible(dir, "Marquer comme traitée")));
     await ouvrir(dir, "/directeur/alertes");
-    check("Directeur, alertes : pas de « Marquer comme traitée », exports proposés",
-      !(await visible(dir, "Marquer comme traitée")) && (await visible(dir, /Exporter en PDF/)) && (await visible(dir, /Excel/)));
+    check("Directeur, alertes : « Suivre l'alerte » et exports proposés",
+      (await dir.getByRole("link", { name: /^Suivre l'alerte/ }).count()) > 0 && (await visible(dir, /Exporter en PDF/)) && (await visible(dir, /Excel/)));
     const alerteDir = (await getJson(dir, "/api/alertes?page=1")).corps.elements?.[0];
-    check("Directeur : l'API refuse bien les actions masquées (suppression d'absence, import, traitement d'alerte : 403)",
+    await ouvrir(dir, `/enseignant/etudiants/${alerteDir.etudiant.id}`);
+    check("Directeur, fiche d'un élève en alerte : suivi proposé (« Ajouter une action », « Résoudre l'alerte »)",
+      (await visible(dir, "Ajouter une action")) && (await visible(dir, "Résoudre l'alerte")));
+    check("Directeur : l'API refuse les actions masquées (suppression d'absence, import : 403) et accepte le suivi (saisie incomplète : 400, rien d'écrit)",
       (await statut(dir, "DELETE", `/api/absences/${idAbsence}`)) === 403 &&
       (await statut(dir, "POST", "/api/notes/import")) === 403 &&
-      (await statut(dir, "PATCH", `/api/alertes/${alerteDir?.id ?? "inexistante"}`, { statut: "traitee" })) === 403);
+      (await statut(dir, "POST", `/api/alertes/${alerteDir.id}/suivis`, { transition: "suivre" })) === 400);
     check("Directeur : l'absence de test n'a pas été supprimée par l'appel refusé",
       (await base.query(`SELECT 1 FROM "Absence" WHERE id = $1`, [idAbsence])).rowCount === 1);
     await verifierAssistant(dir, "Directeur");
@@ -173,7 +175,16 @@ try {
   const navAdmin = await libellesNav(admin);
   check("Admin : navigation complète (Utilisateurs, Importer, Historique, Assistant) et cloche",
     ["Utilisateurs", "Importer", "Historique", "Assistant"].every((l) => navAdmin.includes(l)) && (await cloche(admin).count()) === 1, navAdmin.join(", "));
-  check("Admin, tableau de bord : « Marquer comme traitée » proposé", await visible(admin, "Marquer comme traitée"));
+  check("Admin, tableau de bord : consultation seule (« Voir le suivi », pilotage du suivi, aucune action)",
+    (await admin.getByRole("link", { name: /^Voir le suivi/ }).count()) > 0 && (await admin.locator("[data-pilotage-suivi]").count()) === 1 &&
+      !(await visible(admin, /Ajouter une action|Résoudre l'alerte|Marquer comme traitée/)));
+  const alerteAdmin = (await getJson(admin, "/api/alertes?page=1")).corps.elements[0];
+  check("Admin : l'API refuse le suivi d'une alerte (403)",
+    (await statut(admin, "POST", `/api/alertes/${alerteAdmin.id}/suivis`, { transition: "suivre", action: "autre", commentaire: "Tentative de l'admin." })) === 403);
+  await ouvrir(admin, `/admin/etudiants/${alerteAdmin.etudiant.id}`);
+  check("Admin, fiche d'un élève en alerte : statut et historique visibles, sans action de suivi",
+    (await admin.locator('section[aria-labelledby="alerts-title"] article').count()) > 0 && !(await visible(admin, /Ajouter une action|Résoudre l'alerte|Rouvrir/)));
+  await ouvrir(admin, "/admin");
   const fautifs = await admin.evaluate(() =>
     [...document.querySelectorAll("svg")]
       .filter((s) => s.getAttribute("aria-hidden") !== "true" && !(s.getAttribute("role") === "img" && s.getAttribute("aria-label")) && !s.parentElement?.closest('[role="img"][aria-label]'))

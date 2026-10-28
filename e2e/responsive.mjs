@@ -171,7 +171,7 @@ for (const config of CONFIGS) {
   }
 }
 
-// ── Au doigt : menu mobile, cloche et fenêtre de confirmation (annulée) ─────
+// ── Au doigt : menu mobile, cloche et lien vers le suivi d'une alerte ───────
 for (const config of [FORMATS[0], FORMATS.find((f) => f.largeur === 768), FORMATS.at(-1)]) {
   const vw = config.largeur, vh = config.hauteur;
   const contexte = await navigateur.newContext({ viewport: { width: vw, height: vh }, isMobile: true, hasTouch: true, serviceWorkers: "block" });
@@ -209,18 +209,12 @@ for (const config of [FORMATS[0], FORMATS.find((f) => f.largeur === 768), FORMAT
   await page.keyboard.press("Escape");
   check(`[${config.nom}] cloche : Échap ferme le panneau`, !(await panneau.isVisible()));
 
-  const traiter = page.getByRole("button", { name: /Marquer comme traitée/ }).first();
-  if (await traiter.count()) {
-    await traiter.scrollIntoViewIfNeeded();
-    await traiter.click();
-    const fenetre = page.locator(".swal2-popup");
-    await fenetre.waitFor();
-    await page.waitForTimeout(400);
-    const bf = await fenetre.boundingBox();
-    check(`[${config.nom}] confirmation : fenêtre dans l'écran`, bf.x >= 0 && bf.x + bf.width <= vw + 1 && bf.y >= 0 && bf.y + bf.height <= vh + 1, `${Math.round(bf.width)}×${Math.round(bf.height)}`);
-    const boutons = await Promise.all([".swal2-confirm", ".swal2-cancel"].map((s) => page.locator(s).boundingBox()));
-    check(`[${config.nom}] confirmation : boutons ≥ 44 px de haut`, boutons.every((x) => x.height >= 43.5), boutons.map((x) => Math.round(x.height)).join(" / "));
-    await page.locator(".swal2-cancel").click();
+  // Admin : consultation seule, chaque alerte mène à son suivi sur la fiche
+  const voirSuivi = page.getByRole("link", { name: /^Voir le suivi/ }).first();
+  if (await voirSuivi.count()) {
+    await voirSuivi.scrollIntoViewIfNeeded();
+    const bl = await voirSuivi.boundingBox();
+    check(`[${config.nom}] « Voir le suivi » : lien ≥ 44 px de haut, dans l'écran`, bl.height >= 43.5 && bl.x >= 0 && bl.x + bl.width <= vw + 1, `${Math.round(bl.width)}×${Math.round(bl.height)}`);
   }
   await contexte.close();
 }

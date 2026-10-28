@@ -76,7 +76,7 @@ async function main() {
   const etudiantsASupprimer = autres; // tous de rôle « etudiant »
 
   // ── Ce qui sera supprimé ──
-  const [etablissements, etudiants, inscriptions, notes, absences, alertes, journal, demandes] = await Promise.all([
+  const [etablissements, etudiants, inscriptions, notes, absences, alertes, journal, demandes, suivis] = await Promise.all([
     prisma.etablissement.count(),
     prisma.etudiant.count(),
     prisma.inscription.count(),
@@ -85,10 +85,11 @@ async function main() {
     prisma.alerte.count(),
     prisma.actionLog.count(),
     prisma.resetRequest.count({ where: { userId: { in: etudiantsASupprimer.map((u) => u.id) } } }),
+    prisma.suiviAlerte.count(),
   ]);
   console.log("SUPPRIMÉ :");
   console.log(`  ${etablissements} établissement(s), ${etudiants} élève(s), ${inscriptions} inscription(s)`);
-  console.log(`  ${notes} note(s), ${absences} absence(s), ${alertes} alerte(s)`);
+  console.log(`  ${notes} note(s), ${absences} absence(s), ${alertes} alerte(s) avec ${suivis} étape(s) de suivi`);
   console.log(`  ${journal} entrée(s) de l'historique (tout l'historique des actions)`);
   console.log(`  ${etudiantsASupprimer.length} compte(s) étudiant autres que ${EMAILS.etudiant}, avec ${demandes} demande(s) de mot de passe :`);
   for (const u of etudiantsASupprimer) console.log(`    - ${u.email} (${u.prenom} ${u.nom})`);
@@ -97,6 +98,9 @@ async function main() {
   console.log("\nCRÉÉ :");
   console.log(`  ${d.etablissements.length} établissements, ${d.etudiants.length} élèves, ${d.inscriptions.length} inscriptions`);
   console.log(`  ${d.notes.length} notes, ${d.absences.length} absences, ${d.alertes.length} alertes, ${d.journal.length} entrées d'historique`);
+  const resolues = d.alertes.filter((a) => a.statut === "traitee").length;
+  const enSuivi = d.alertes.filter((a) => a.statut === "active" && a.suiviDepuis).length;
+  console.log(`  Suivi : ${enSuivi} alerte(s) en cours de suivi, ${resolues} résolue(s), ${d.suivis.length} étape(s)`);
   for (const e of d.etablissements) {
     console.log(`    - ${e.nom} (${e.statut}, ${e.commune}, ${e.departement}) : ${d.etudiants.filter((x) => x.etablissementId === e.id).length} élèves`);
   }
@@ -165,6 +169,11 @@ async function main() {
 
       // 4. Historique des saisies, au nom de l'enseignant
       await parLots(d.journal, (lot) => tx.actionLog.createMany({ data: lot.map((j) => ({ ...j, userId: ids.enseignant! })) }));
+
+      // 5. Suivi des alertes : auteur relié au compte de démonstration quand il existe
+      await tx.suiviAlerte.createMany({
+        data: d.suivis.map(({ auteur, ...etape }) => ({ ...etape, auteurId: auteur ? (ids[auteur] ?? null) : null })),
+      });
     },
     { maxWait: 30_000, timeout: 300_000 }
   );

@@ -4,7 +4,7 @@ import {
   FORMAT_NOTE,
   FORMAT_POURCENT,
   LIBELLES_NIVEAU,
-  LIBELLES_STATUT,
+  libelleStatut,
   LIBELLES_TYPE,
   ajouterLigne,
   arrondi2,
@@ -14,11 +14,15 @@ import {
   nouvelleFeuille,
   styliserTotal,
 } from "./commun";
+import { LIBELLES_ACTION } from "@/lib/suivi-alertes";
 
 export type AlerteExcel = {
   type: string;
   niveauRisque: string;
   statut: string;
+  suiviDepuis?: Date | null;
+  /** Dernière étape du suivi (au plus une) */
+  suivis?: { action: string; createdAt: Date }[];
   periode: string;
   /** Absente des anciennes alertes */
   anneeScolaire?: string | null;
@@ -64,7 +68,8 @@ export function classeurAlertes({
       { titre: "Établissement", cle: "etablissement", largeur: 24 },
       { titre: "Type", cle: "type", largeur: 11 },
       { titre: "Niveau", cle: "niveau", largeur: 10 },
-      { titre: "Statut", cle: "statut", largeur: 10 },
+      { titre: "Statut", cle: "statut", largeur: 18 },
+      { titre: "Dernière action", cle: "derniereAction", largeur: 24 },
       { titre: "Période", cle: "periode", largeur: 22 },
       { titre: "Moyenne avant", cle: "avant", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
       { titre: "Moyenne après", cle: "apres", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
@@ -85,7 +90,8 @@ export function classeurAlertes({
         etablissement: a.etudiant.etablissement.nom,
         type: LIBELLES_TYPE[a.type] ?? a.type,
         niveau: LIBELLES_NIVEAU[a.niveauRisque] ?? a.niveauRisque,
-        statut: LIBELLES_STATUT[a.statut] ?? a.statut,
+        statut: libelleStatut(a),
+        derniereAction: a.suivis?.[0] ? LIBELLES_ACTION[a.suivis[0].action] ?? a.suivis[0].action : "",
         periode: libellePeriode(a.periode, a.anneeScolaire),
         avant: absence ? null : arrondi2(a.moyenneAvant),
         apres: absence ? null : arrondi2(a.moyenneApres),

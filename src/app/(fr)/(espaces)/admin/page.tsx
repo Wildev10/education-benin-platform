@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { getStatsEtablissements } from "@/lib/stats-etablissements";
 import { raccourcisAlertes } from "@/lib/raccourcis-alertes";
+import { pilotageSuivi } from "@/lib/pilotage-suivi";
+import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
 import { MiseAJourDonnees } from "@/components/MiseAJourDonnees";
 import AdminDashboard from "./AdminDashboard";
 
@@ -27,10 +29,11 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
     })
   );
-  const [alertes, statsEtablissements, raccourcis] = await Promise.all([
+  const [alertes, statsEtablissements, raccourcis, pilotage] = await Promise.all([
     alertesActives,
     getStatsEtablissements(alertesActives),
     raccourcisAlertes({ type: "toutes" }),
+    pilotageSuivi(periodeScolaireAuBenin(maintenant).anneeScolaire),
   ]);
   const etudiants = statsEtablissements.reduce((total, e) => total + e.nbEtudiants, 0);
   const etablissements = statsEtablissements.length;
@@ -66,6 +69,8 @@ export default async function AdminPage() {
             moyenneAvant: alerte.moyenneAvant,
             moyenneApres: alerte.moyenneApres,
             ecartPourcent: alerte.ecartPourcent,
+            statut: alerte.statut,
+            suiviDepuis: alerte.suiviDepuis?.toISOString() ?? null,
             etudiant: {
               id: alerte.etudiant.id,
               nom: alerte.etudiant.nom,
@@ -75,6 +80,7 @@ export default async function AdminPage() {
           }))}
           initialStatsEtablissements={statsEtablissements}
           raccourcis={raccourcis}
+          pilotage={pilotage}
         />
       </div>
     </main>

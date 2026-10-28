@@ -6,6 +6,7 @@ import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton
 import {
   compterFiltresActifs,
   filtresVersParams,
+  LIBELLES_FILTRE_STATUT,
   periodeIncoherente,
   type FiltresAlertes,
 } from "@/lib/filtres-alertes";
@@ -178,9 +179,9 @@ export function ZoneFiltresAlertes({
               onChange={(e) => appliquer({ statut: e.target.value as FiltresAlertes["statut"] })}
               className={champCls}
             >
-              <option value="active">Actives</option>
-              <option value="traitee">Traitées</option>
-              <option value="toutes">Toutes</option>
+              {(Object.keys(LIBELLES_FILTRE_STATUT) as FiltresAlertes["statut"][]).map((statut) => (
+                <option key={statut} value={statut}>{LIBELLES_FILTRE_STATUT[statut]}</option>
+              ))}
             </select>
           </div>
 

@@ -1,37 +1,49 @@
 "use client";
 
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
-import { BoutonTraiterAlerte } from "@/components/alertes/BoutonTraiterAlerte";
+import { FormulaireSuivi } from "@/components/alertes/FormulaireSuivi";
+import { HistoriqueSuivi } from "@/components/alertes/HistoriqueSuivi";
 import { FUSEAU_BENIN } from "@/lib/dates";
 import { texteComparaison } from "@/lib/message-saisie";
 import { libellePeriode } from "@/lib/notes-trimestres";
 import { formaterNombre } from "@/lib/format";
 import type { ComparaisonNotes } from "@/lib/regles-alerte";
+import { suggestionCloture, type EtapeSuivi } from "@/lib/suivi-alertes";
 
 export type AlerteEleve = {
   id: string;
   type: string;
   niveauRisque: string;
   statut: string;
+  suiviDepuis: string | null;
   periode: string;
   anneeScolaire: string | null;
   moyenneAvant: number;
   moyenneApres: number;
   ecartPourcent: number;
   createdAt: string;
+  suivis: EtapeSuivi[];
 };
 
 export default function AlertesEleve({
   alertes,
   peutTraiter,
   comparaison,
-  onTraitee,
+  notes,
+  absences,
+  periodeEnCours,
+  onMiseAJour,
 }: {
   alertes: AlerteEleve[];
-  /** Enseignant et admin : oui. Directeur : consultation seule. */
+  /** Enseignant et directeur de l'établissement. Admin : consultation seule. */
   peutTraiter: boolean;
   comparaison: ComparaisonNotes;
-  onTraitee: (id: string) => void;
+  /** Notes et absences de la fiche : servent à la suggestion de clôture */
+  notes: { valeur: number; periode: string; anneeScolaire: string }[];
+  absences: { motif: string; periode: string; anneeScolaire: string }[];
+  /** Trimestre en cours au Bénin, calculé côté serveur (même rendu des deux côtés) */
+  periodeEnCours: { anneeScolaire: string; periode: string };
+  onMiseAJour?: (alerte: AlerteEleve) => void;
 }) {
   const mention = texteComparaison(comparaison);
 
@@ -53,62 +65,78 @@ export default function AlertesEleve({
         </p>
       ) : (
         <div className="mt-5 space-y-4">
-          {alertes.map((alerte) => (
-            <article key={alerte.id} className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          {alertes.map((alerte) => {
+            const suggestion = suggestionCloture(alerte, notes, absences, periodeEnCours);
+            return (
+              <article
+                key={alerte.id}
+                id={`alerte-${alerte.id}`}
+                data-alerte={alerte.id}
+                className="scroll-mt-24 rounded-2xl border border-border bg-surface p-5 shadow-sm"
+              >
                 <div className="flex flex-wrap items-center gap-3">
                   <Badge variant={riskVariant(alerte.niveauRisque)}>
                     {alerte.niveauRisque === "eleve" ? "Risque élevé" : "Risque moyen"}
                   </Badge>
-                  <Badge variant={statusVariant(alerte.statut)}>
-                    {alerte.statut === "active" ? "Active" : "Traitée"}
-                  </Badge>
+                  <Badge variant={statusVariant(alerte)} />
                   <span className="text-sm font-semibold text-ink">{libellePeriode(alerte.periode, alerte.anneeScolaire)}</span>
                 </div>
-                {peutTraiter && alerte.statut === "active" && (
-                  <BoutonTraiterAlerte alerteId={alerte.id} onTraitee={() => onTraitee(alerte.id)} />
+                <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-5 min-[360px]:grid-cols-2 sm:grid-cols-3">
+                  <div>
+                    <dt className="text-sm font-semibold text-ink-secondary">Type</dt>
+                    <dd className="mt-1 font-semibold text-ink">
+                      {alerte.type === "absences" ? "Absences" : "Notes"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-semibold text-ink-secondary">
+                      {alerte.type === "absences" ? "Absences injustifiées" : "Moyenne"}
+                    </dt>
+                    <dd className="mt-1 font-semibold tabular-nums">
+                      {alerte.type === "absences" ? (
+                        <span className="text-red-700">{alerte.moyenneApres}</span>
+                      ) : (
+                        <>
+                          <span className="text-ink">{formaterNombre(alerte.moyenneAvant)}</span>
+                          <span aria-hidden="true" className="mx-1 text-ink-secondary">→</span>
+                          <span className="sr-only"> puis </span>
+                          <span className="text-red-700">{formaterNombre(alerte.moyenneApres)}</span>
+                        </>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-semibold text-ink-secondary">Détectée le</dt>
+                    <dd className="mt-1 font-semibold text-ink">
+                      <time dateTime={alerte.createdAt}>
+                        {new Date(alerte.createdAt).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          timeZone: FUSEAU_BENIN,
+                        })}
+                      </time>
+                    </dd>
+                  </div>
+                </dl>
+
+                {suggestion && (
+                  <p
+                    data-suggestion-cloture
+                    className="mt-5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900"
+                  >
+                    <strong>Clôture suggérée.</strong> {suggestion}
+                  </p>
                 )}
-              </div>
-              <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-5 min-[360px]:grid-cols-2 sm:grid-cols-3">
-                <div>
-                  <dt className="text-sm font-semibold text-ink-secondary">Type</dt>
-                  <dd className="mt-1 font-semibold text-ink">
-                    {alerte.type === "absences" ? "Absences" : "Notes"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-semibold text-ink-secondary">
-                    {alerte.type === "absences" ? "Absences injustifiées" : "Moyenne"}
-                  </dt>
-                  <dd className="mt-1 font-semibold tabular-nums">
-                    {alerte.type === "absences" ? (
-                      <span className="text-red-700">{alerte.moyenneApres}</span>
-                    ) : (
-                      <>
-                        <span className="text-ink">{formaterNombre(alerte.moyenneAvant)}</span>
-                        <span aria-hidden="true" className="mx-1 text-ink-secondary">→</span>
-                        <span className="sr-only"> puis </span>
-                        <span className="text-red-700">{formaterNombre(alerte.moyenneApres)}</span>
-                      </>
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-semibold text-ink-secondary">Détectée le</dt>
-                  <dd className="mt-1 font-semibold text-ink">
-                    <time dateTime={alerte.createdAt}>
-                      {new Date(alerte.createdAt).toLocaleDateString("fr-FR", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        timeZone: FUSEAU_BENIN,
-                      })}
-                    </time>
-                  </dd>
-                </div>
-              </dl>
-            </article>
-          ))}
+
+                <HistoriqueSuivi etapes={alerte.suivis} />
+
+                {peutTraiter && onMiseAJour && (
+                  <FormulaireSuivi alerte={alerte} onMiseAJour={(maj) => onMiseAJour({ ...alerte, ...maj })} />
+                )}
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { Badge, riskVariant } from "@/components/ui/Badge";
+import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { Pagination } from "@/components/Pagination";
 import { rechercherAlertesPaginees, type AlerteFiltree } from "@/lib/alertes-server";
 import { libellePeriode } from "@/lib/notes-trimestres";
@@ -17,7 +17,7 @@ import {
 import { lirePagination } from "@/lib/pagination";
 import { corrigerUrlPagination } from "@/lib/pagination-serveur";
 import { peutTraiterAlertes } from "@/lib/perimetre";
-import { BoutonTraiterAlerte } from "./BoutonTraiterAlerte";
+import { LIBELLES_ACTION } from "@/lib/suivi-alertes";
 import { ZoneFiltresAlertes } from "./ZoneFiltresAlertes";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -33,7 +33,7 @@ function formaterDate(date: Date) {
 
 function libelleAucunResultat(filtres: FiltresAlertes) {
   if (compterFiltresActifs(filtres) > 0) return "Aucune alerte ne correspond à ces filtres.";
-  return "Aucune alerte active.";
+  return "Aucune alerte ouverte.";
 }
 
 function CarteAlerte({
@@ -62,14 +62,20 @@ function CarteAlerte({
             <Badge variant={riskVariant(alerte.niveauRisque)}>
               Niveau {alerte.niveauRisque === "eleve" ? "Élevé" : "Moyen"}
             </Badge>
-            {alerte.statut === "traitee" && <Badge variant="status-traitee" />}
+            <Badge variant={statusVariant(alerte)} />
           </div>
           <p className="mt-1.5 text-ink-secondary">
             {etudiant.etablissement.nom} <span className="text-border" aria-hidden="true">·</span>{" "}
             {etudiant.niveau}
           </p>
         </div>
-        {peutTraiter && alerte.statut === "active" && <BoutonTraiterAlerte alerteId={alerte.id} />}
+        <Link
+          href={`${ficheBase}/${etudiant.id}#alerte-${alerte.id}`}
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-semibold text-ink-secondary transition hover:border-brand hover:bg-brand-light hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark focus-visible:ring-offset-2"
+        >
+          {peutTraiter && alerte.statut === "active" ? "Suivre l'alerte" : "Voir le suivi"}
+          <span className="sr-only"> de {etudiant.prenom} {etudiant.nom}</span>
+        </Link>
       </div>
 
       <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-5 min-[360px]:grid-cols-2 sm:grid-cols-4">
@@ -106,7 +112,25 @@ function CarteAlerte({
           </dd>
         </div>
       </dl>
+      <DerniereEtape alerte={alerte} />
     </article>
+  );
+}
+
+/** Dernière action du suivi, ou « aucune action » pour une alerte nouvelle. */
+function DerniereEtape({ alerte }: { alerte: AlerteFiltree }) {
+  const derniere = alerte.suivis[0];
+  return (
+    <p data-derniere-etape className="mt-4 text-sm text-ink-secondary">
+      {derniere ? (
+        <>
+          Dernière action : <span className="font-semibold text-ink">{LIBELLES_ACTION[derniere.action] ?? derniere.action}</span>,{" "}
+          le <time dateTime={derniere.createdAt.toISOString()}>{formaterDate(derniere.createdAt)}</time> ({derniere.auteurNom})
+        </>
+      ) : (
+        "Aucune action de suivi pour l'instant."
+      )}
+    </p>
   );
 }
 
