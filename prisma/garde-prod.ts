@@ -16,6 +16,26 @@ import { URL } from "node:url";
 
 export type DiagnosticBase = { autorise: true } | { autorise: false; message: string };
 
+/** Hôtes listés dans PROTECTED_DB_HOSTS (séparés par des virgules, guillemets tolérés). */
+export function listeHotesProteges(hostsProtegees: string | undefined): string[] {
+  return (hostsProtegees ?? "")
+    .split(",")
+    .map((h) => h.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean);
+}
+
+/** L'entrée de la liste protégée qui correspond à cette connexion, ou null. */
+export function hoteProtegeCorrespondant(databaseUrl: string, hotes: string[]): string | null {
+  let hoteConnexion: string;
+  try {
+    hoteConnexion = new URL(databaseUrl).hostname;
+  } catch {
+    // URL non parseable (format pooler avec paramètres) : recherche brute
+    hoteConnexion = databaseUrl;
+  }
+  return hotes.find((hote) => hoteConnexion.includes(hote)) ?? null;
+}
+
 /** Décide si un script peut écrire sur la base, sans rien arrêter (testable). */
 export function diagnostiquerBase({
   databaseUrl,
@@ -33,10 +53,7 @@ export function diagnostiquerBase({
   // --autoriser-prod désactive explicitement le garde-fou
   if (autoriserProd) return { autorise: true };
 
-  const hotes = (hostsProtegees ?? "")
-    .split(",")
-    .map((h) => h.trim().replace(/^["']|["']$/g, ""))
-    .filter(Boolean);
+  const hotes = listeHotesProteges(hostsProtegees);
 
   if (hotes.length === 0) {
     return {
@@ -47,15 +64,7 @@ export function diagnostiquerBase({
     };
   }
 
-  let hoteConnexion: string;
-  try {
-    hoteConnexion = new URL(databaseUrl).hostname;
-  } catch {
-    // URL non parseable (format pooler avec paramètres) : recherche brute
-    hoteConnexion = databaseUrl;
-  }
-
-  const protegee = hotes.find((hote) => hoteConnexion.includes(hote));
+  const protegee = hoteProtegeCorrespondant(databaseUrl, hotes);
   if (protegee) {
     return {
       autorise: false,

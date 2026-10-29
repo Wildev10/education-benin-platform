@@ -129,7 +129,7 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **648 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), suivi des alertes (transitions, saisie obligatoire, suggestion de clôture, réouverture automatique), périmètre des routes (dont l'assistant et le suivi), droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base, données de démonstration (cas de la démo à chaque trimestre), format français des nombres et libellé des périodes.
+- **656 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), suivi des alertes (transitions, saisie obligatoire, suggestion de clôture, réouverture automatique), périmètre des routes (dont l'assistant et le suivi), garde-fou de production et seed de production (hôte protégé, masquage du mot de passe), droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base, données de démonstration (cas de la démo à chaque trimestre), format français des nombres et libellé des périodes.
 - **2 110 vérifications navigateur** (11 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, suivi depuis la fiche, résolution puis réouverture automatique, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), aucun nombre décimal au format anglais ni période « Trimestre 1 2026-2027 » sur les pages principales de chaque rôle, cloche comprise, responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), mode contraste élevé sur les pages des 4 rôles (textes à 7:1, couleurs d'état, focus, cloche, fenêtres, graphiques, couleurs forcées de Windows), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
@@ -241,10 +241,26 @@ L'application est disponible sur [http://localhost:3000](http://localhost:3000).
 > ⚠️ **Utilisez toujours une branche Neon « dev », jamais la production.**
 > Le garde-fou `prisma/garde-prod.ts` bloque les scripts d'écriture (seed, recalcul des alertes) si `DATABASE_URL` pointe vers un hôte listé dans `PROTECTED_DB_HOSTS`, ou si cette variable est vide. Les commandes Prisma (`db push`…) n'y passent pas : vérifiez l'hôte vous-même avant de les lancer.
 
+### Relancer le seed de démonstration en production
+
+```bash
+npm run seed:prod
+```
+
+Réservé au développeur, depuis la racine du projet. Le script :
+
+1. demande de coller la chaîne de connexion de production, en **saisie masquée** (rien ne s'affiche). Elle n'est jamais écrite sur le disque, ni passée en argument, ni affichée : elle n'est transmise aux étapes suivantes que par leur environnement ;
+2. s'arrête si son hôte ne figure pas dans `PROTECTED_DB_HOSTS` du `.env` (même règle que le garde-fou) ;
+3. lance la simulation du seed et l'affiche, avec le mot de passe remplacé par `***` s'il apparaît ;
+4. demande de taper `OUI` en toutes lettres, et s'arrête sur toute autre réponse, sans rien écrire ;
+5. exécute le seed (`--execute --hote=… --autoriser-prod`, en une seule transaction), puis `recalculer-alertes` en simulation (lecture seule, attendu : 0 alerte à créer ni à mettre à jour) et affiche les volumes du suivi : alertes en cours de suivi, résolues, nouvelles, nombre d'étapes.
+
+Le seed remplace **toutes** les données de démonstration de la base (élèves, notes, absences, alertes, historique). Le relancer la veille de la démo, puis reconnecter chaque compte de démonstration.
+
 ### Lancer les tests
 
 ```bash
-npm test          # 648 tests unitaires
+npm test          # 656 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
 npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits, fuseaux, nombres, responsive, contraste

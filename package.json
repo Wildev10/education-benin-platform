@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "e2e": "node e2e/run.mjs",
+    "seed:prod": "tsx prisma/seed-prod.ts",
     "postinstall": "prisma generate && (prisma skills sync || true)"
   },
   "dependencies": {
