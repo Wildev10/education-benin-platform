@@ -37,7 +37,7 @@ const labels: Record<BadgeVariant, string> = {
   "risk-moyen": "Moyen",
   "status-nouvelle": "Nouvelle",
   "status-en-suivi": "En cours de suivi",
-  "status-resolue": "Résolue",
+  "status-resolue": "Clôturée",
   "role-admin": "Admin",
   "role-enseignant": "Enseignant",
   "role-etudiant": "Étudiant",
@@ -77,7 +77,7 @@ export function riskVariant(niveau: string): BadgeVariant {
   return niveau === "eleve" ? "risk-eleve" : "risk-moyen";
 }
 
-/** Badge du statut de suivi (Nouvelle, En cours de suivi, Résolue), libellé compris. */
+/** Badge du statut de suivi (Nouvelle, En cours de suivi, Clôturée), libellé compris. */
 export function statusVariant(alerte: { statut: string; suiviDepuis?: Date | string | null }): BadgeVariant {
   const variantes = { nouvelle: "status-nouvelle", en_suivi: "status-en-suivi", resolue: "status-resolue" } as const;
   return variantes[statutSuivi(alerte)];

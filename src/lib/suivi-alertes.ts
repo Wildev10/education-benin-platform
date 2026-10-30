@@ -4,7 +4,7 @@
  * POST /api/alertes/[id]/suivis, les fiches, les listes et les exports.
  *
  * Statut affiché, déduit de deux colonnes (aucune donnée à migrer) :
- * - `statut` "traitee"                 → Résolue ;
+ * - `statut` "traitee"                 → Clôturée ;
  * - `statut` "active" + `suiviDepuis`  → En cours de suivi ;
  * - `statut` "active" sans suiviDepuis → Nouvelle.
  * "active" garde donc son sens d'alerte ouverte (compteurs, cloche, filtres).
@@ -23,7 +23,7 @@ export type StatutSuivi = "nouvelle" | "en_suivi" | "resolue";
 export const LIBELLES_STATUT_SUIVI: Record<StatutSuivi, string> = {
   nouvelle: "Nouvelle",
   en_suivi: "En cours de suivi",
-  resolue: "Résolue",
+  resolue: "Clôturée",
 };
 
 export function statutSuivi(alerte: { statut: string; suiviDepuis?: Date | string | null }): StatutSuivi {
@@ -44,7 +44,7 @@ export const LIBELLES_ACTION: Record<string, string> = {
   parents_convoques: "Parents convoqués",
   soutien_scolaire: "Soutien scolaire",
   autre: "Autre action",
-  resolution: "Résolution",
+  resolution: "Clôture",
   confie: "Suivi confié",
   reouverture: "Réouverture",
   // Étapes écrites par le système, sans auteur : détection (src/lib/detection-alerte.ts)
@@ -54,7 +54,7 @@ export const LIBELLES_ACTION: Record<string, string> = {
   retrait_responsable: "Responsable retiré",
 };
 
-/** Motifs de résolution, choisis en un clic ; commentaire obligatoire pour « autre » seulement. */
+/** Motifs de clôture, choisis en un clic ; commentaire obligatoire pour « autre » seulement. */
 export const MOTIFS_CLOTURE = ["situation_retablie", "suivi_externe", "erreur_saisie", "autre"] as const;
 export type MotifCloture = (typeof MOTIFS_CLOTURE)[number];
 
@@ -65,7 +65,7 @@ export const LIBELLES_MOTIF: Record<string, string> = {
   autre: "Autre",
 };
 
-/** Résolutions antérieures aux motifs : comptées à part dans le pilotage. */
+/** Clôtures antérieures aux motifs : comptées à part dans le pilotage. */
 export const LIBELLE_MOTIF_ABSENT = "Motif non renseigné";
 
 /** Auteur affiché des étapes écrites par le système (détection, changement d'établissement). */
@@ -73,7 +73,7 @@ export const AUTEUR_SYSTEME = "Système";
 
 /**
  * Étape écrite par la détection quand une alerte existante s'aggrave (Moyen → Élevé).
- * Résolue : rouverte En cours de suivi avec son responsable s'il y en a un, sinon Nouvelle.
+ * Clôturée : rouverte En cours de suivi avec son responsable s'il y en a un, sinon Nouvelle.
  */
 export function etapeAggravation(
   statutAvant: StatutSuivi,
@@ -83,7 +83,7 @@ export function etapeAggravation(
 ): { auteurNom: string; action: string; commentaire: string; statutAvant: StatutSuivi; statutApres: StatutSuivi } {
   const libelle = (n: string) => (n === "eleve" ? "Élevé" : "Moyen");
   const rouverte = statutAvant === "resolue";
-  const reprise = rouverte && responsableNom ? ` L'alerte résolue est rouverte, suivi repris par ${responsableNom}.` : rouverte ? " L'alerte résolue est rouverte." : "";
+  const reprise = rouverte && responsableNom ? ` L'alerte clôturée est rouverte, suivi repris par ${responsableNom}.` : rouverte ? " L'alerte clôturée est rouverte." : "";
   return {
     auteurNom: AUTEUR_SYSTEME,
     action: rouverte ? "reouverture_auto" : "aggravation",
@@ -102,7 +102,7 @@ export type EtapeSuivi = {
   statutAvant: string;
   statutApres: string;
   createdAt: string;
-  /** Résolution : motif choisi */
+  /** Clôture : motif choisi */
   motifCloture: string | null;
   /** Désignation : personne à qui le suivi est confié */
   responsableNom: string | null;
@@ -110,8 +110,8 @@ export type EtapeSuivi = {
 
 /**
  * - suivre : Nouvelle ou En cours → En cours (ajoute une action, désigne le responsable s'il n'y en a pas) ;
- * - resoudre : Nouvelle ou En cours → Résolue, avec un motif (sans action ni responsable) ;
- * - rouvrir : Résolue → En cours (l'action enregistrée est « reouverture ») ;
+ * - resoudre : Nouvelle ou En cours → Clôturée, avec un motif (sans action ni responsable) ;
+ * - rouvrir : Clôturée → En cours (l'action enregistrée est « reouverture ») ;
  * - confier : En cours → En cours, avec un autre responsable.
  */
 export type Transition = "suivre" | "resoudre" | "rouvrir" | "confier";
@@ -176,7 +176,7 @@ export function validerSaisieSuivi(corps: unknown): { ok: true; saisie: SaisieSu
 
   if (transition === "resoudre") {
     if (typeof motifCloture !== "string" || !MOTIFS_CLOTURE.includes(motifCloture as MotifCloture)) {
-      return { ok: false, erreur: "Choisissez le motif de résolution." };
+      return { ok: false, erreur: "Choisissez le motif de clôture." };
     }
     if (motifCloture === "autre" && texte.length < COMMENTAIRE_MIN) {
       return { ok: false, erreur: `Pour le motif « Autre », le commentaire est obligatoire (${COMMENTAIRE_MIN} caractères au moins).` };
@@ -214,7 +214,7 @@ export function donneesTransition(
 type PeriodeRef = { anneeScolaire: string; periode: string };
 
 /**
- * Suggestion (jamais automatique) de résoudre une alerte ouverte :
+ * Suggestion (jamais automatique) de clôturer une alerte ouverte :
  * - notes : la moyenne de la période la plus récente (au moins
  *   NOTES_MIN_COMPARAISON notes) ne déclencherait plus d'alerte par rapport à
  *   la moyenne de référence de l'alerte ;
@@ -237,7 +237,7 @@ export function suggestionCloture(
       (a) => a.motif === "injustifiee" && a.periode === periodeEnCours.periode && a.anneeScolaire === periodeEnCours.anneeScolaire
     ).length;
     if (calculerNiveauAlerteAbsence(nombre) !== null) return null;
-    return `Assiduité rétablie : ${nombre} absence${nombre > 1 ? "s" : ""} injustifiée${nombre > 1 ? "s" : ""} au ${periodeEnCours.periode}. Vous pouvez résoudre l'alerte.`;
+    return `Assiduité rétablie : ${nombre} absence${nombre > 1 ? "s" : ""} injustifiée${nombre > 1 ? "s" : ""} au ${periodeEnCours.periode}. Vous pouvez clôturer l'alerte.`;
   }
 
   const comparaison = comparerMoyennes(notes);
@@ -245,5 +245,5 @@ export function suggestionCloture(
   const recente = comparaison.periodeRecente;
   if (recente.noteCount < NOTES_MIN_COMPARAISON) return null;
   if (calculerNiveauAlerte(alerte.moyenneAvant, recente.moyenne) !== null) return null;
-  return `Moyenne remontée à ${formaterNombre(recente.moyenne)} au ${recente.periode} (référence ${formaterNombre(alerte.moyenneAvant)}). Vous pouvez résoudre l'alerte.`;
+  return `Moyenne remontée à ${formaterNombre(recente.moyenne)} au ${recente.periode} (référence ${formaterNombre(alerte.moyenneAvant)}). Vous pouvez clôturer l'alerte.`;
 }

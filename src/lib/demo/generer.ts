@@ -52,7 +52,7 @@ export type AlerteDemo = PeriodeRef & {
   moyenneAvant: number;
   moyenneApres: number;
   ecartPourcent: number;
-  /** "active" : Nouvelle (sans suiviDepuis) ou En cours de suivi ; "traitee" : Résolue */
+  /** "active" : Nouvelle (sans suiviDepuis) ou En cours de suivi ; "traitee" : Clôturée */
   statut: "active" | "traitee";
   createdAt: Date;
   niveauModifieLe: Date | null;
@@ -106,7 +106,7 @@ export type DonneesDemo = {
   notes: NoteDemo[];
   absences: AbsenceDemo[];
   alertes: AlerteDemo[];
-  /** Historique du suivi des alertes (quelques alertes en cours de suivi ou résolues) */
+  /** Historique du suivi des alertes (quelques alertes en cours de suivi ou clôturées) */
   suivis: SuiviDemo[];
   /** Historique des saisies du trimestre en cours dans l'établissement de la démo (par l'enseignant) */
   journal: JournalDemo[];
@@ -860,7 +860,7 @@ const SUIVIS_DEMO: Partial<Record<CleCas, (EtapeModele & { auteur: CompteSuivi }
   ],
 };
 
-/** Étapes pour les alertes des autres établissements : une sur trois suivie, une sur cinq résolue. */
+/** Étapes pour les alertes des autres établissements : une sur trois suivie, une sur cinq clôturée. */
 const MODELES_AUTRES: { suivi: EtapeModele[]; resolution?: EtapeModele }[] = [
   {
     suivi: [{ action: "entretien_eleve", apresJours: 2, commentaire: "Entretien individuel : fatigue liée aux trajets (plus d'une heure à pied). Place changée au premier rang, point avec le professeur principal." }],
@@ -885,7 +885,7 @@ const MODELES_AUTRES: { suivi: EtapeModele[]; resolution?: EtapeModele }[] = [
 /**
  * Historique du suivi, daté après la détection et avant `maintenant`. Les
  * alertes concernées passent En cours de suivi (suiviDepuis, responsable) ou
- * Résolues (statut "traitee", resolueLe, motif). Une alerte détectée il y a
+ * Clôturées (statut "traitee", resolueLe, motif). Une alerte détectée il y a
  * moins d'un jour reste nouvelle.
  */
 function genererSuivis(alertes: AlerteDemo[], etudiants: EtudiantDemo[], demoId: string, maintenant: Date): SuiviDemo[] {

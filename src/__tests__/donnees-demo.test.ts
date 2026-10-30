@@ -116,7 +116,7 @@ describe.each(Object.keys(DATES))("Données de démo, lancées en %s", (nom) => 
       const a = alertes.get(e.alerteId)!;
       expect(e.createdAt.getTime()).toBeGreaterThan(a.createdAt.getTime());
       expect(e.createdAt.getTime()).toBeLessThan(date.getTime());
-      // Commentaire obligatoire, sauf résolution (motif) et désignation du responsable
+      // Commentaire obligatoire, sauf clôture (motif) et désignation du responsable
       if (e.action === "resolution") expect(e.motifCloture).not.toBeNull();
       else if (e.action !== "confie") expect(e.commentaire.length).toBeGreaterThanOrEqual(10);
     }

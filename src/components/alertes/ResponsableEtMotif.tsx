@@ -7,7 +7,7 @@ type AlerteSuivie = {
   responsable: { nom: string } | null;
 };
 
-/** Responsable du suivi (ou « à désigner ») et, pour une alerte résolue, le motif. */
+/** Responsable du suivi (ou « à désigner ») et, pour une alerte clôturée, le motif. */
 export function ResponsableEtMotif({ alerte }: { alerte: AlerteSuivie }) {
   const statut = statutSuivi(alerte);
   if (statut === "nouvelle" && !alerte.responsable) return null;

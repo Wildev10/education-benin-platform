@@ -166,7 +166,7 @@ async function main() {
   }
   const v = await volumesSuivi(saisie);
   console.log(
-    `\nSuivi des alertes : ${v.en_suivi} en cours de suivi (${v.avec_responsable} avec un responsable), ${v.resolues} résolue(s), ${v.nouvelles} nouvelle(s), ${v.etapes} étape(s) d'historique.`
+    `\nSuivi des alertes : ${v.en_suivi} en cours de suivi (${v.avec_responsable} avec un responsable), ${v.resolues} clôturée(s), ${v.nouvelles} nouvelle(s), ${v.etapes} étape(s) d'historique.`
   );
   console.log("Reconnectez chaque compte de démonstration : la session garde l'ancien établissement jusqu'à la reconnexion.");
 }

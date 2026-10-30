@@ -31,21 +31,21 @@ export type MiseAJourSuivi = {
 
 const TITRES: Record<Transition, string> = {
   suivre: "Ajouter une action de suivi",
-  resoudre: "Résoudre l'alerte",
+  resoudre: "Clôturer l'alerte",
   rouvrir: "Rouvrir l'alerte",
   confier: "Confier le suivi",
 };
 
 const ENREGISTRER: Record<Transition, string> = {
   suivre: "Enregistrer l'action",
-  resoudre: "Résoudre l'alerte",
+  resoudre: "Clôturer l'alerte",
   rouvrir: "Rouvrir l'alerte",
   confier: "Confier le suivi",
 };
 
 const SUCCES: Record<Transition, string> = {
   suivre: "Action enregistrée : alerte en cours de suivi.",
-  resoudre: "Alerte résolue.",
+  resoudre: "Alerte clôturée.",
   rouvrir: "Alerte rouverte.",
   confier: "Suivi confié.",
 };
@@ -62,7 +62,7 @@ const libelleCandidat = (c: Candidat, moi: string | undefined) =>
  * Étapes du suivi d'une alerte (POST /api/alertes/[id]/suivis, qui vérifie le
  * rôle, l'établissement et le responsable choisi) :
  * - action : action et commentaire obligatoires, responsable à désigner s'il n'y en a pas ;
- * - résolution : motif en un clic, commentaire facultatif sauf pour « Autre » ;
+ * - clôture : motif en un clic, commentaire facultatif sauf pour « Autre » ;
  * - réouverture : commentaire obligatoire ;
  * - changement de responsable : commentaire facultatif.
  */
@@ -110,7 +110,7 @@ export function FormulaireSuivi({
     event.preventDefault();
     if (!transition) return;
     if (transition === "suivre" && !action) return setErreur("Choisissez l'action menée.");
-    if (transition === "resoudre" && !motif) return setErreur("Choisissez le motif de résolution.");
+    if (transition === "resoudre" && !motif) return setErreur("Choisissez le motif de clôture.");
     if (transition === "confier" && !responsableId) return setErreur("Choisissez la personne à qui confier le suivi.");
     if (commentaireObligatoire && commentaire.trim().length < COMMENTAIRE_MIN) {
       return setErreur(
@@ -177,7 +177,7 @@ export function FormulaireSuivi({
               </Button>
             )}
             <Button variant="outline" size="sm" disabled={horsLigne} title={titreHorsLigne} onClick={() => ouvrir("resoudre")}>
-              Résoudre l&apos;alerte
+              Clôturer l&apos;alerte
             </Button>
           </>
         )}
@@ -224,7 +224,7 @@ export function FormulaireSuivi({
 
       {transition === "resoudre" && (
         <fieldset>
-          <legend className="mb-2 text-sm font-semibold text-ink">Motif de résolution</legend>
+          <legend className="mb-2 text-sm font-semibold text-ink">Motif de clôture</legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {MOTIFS_CLOTURE.map((m) => (
               <label key={m} className={choixCls}>

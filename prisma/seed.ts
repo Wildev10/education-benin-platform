@@ -101,7 +101,7 @@ async function main() {
   const resolues = d.alertes.filter((a) => a.statut === "traitee").length;
   const enSuivi = d.alertes.filter((a) => a.statut === "active" && a.suiviDepuis).length;
   const avecResponsable = d.alertes.filter((a) => a.statut === "active" && a.responsable).length;
-  console.log(`  Suivi : ${enSuivi} alerte(s) en cours de suivi (${avecResponsable} avec un responsable), ${resolues} résolue(s), ${d.suivis.length} étape(s)`);
+  console.log(`  Suivi : ${enSuivi} alerte(s) en cours de suivi (${avecResponsable} avec un responsable), ${resolues} clôturée(s), ${d.suivis.length} étape(s)`);
   for (const e of d.etablissements) {
     console.log(`    - ${e.nom} (${e.statut}, ${e.commune}, ${e.departement}) : ${d.etudiants.filter((x) => x.etablissementId === e.id).length} élèves`);
   }

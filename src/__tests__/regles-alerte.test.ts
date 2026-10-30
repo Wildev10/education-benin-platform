@@ -113,7 +113,7 @@ describe("messageSaisie", () => {
     expect(m.detail).toBe("3/20 en SVT. Moyenne 12,4 → 8,9 en Trimestre\u00a01 ·\u00a02026-2027 (−28,2\u00a0% par rapport à la période précédente).");
   });
 
-  it("aggravation, et réouverture d'une alerte résolue", () => {
+  it("aggravation, et réouverture d'une alerte clôturée", () => {
     expect(messageSaisie("note", eleve, alerte({ issue: "mise_a_jour", niveauPrecedent: "moyen" }), "").titre).toBe(
       "Alerte aggravée : Moyen → Élevé pour Koffi Agossou"
     );

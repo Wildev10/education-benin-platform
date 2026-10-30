@@ -192,12 +192,12 @@ describe("ASSISTANT_SANS_IA", () => {
     expect(corps.reponse).toMatch(/^Je n'ai pas compris votre question/);
   });
 
-  it("mode local : « alertes résolues » et « alertes ouvertes » selon le statut de suivi", async () => {
+  it("mode local : « alertes clôturées » (ou résolues) et « alertes ouvertes » selon le statut de suivi", async () => {
     vi.stubEnv("ASSISTANT_SANS_IA", "true");
     mockRequireRole.mockResolvedValue(ADMIN);
-    const resolues = await (await question("Liste les alertes résolues")).json();
+    const resolues = await (await question("Liste les alertes clôturées")).json();
     expect(prismaMock.alerte.findMany.mock.calls[0][0].where.statut).toBe("traitee");
-    expect(resolues.reponse).toMatch(/^Aucune alerte résolue/);
+    expect(resolues.reponse).toMatch(/^Aucune alerte clôturée/);
     await question("Combien d'alertes ouvertes ?");
     expect(prismaMock.alerte.findMany.mock.calls[1][0].where.statut).toBe("active");
   });

@@ -244,7 +244,7 @@ function construireReponse(
     const statut = filtres.statutAlerte
       ? filtres.statutAlerte === "active"
         ? total > 1 ? "ouvertes" : "ouverte"
-        : total > 1 ? "résolues" : "résolue"
+        : total > 1 ? "clôturées" : "clôturée"
       : "";
     const risque = filtres.niveauRisque
       ? `de risque ${filtres.niveauRisque === "eleve" ? "élevé" : "moyen"}`

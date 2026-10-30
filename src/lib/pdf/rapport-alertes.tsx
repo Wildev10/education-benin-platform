@@ -38,7 +38,7 @@ const titres: Record<string, string> = {
   active: "Rapport des alertes ouvertes",
   nouvelle: "Rapport des alertes nouvelles",
   en_suivi: "Rapport des alertes en cours de suivi",
-  traitee: "Rapport des alertes résolues",
+  traitee: "Rapport des alertes clôturées",
   toutes: "Rapport des alertes",
 };
 

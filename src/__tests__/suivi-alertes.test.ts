@@ -14,7 +14,7 @@ import { delaiMoyenJours, repartitionMotifs } from "@/lib/pilotage-suivi";
 // ── Règles pures ─────────────────────────────────────────────────────────────
 
 describe("statut de suivi, déduit de statut et suiviDepuis", () => {
-  it("active sans suiviDepuis : Nouvelle ; avec : En cours de suivi ; traitee : Résolue", () => {
+  it("active sans suiviDepuis : Nouvelle ; avec : En cours de suivi ; traitee : Clôturée", () => {
     expect(statutSuivi({ statut: "active", suiviDepuis: null })).toBe("nouvelle");
     expect(statutSuivi({ statut: "active", suiviDepuis: "2026-10-01T10:00:00.000Z" })).toBe("en_suivi");
     expect(statutSuivi({ statut: "traitee", suiviDepuis: null })).toBe("resolue");
@@ -23,7 +23,7 @@ describe("statut de suivi, déduit de statut et suiviDepuis", () => {
 });
 
 describe("transitions", () => {
-  it("suivre et résoudre depuis Nouvelle ou En cours ; rouvrir seulement une Résolue", () => {
+  it("suivre et clôturer depuis Nouvelle ou En cours ; rouvrir seulement une Clôturée", () => {
     expect(statutApres("nouvelle", "suivre")).toBe("en_suivi");
     expect(statutApres("en_suivi", "suivre")).toBe("en_suivi");
     expect(statutApres("nouvelle", "resoudre")).toBe("resolue");
@@ -31,14 +31,14 @@ describe("transitions", () => {
     expect(statutApres("resolue", "rouvrir")).toBe("en_suivi");
   });
 
-  it("interdites : agir sur une Résolue sans la rouvrir, rouvrir une alerte ouverte", () => {
+  it("interdites : agir sur une Clôturée sans la rouvrir, rouvrir une alerte ouverte", () => {
     expect(statutApres("resolue", "suivre")).toBeNull();
     expect(statutApres("resolue", "resoudre")).toBeNull();
     expect(statutApres("nouvelle", "rouvrir")).toBeNull();
     expect(statutApres("en_suivi", "rouvrir")).toBeNull();
   });
 
-  it("colonnes écrites : suiviDepuis gardé, resolueLe à la résolution, remis à zéro à la réouverture", () => {
+  it("colonnes écrites : suiviDepuis gardé, resolueLe à la clôture, remis à zéro à la réouverture", () => {
     const t0 = new Date("2026-10-01T09:00:00Z");
     const t1 = new Date("2026-10-05T09:00:00Z");
     expect(donneesTransition("suivre", { suiviDepuis: null }, t1)).toEqual({ statut: "active", suiviDepuis: t1, resolueLe: null, motifCloture: null });
@@ -78,7 +78,7 @@ describe("validation de la saisie", () => {
   });
 });
 
-describe("résolution directe : un motif, commentaire facultatif sauf pour « Autre »", () => {
+describe("clôture directe : un motif, commentaire facultatif sauf pour « Autre »", () => {
   it("motif seul : accepté, action « resolution », sans responsable", () => {
     for (const motif of ["situation_retablie", "suivi_externe", "erreur_saisie"]) {
       expect(validerSaisieSuivi({ transition: "resoudre", motifCloture: motif })).toEqual({
@@ -116,7 +116,7 @@ describe("responsable du suivi", () => {
     expect(statutApres("resolue", "confier")).toBeNull();
   });
 
-  it("par défaut, l'auteur de la première action ; ensuite, le responsable en place ; la résolution ne change rien", () => {
+  it("par défaut, l'auteur de la première action ; ensuite, le responsable en place ; la clôture ne change rien", () => {
     expect(responsableApres("suivre", null, null, "auteur")).toBe("auteur");
     expect(responsableApres("suivre", "u2", null, "auteur")).toBe("u2");
     expect(responsableApres("suivre", null, "u3", "auteur")).toBe("u3");
@@ -128,20 +128,20 @@ describe("responsable du suivi", () => {
 });
 
 describe("étape écrite par la détection lors d'une aggravation", () => {
-  it("alerte résolue avec un responsable : rouverte En cours de suivi, avec lui", () => {
+  it("alerte clôturée avec un responsable : rouverte En cours de suivi, avec lui", () => {
     expect(etapeAggravation("resolue", "moyen", "eleve", "Fulbert Gbaguidi")).toMatchObject({
       action: "reouverture_auto",
       statutApres: "en_suivi",
-      commentaire: "Risque Moyen → Élevé. L'alerte résolue est rouverte, suivi repris par Fulbert Gbaguidi.",
+      commentaire: "Risque Moyen → Élevé. L'alerte clôturée est rouverte, suivi repris par Fulbert Gbaguidi.",
     });
   });
 
-  it("alerte résolue : rouverte automatiquement en Nouvelle", () => {
+  it("alerte clôturée : rouverte automatiquement en Nouvelle", () => {
     expect(etapeAggravation("resolue", "moyen", "eleve")).toMatchObject({
       action: "reouverture_auto",
       statutAvant: "resolue",
       statutApres: "nouvelle",
-      commentaire: "Risque Moyen → Élevé. L'alerte résolue est rouverte.",
+      commentaire: "Risque Moyen → Élevé. L'alerte clôturée est rouverte.",
     });
   });
 
@@ -162,7 +162,7 @@ describe("suggestion de clôture", () => {
   it("notes : moyenne revenue sans baisse d'au moins 15 % par rapport à la référence → suggérée", () => {
     const notes = [note(13, { anneeScolaire: "2025-2026", periode: "Trimestre 3" }), note(12), note(11.5)];
     expect(suggestionCloture(alerteNotes, notes, [], T1)).toBe(
-      "Moyenne remontée à 11,8 au Trimestre 1 (référence 13,0). Vous pouvez résoudre l'alerte."
+      "Moyenne remontée à 11,8 au Trimestre 1 (référence 13,0). Vous pouvez clôturer l'alerte."
     );
   });
 
@@ -175,7 +175,7 @@ describe("suggestion de clôture", () => {
   it("absences : nouveau trimestre sous le seuil de 5 absences injustifiées → suggérée", () => {
     const absences = [...Array(3)].map(() => ({ motif: "injustifiee", ...T2 }));
     expect(suggestionCloture(alerteAbsences, [], absences, T2)).toBe(
-      "Assiduité rétablie : 3 absences injustifiées au Trimestre 2. Vous pouvez résoudre l'alerte."
+      "Assiduité rétablie : 3 absences injustifiées au Trimestre 2. Vous pouvez clôturer l'alerte."
     );
   });
 
@@ -185,13 +185,13 @@ describe("suggestion de clôture", () => {
     expect(suggestionCloture(alerteAbsences, [], absences, T2)).toBeNull();
   });
 
-  it("alerte résolue : jamais de suggestion", () => {
+  it("alerte clôturée : jamais de suggestion", () => {
     expect(suggestionCloture({ ...alerteAbsences, statut: "traitee" }, [], [], T2)).toBeNull();
   });
 });
 
 describe("pilotage : répartition des motifs de clôture", () => {
-  it("la plus fréquente en tête, les résolutions sans motif à part, les motifs absents omis", () => {
+  it("la plus fréquente en tête, les clôtures sans motif à part, les motifs absents omis", () => {
     expect(repartitionMotifs([
       { motifCloture: "suivi_externe", total: 1 },
       { motifCloture: "situation_retablie", total: 4 },
@@ -347,7 +347,7 @@ describe("POST /api/alertes/[id]/suivis", () => {
     expect((await appel({ transition: "confier", responsableId: "u2" })).status).toBe(409);
   });
 
-  it("résolution directe d'une alerte nouvelle : motif enregistré, aucun responsable désigné", async () => {
+  it("clôture directe d'une alerte nouvelle : motif enregistré, aucun responsable désigné", async () => {
     mockRequireRole.mockResolvedValue(user("enseignant", MON_ETAB));
     prismaMock.alerte.findUnique.mockResolvedValue(alerte(MON_ETAB));
     const r = await appel({ transition: "resoudre", motifCloture: "erreur_saisie" });
@@ -365,14 +365,14 @@ describe("POST /api/alertes/[id]/suivis", () => {
     expect((await appel({ ...SUIVRE, commentaire: "ok" })).status).toBe(400);
   });
 
-  it("agir sur une alerte résolue sans la rouvrir → 409", async () => {
+  it("agir sur une alerte clôturée sans la rouvrir → 409", async () => {
     mockRequireRole.mockResolvedValue(user("enseignant", MON_ETAB));
     prismaMock.alerte.findUnique.mockResolvedValue(alerte(MON_ETAB, "traitee"));
     expect((await appel(SUIVRE)).status).toBe(409);
     expect(tx.suiviAlerte.create).not.toHaveBeenCalled();
   });
 
-  it("rouvrir une alerte résolue → 201, Résolue → En cours de suivi", async () => {
+  it("rouvrir une alerte clôturée → 201, Clôturée → En cours de suivi", async () => {
     mockRequireRole.mockResolvedValue(user("enseignant", MON_ETAB));
     prismaMock.alerte.findUnique.mockResolvedValue(alerte(MON_ETAB, "traitee", new Date("2026-10-01")));
     const r = await appel({ transition: "rouvrir", commentaire: "Nouvelles absences signalées par la famille." });

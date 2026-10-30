@@ -15,7 +15,7 @@ const actionLabels: Record<ActionType, string> = {
   ABSENCE_SUPPRIMEE: "Absence supprimée",
   ALERTE_TRAITEE: "Alerte traitée",
   ALERTE_SUIVIE: "Alerte suivie",
-  ALERTE_RESOLUE: "Alerte résolue",
+  ALERTE_RESOLUE: "Alerte clôturée",
   ALERTE_ROUVERTE: "Alerte rouverte",
   ALERTE_CONFIEE: "Alerte confiée",
   UTILISATEUR_CREE: "Compte créé",

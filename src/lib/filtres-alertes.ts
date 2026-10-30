@@ -6,7 +6,7 @@ import type { Prisma } from "@/generated/prisma/client";
 export type FiltreNiveau = "eleve" | "moyen";
 export type FiltreType = "notes" | "absences";
 /**
- * "active" : ouvertes (Nouvelles et En cours de suivi) ; "traitee" : Résolues.
+ * "active" : ouvertes (Nouvelles et En cours de suivi) ; "traitee" : Clôturées.
  * Valeurs gardées dans l'URL pour que les anciens liens restent valables.
  */
 export type FiltreStatut = "active" | "nouvelle" | "en_suivi" | "traitee" | "toutes";
@@ -16,7 +16,7 @@ export const LIBELLES_FILTRE_STATUT: Record<FiltreStatut, string> = {
   active: "Ouvertes (nouvelles et en suivi)",
   nouvelle: "Nouvelles",
   en_suivi: "En cours de suivi",
-  traitee: "Résolues",
+  traitee: "Clôturées",
   toutes: "Toutes",
 };
 
@@ -191,7 +191,7 @@ export function decrireFiltres(filtres: FiltresAlertes, nomEtablissement?: strin
     active: "Alertes ouvertes",
     nouvelle: "Alertes nouvelles",
     en_suivi: "Alertes en cours de suivi",
-    traitee: "Alertes résolues",
+    traitee: "Alertes clôturées",
     toutes: "Tous statuts",
   };
   lignes.push(statuts[filtres.statut]);

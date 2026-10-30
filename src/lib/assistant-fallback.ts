@@ -43,8 +43,9 @@ export function analyserSansIA(question: string, ref: Referentiel): Requete | nu
   // 3. Filtres propres aux alertes (seulement si la question parle d'alertes).
   if (parleAlertes) {
     requete.type = "alertes";
-    const resolue = (contientRacine("traite") || contientRacine("resolu")) &&
-      !contientRacine("non traite") && !contientRacine("pas traite") && !contientRacine("non resolu") && !contientRacine("pas resolu");
+    const resolue = (contientRacine("traite") || contientRacine("resolu") || contientRacine("clotur")) &&
+      !contientRacine("non traite") && !contientRacine("pas traite") && !contientRacine("non resolu") && !contientRacine("pas resolu") &&
+      !contientRacine("non clotur") && !contientRacine("pas clotur");
     if (resolue) {
       requete.filtres.statutAlerte = "traitee";
     } else if (contientRacine("active") || contientRacine("actif") || contientRacine("ouvert") || contientRacine("non traite") || contientRacine("pas traite") || contientRacine("non resolu") || contientRacine("pas resolu") || contientRacine("en cours")) {

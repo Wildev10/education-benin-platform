@@ -215,7 +215,7 @@ export default function AdminDashboard({
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-secondary">Résolues cette année</dt>
+              <dt className="text-sm text-ink-secondary">Clôturées dans l&apos;année</dt>
               <dd className="text-xl font-bold tabular-nums text-ink">
                 <Link href="/admin/alertes?statut=traitee" className="inline-flex min-h-11 min-w-11 items-center underline decoration-border underline-offset-4 hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-dark">
                   {pilotage.resolues}
@@ -232,7 +232,7 @@ export default function AdminDashboard({
           <div data-motifs-cloture className="mt-4 border-t border-border pt-3">
             <h4 className="text-sm font-semibold text-ink">Motifs de clôture cette année</h4>
             {pilotage.motifs.length === 0 ? (
-              <p className="mt-1 text-sm text-ink-secondary">Aucune alerte résolue cette année.</p>
+              <p className="mt-1 text-sm text-ink-secondary">Aucune alerte clôturée dans l&apos;année.</p>
             ) : (
               <ul className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-secondary">
                 {pilotage.motifs.map((m) => (

@@ -82,7 +82,7 @@ describe("analyserAlerte (notes)", () => {
     expect(prismaMock.alerte.create).not.toHaveBeenCalled();
   });
 
-  it("alerte Moyen résolue qui s'aggrave : rouverte en Nouvelle, aggravée, étape « réouverture automatique »", async () => {
+  it("alerte Moyen clôturée qui s'aggrave : rouverte en Nouvelle, aggravée, étape « réouverture automatique »", async () => {
     prismaMock.note.findMany.mockResolvedValue(ELEVE);
     prismaMock.alerte.findFirst.mockResolvedValue(alerte("moyen", "traitee"));
     const res = await analyserAlerte("etu-1");

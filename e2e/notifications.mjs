@@ -1,7 +1,7 @@
 // Alertes de décrochage, de la saisie de l'enseignant à la cloche : message après
 // chaque saisie, liste des alertes de la fiche, cloche de l'enseignant et de
 // l'admin (30 jours, lu / non lu enregistré côté serveur et partagé entre
-// appareils), réouverture d'une alerte résolue qui s'aggrave, import CSV.
+// appareils), réouverture d'une alerte clôturée qui s'aggrave, import CSV.
 //
 // Écrit dans la base de DEV (la garde de commun.mjs refuse une base protégée) :
 // deux élèves de test, leurs notes, absences, alertes, un compte élève pour
@@ -251,20 +251,20 @@ try {
     rapport.ignorer("Suivi confié à la directrice", "compte directeur absent ou d'un autre établissement");
   }
 
-  // ── 9. Résolution directe (motif en un clic), puis aggravation : rouverte ────
-  await ens.getByRole("button", { name: "Résoudre l'alerte" }).click();
+  // ── 9. Clôture directe (motif en un clic), puis aggravation : rouverte ──────
+  await ens.getByRole("button", { name: "Clôturer l'alerte" }).click();
   const resoudre = ens.locator('[data-formulaire-suivi="resoudre"]');
   await resoudre.getByLabel("Autre", { exact: true }).check();
-  await resoudre.getByRole("button", { name: "Résoudre l'alerte" }).click();
-  check("Résolution, motif « Autre » sans commentaire : refusée avec un message",
+  await resoudre.getByRole("button", { name: "Clôturer l'alerte" }).click();
+  check("Clôture, motif « Autre » sans commentaire : refusée avec un message",
     /« Autre », le commentaire est obligatoire/.test(await texte(resoudre.locator('[role="alert"]'))));
   await resoudre.getByLabel("Situation rétablie").check();
   const reponseResolution = ens.waitForResponse((r) => r.url().endsWith(`/api/alertes/${alerteMoyen.id}/suivis`));
-  await resoudre.getByRole("button", { name: "Résoudre l'alerte" }).click();
-  check("Résolution directe : motif « Situation rétablie », sans commentaire (201)", (await reponseResolution).status() === 201);
+  await resoudre.getByRole("button", { name: "Clôturer l'alerte" }).click();
+  check("Clôture directe : motif « Situation rétablie », sans commentaire (201)", (await reponseResolution).status() === 201);
   await ens.locator('[data-etape="resolution"]').waitFor();
-  check("Fiche : « Résolue », motif dans l'historique et sous l'alerte",
-    /Résolution : Situation rétablie/.test(await texte(alertesFiche)) && /Motif de clôture : Situation rétablie/.test(await texte(alertesFiche)));
+  check("Fiche : « Clôturée », motif dans l'historique et sous l'alerte",
+    /Clôturée/.test(await texte(alertesFiche)) && /Clôture : Situation rétablie/.test(await texte(alertesFiche)) && /Motif de clôture : Situation rétablie/.test(await texte(alertesFiche)));
   check("Admin : le suivi lui est refusé (consultation seule, 403)",
     (await admin.evaluate(async (id) => (await fetch(`/api/alertes/${id}/suivis`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -282,7 +282,7 @@ try {
     `${apres.length} alerte(s), ${apres[0]?.statut}, ${apres[0]?.niveauRisque}`);
   const etapes = (await base.query(`SELECT action, "statutAvant", "statutApres", "auteurId", "motifCloture" FROM "SuiviAlerte" WHERE "alerteId" = $1 ORDER BY "createdAt"`, [alerteMoyen.id])).rows;
   const finEtapes = etapes.slice(-2);
-  check("Base : résolution avec son motif, puis réouverture automatique En cours de suivi par la détection",
+  check("Base : clôture avec son motif, puis réouverture automatique En cours de suivi par la détection",
     finEtapes[0]?.action === "resolution" && finEtapes[0].motifCloture === "situation_retablie" && finEtapes[0].statutApres === "resolue" &&
       finEtapes[1]?.action === "reouverture_auto" && finEtapes[1].statutApres === "en_suivi" && finEtapes[1].auteurId === null,
     etapes.map((e) => `${e.action}:${e.statutAvant}→${e.statutApres}`).join(", "));

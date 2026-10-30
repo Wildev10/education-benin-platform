@@ -5,15 +5,15 @@ import { LIBELLE_MOTIF_ABSENT, LIBELLES_MOTIF, MOTIFS_CLOTURE } from "@/lib/suiv
 export type PilotageSuivi = {
   nouvelles: number;
   enSuivi: number;
-  /** Alertes de l'année scolaire en cours résolues */
+  /** Alertes de l'année scolaire en cours clôturées */
   resolues: number;
   /** Délai moyen, en jours, entre la détection et la première action d'une personne ; null : aucune action */
   delaiMoyenJours: number | null;
-  /** Répartition des motifs de clôture des alertes résolues de l'année, la plus fréquente en tête */
+  /** Répartition des motifs de clôture des alertes clôturées de l'année, la plus fréquente en tête */
   motifs: { motif: string; libelle: string; total: number }[];
 };
 
-/** Un motif par ligne, dans l'ordre des motifs, puis « non renseigné » (résolutions d'avant les motifs). */
+/** Un motif par ligne, dans l'ordre des motifs, puis « non renseigné » (clôtures d'avant les motifs). */
 export function repartitionMotifs(groupes: { motifCloture: string | null; total: number }[]): PilotageSuivi["motifs"] {
   const parMotif = new Map(groupes.map((g) => [g.motifCloture ?? "", g.total]));
   return [...MOTIFS_CLOTURE, ""]

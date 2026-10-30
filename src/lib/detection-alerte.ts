@@ -24,7 +24,7 @@ export type DetailDetection = {
   alerteId?: string;
   /** Niveau avant une aggravation ; absent pour une création */
   niveauPrecedent?: string;
-  /** L'alerte aggravée était résolue : elle est rouverte (Nouvelle) */
+  /** L'alerte aggravée était clôturée : elle est rouverte */
   reactivee: boolean;
   periode: string;
   anneeScolaire: string;
@@ -62,7 +62,7 @@ type Constat =Omit<DetailDetection, "issue" | "alerte" | "alerteId" | "niveauPre
 /**
  * Une seule alerte par élève, type, période et année scolaire, quel que soit
  * son statut (les anciennes alertes sans année comptent pour toute année).
- * Elle est créée, ou aggravée (Moyen → Élevé, rouverte si elle était résolue,
+ * Elle est créée, ou aggravée (Moyen → Élevé, rouverte si elle était clôturée,
  * avec une date d'aggravation qui notifie la cloche). Niveau égal ou en baisse : rien.
  */
 async function enregistrer(etudiantId: string, constat: Constat, simulation: boolean): Promise<DetailDetection | null> {
@@ -79,7 +79,7 @@ async function enregistrer(etudiantId: string, constat: Constat, simulation: boo
 
   if (existante) {
     if (!estAggravation(existante, constat.niveauRisque)) return null;
-    // Résolue : rouverte En cours de suivi avec son responsable (prévenu par la
+    // Clôturée : rouverte En cours de suivi avec son responsable (prévenu par la
     // cloche), ou en Nouvelle sans responsable. En cours de suivi : le suivi continue.
     // L'étape est écrite dans la même requête que la mise à jour.
     const rouverte = existante.statut !== "active";

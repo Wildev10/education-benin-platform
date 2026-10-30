@@ -28,8 +28,8 @@ const ACTION_AUDIT = {
 } as const;
 
 const ERREURS_TRANSITION = {
-  resolue: "Cette alerte est résolue : rouvrez-la d'abord.",
-  rouvrir: "Seule une alerte résolue peut être rouverte.",
+  resolue: "Cette alerte est clôturée : rouvrez-la d'abord.",
+  rouvrir: "Seule une alerte clôturée peut être rouverte.",
   confier: "Seule une alerte en cours de suivi peut être confiée à quelqu'un d'autre.",
 };
 
@@ -120,7 +120,7 @@ export async function POST(request: Request, context: RouteContext) {
     const eleve = `${alerte.etudiant.prenom} ${alerte.etudiant.nom}`;
     const description =
       transition === "resoudre"
-        ? `Alerte résolue pour ${eleve} : ${LIBELLES_MOTIF[motifCloture!]}`
+        ? `Alerte clôturée pour ${eleve} : ${LIBELLES_MOTIF[motifCloture!]}`
         : transition === "confier"
           ? `Suivi de l'alerte de ${eleve} confié à ${responsableNom}`
           : `${LIBELLES_ACTION[action]} pour ${eleve} : alerte ${transition === "rouvrir" ? "rouverte" : "en cours de suivi"}${change && responsableNom ? `, responsable ${responsableNom}` : ""}`;
