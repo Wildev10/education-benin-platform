@@ -110,9 +110,10 @@ async function volumesSuivi(databaseUrl: string) {
   await client.connect();
   try {
     await client.query("BEGIN READ ONLY");
-    const { rows } = await client.query<{ nouvelles: string; en_suivi: string; resolues: string; etapes: string }>(`
+    const { rows } = await client.query<{ nouvelles: string; en_suivi: string; avec_responsable: string; resolues: string; etapes: string }>(`
       SELECT count(*) FILTER (WHERE statut = 'active' AND "suiviDepuis" IS NULL)     AS nouvelles,
              count(*) FILTER (WHERE statut = 'active' AND "suiviDepuis" IS NOT NULL) AS en_suivi,
+             count(*) FILTER (WHERE statut = 'active' AND "responsableId" IS NOT NULL) AS avec_responsable,
              count(*) FILTER (WHERE statut = 'traitee')                              AS resolues,
              (SELECT count(*) FROM "SuiviAlerte")                                    AS etapes
       FROM "Alerte"`);
@@ -165,7 +166,7 @@ async function main() {
   }
   const v = await volumesSuivi(saisie);
   console.log(
-    `\nSuivi des alertes : ${v.en_suivi} en cours de suivi, ${v.resolues} résolue(s), ${v.nouvelles} nouvelle(s), ${v.etapes} étape(s) d'historique.`
+    `\nSuivi des alertes : ${v.en_suivi} en cours de suivi (${v.avec_responsable} avec un responsable), ${v.resolues} résolue(s), ${v.nouvelles} nouvelle(s), ${v.etapes} étape(s) d'historique.`
   );
   console.log("Reconnectez chaque compte de démonstration : la session garde l'ancien établissement jusqu'à la reconnexion.");
 }

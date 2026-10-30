@@ -7,11 +7,14 @@ const mockRequireRole = vi.fn();
 vi.mock("@/lib/auth-guard", () => ({ requireRole: mockRequireRole }));
 
 const mockFindMany = vi.fn();
+// Désignations du responsable (« Suivi confié »)
+const mockSuiviFindMany = vi.fn();
 const mockUserFindUnique = vi.fn();
 const mockUserUpdateMany = vi.fn();
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     alerte: { findMany: mockFindMany },
+    suiviAlerte: { findMany: mockSuiviFindMany },
     user: { findUnique: mockUserFindUnique, updateMany: mockUserUpdateMany },
   },
 }));
@@ -72,6 +75,7 @@ const requetes = () => ({ creees: mockFindMany.mock.calls[0][0], aggravees: mock
 
 beforeEach(() => {
   mockFindMany.mockReset().mockResolvedValue([]);
+  mockSuiviFindMany.mockReset().mockResolvedValue([]);
   mockUserFindUnique.mockReset().mockResolvedValue({ notificationsVuesLe: null });
   mockUserUpdateMany.mockReset().mockResolvedValue({ count: 1 });
   mockRequireRole.mockReset();
@@ -203,6 +207,45 @@ describe("getNotifications", () => {
 });
 
 // ── Consultation (POST) ──────────────────────────────────────────────────────
+
+describe("getNotifications : responsable du suivi", () => {
+  const maintenant = new Date("2026-10-21T10:00:00.000Z");
+  const enseignant = { id: "u1", role: "enseignant", etablissementId: "etab-1" };
+
+  it("désignations : seulement pour le responsable, par quelqu'un d'autre, alerte ouverte dont il est toujours responsable", async () => {
+    await getNotifications(enseignant, maintenant);
+    const requete = mockSuiviFindMany.mock.calls[0][0];
+    expect(requete.where).toMatchObject({
+      responsableId: "u1",
+      OR: [{ auteurId: null }, { auteurId: { not: "u1" } }],
+      alerte: { statut: "active", responsableId: "u1", etudiant: { etablissementId: "etab-1" } },
+    });
+  });
+
+  it("suivi confié : entrée « confiee », datée de la désignation, avec la personne qui l'a confié", async () => {
+    const alerte = { ...alerteDb("a1", new Date("2026-10-10T10:00:00Z")), responsable: { id: "u1" } };
+    mockSuiviFindMany.mockResolvedValue([{ createdAt: new Date("2026-10-20T09:00:00Z"), auteurNom: "Bernadette Sossou", alerte }]);
+    mockFindMany.mockResolvedValueOnce([alerte]).mockResolvedValueOnce([]);
+    const { notifications } = await getNotifications(enseignant, maintenant);
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toMatchObject({ evenement: "confiee", confiePar: "Bernadette Sossou", date: "2026-10-20T09:00:00.000Z", votreSuivi: true });
+  });
+
+  it("aggravation de son alerte, après la désignation : l'aggravation l'emporte, marquée « votre suivi »", async () => {
+    const alerte = { ...alerteDb("a1", new Date("2026-10-10T10:00:00Z"), new Date("2026-10-21T08:00:00Z")), responsable: { id: "u1" } };
+    mockSuiviFindMany.mockResolvedValue([{ createdAt: new Date("2026-10-20T09:00:00Z"), auteurNom: "Bernadette Sossou", alerte }]);
+    mockFindMany.mockResolvedValueOnce([]).mockResolvedValueOnce([alerte]);
+    const { notifications } = await getNotifications(enseignant, maintenant);
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toMatchObject({ evenement: "aggravee", votreSuivi: true });
+  });
+
+  it("alerte d'un autre responsable : pas de « votre suivi »", async () => {
+    mockFindMany.mockResolvedValueOnce([{ ...alerteDb("a1", new Date("2026-10-20T10:00:00Z")), responsable: { id: "u2" } }]).mockResolvedValueOnce([]);
+    const { notifications } = await getNotifications(enseignant, maintenant);
+    expect(notifications[0]).not.toHaveProperty("votreSuivi");
+  });
+});
 
 describe("POST /api/notifications/alertes — ouverture de la cloche", () => {
   it("enregistre la date du dernier événement affiché, pour l'utilisateur connecté", async () => {

@@ -41,16 +41,18 @@ Les règles s'appliquent à chaque saisie de note ou d'absence, et à l'import C
 ### Suivi des alertes
 
 - **Trois statuts** : Nouvelle (aucune action), En cours de suivi, Résolue.
-- **Une action et un commentaire à chaque étape** : entretien avec l'élève, parents convoqués, soutien scolaire ou autre action, avec un commentaire obligatoire (10 à 1 000 caractères). La résolution et la réouverture demandent aussi un commentaire.
-- **Historique sur la fiche élève** : pour chaque étape, l'action, la personne, la date et l'heure (heure du Bénin), le commentaire et le changement de statut. Les étapes écrites par la détection (aggravation, réouverture automatique) sont signées « Système ».
-- **Réouverture** d'une alerte résolue, à la main ou automatiquement si elle s'aggrave.
+- **Une action et un commentaire à chaque étape de suivi** : entretien avec l'élève, parents convoqués, soutien scolaire ou autre action, avec un commentaire obligatoire (10 à 1 000 caractères). La réouverture demande aussi un commentaire.
+- **Résolution directe**, depuis Nouvelle comme depuis En cours de suivi, sans action préalable : un motif en un clic (Situation rétablie, Suivi fait en dehors de la plateforme, Erreur de saisie, Autre), commentaire facultatif sauf pour « Autre ».
+- **Responsable du suivi** : un enseignant ou le directeur de l'établissement de l'élève, désigné à la première action (par défaut, la personne qui la fait), puis modifiable (« Changer le responsable »). Chaque changement est tracé dans l'historique. Le responsable est affiché sur la fiche et sur la liste des alertes, avec un filtre « Mes suivis ». La cloche le prévient quand on lui confie un suivi (« Suivi confié par … ») et quand son alerte s'aggrave (« Votre suivi »). Un compte qui change d'établissement perd ses responsabilités dans l'ancien (alertes « à désigner », étape « Système »). Une résolution directe ne désigne personne.
+- **Historique sur la fiche élève** : pour chaque étape, l'action ou le motif, la personne, la date et l'heure (heure du Bénin), le commentaire et le changement de statut. Les étapes écrites par le système (aggravation, réouverture automatique, retrait du responsable) sont signées « Système ».
+- **Réouverture** d'une alerte résolue, à la main ou automatiquement si elle s'aggrave : avec un responsable, elle repasse En cours de suivi avec lui ; sans responsable, en Nouvelle.
 - **Suggestion de clôture**, jamais automatique : quand la moyenne du trimestre le plus récent ne déclencherait plus l'alerte par rapport à la moyenne de référence, ou quand un nouveau trimestre compte moins de 5 absences injustifiées.
-- **Qui fait quoi** : l'enseignant et le directeur suivent les alertes des élèves de leur établissement ; l'administration consulte l'historique et pilote (alertes nouvelles, en cours de suivi, résolues dans l'année, délai moyen avant la première action) ; l'élève ne voit ni ses alertes, ni leur statut, ni les commentaires.
-- Les listes d'alertes montrent le statut et la dernière action, et mènent au suivi sur la fiche. Les exports Excel et PDF reprennent le statut ; l'Excel des alertes, la dernière action.
+- **Qui fait quoi** : l'enseignant et le directeur suivent les alertes des élèves de leur établissement ; l'administration consulte l'historique et pilote (alertes nouvelles, en cours de suivi, résolues dans l'année, délai moyen avant la première action, répartition des motifs de clôture) ; l'élève ne voit ni ses alertes, ni leur statut, ni les commentaires.
+- Les listes d'alertes montrent le statut, le responsable (ou le motif de clôture) et la dernière action, et mènent au suivi sur la fiche. Les exports reprennent le statut, le responsable et le motif de clôture ; l'Excel des alertes, aussi la dernière action.
 
 ### Notifications en temps réel
 
-Une cloche, dans l'en-tête de l'admin, du directeur et de l'enseignant, liste les alertes actives **créées** ou **aggravées** (« Aggravée : Moyen → Élevé ») depuis 30 jours au plus. Les non lues sont celles arrivées depuis la dernière ouverture de la cloche, date enregistrée sur le serveur pour chaque utilisateur : ce qui est lu sur un appareil l'est sur les autres. Une aggravation redevient non lue, même si la création avait déjà été vue. Elle se met à jour toutes les 60 secondes tant que l'onglet est visible, et dès le retour sur l'onglet. Le directeur et l'enseignant ne voient que leur établissement.
+Une cloche, dans l'en-tête de l'admin, du directeur et de l'enseignant, liste les alertes actives **créées** ou **aggravées** (« Aggravée : Moyen → Élevé ») depuis 30 jours au plus, et les suivis **confiés** à l'utilisateur par quelqu'un d'autre (« Suivi confié par … »). Les non lues sont celles arrivées depuis la dernière ouverture de la cloche, date enregistrée sur le serveur pour chaque utilisateur : ce qui est lu sur un appareil l'est sur les autres. Une aggravation redevient non lue, même si la création avait déjà été vue. Elle se met à jour toutes les 60 secondes tant que l'onglet est visible, et dès le retour sur l'onglet. Le directeur et l'enseignant ne voient que leur établissement.
 
 ### Tableaux de bord
 
@@ -103,7 +105,8 @@ Gestion des comptes (création, modification, suppression), demandes de mot de p
 | Supprimer une absence | — | ✓ | — | — |
 | Importer des notes (CSV) | — | ✓ | — | ✓ |
 | Pages Alertes et Absences | — | ✓ | ✓ | ✓ |
-| Suivre une alerte (actions, résolution, réouverture) | — | ✓ | ✓ | — (consultation et pilotage) |
+| Suivre une alerte (actions, résolution, réouverture, responsable) | — | ✓ | ✓ | — (consultation et pilotage) |
+| Être responsable d'un suivi, filtre « Mes suivis » | — | ✓ | ✓ | — |
 | Cloche de notifications | — | ✓ | ✓ | ✓ |
 | Exports PDF et Excel | Sa fiche (Excel) | ✓ | ✓ | ✓ |
 | Assistant | — | ✓ | ✓ | ✓ |
@@ -129,8 +132,8 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 ## Qualité
 
-- **656 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), suivi des alertes (transitions, saisie obligatoire, suggestion de clôture, réouverture automatique), périmètre des routes (dont l'assistant et le suivi), garde-fou de production et seed de production (hôte protégé, masquage du mot de passe), droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base, données de démonstration (cas de la démo à chaque trimestre), format français des nombres et libellé des périodes.
-- **2 110 vérifications navigateur** (11 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, suivi depuis la fiche, résolution puis réouverture automatique, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), aucun nombre décimal au format anglais ni période « Trimestre 1 2026-2027 » sur les pages principales de chaque rôle, cloche comprise, responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), mode contraste élevé sur les pages des 4 rôles (textes à 7:1, couleurs d'état, focus, cloche, fenêtres, graphiques, couleurs forcées de Windows), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
+- **685 tests unitaires** (Vitest) : règles de détection (dont la concordance des seuils affichés sur l'accueil avec le code), suivi des alertes (transitions, saisie obligatoire, motifs de clôture, responsable et « Mes suivis », suggestion de clôture, réouverture automatique), périmètre des routes (dont l'assistant et le suivi), garde-fou de production et seed de production (hôte protégé, masquage du mot de passe), droits affichés par rôle, notifications, pagination, exports, accessibilité, langues, fuseau horaire des dates (rendu identique en UTC et à New York), connexion à la base, données de démonstration (cas de la démo à chaque trimestre), format français des nombres et libellé des périodes.
+- **2 121 vérifications navigateur** (11 scénarios de bout en bout, Google Chrome) : connexion et déconnexion des 4 rôles, limitation des tentatives, exports Excel, pagination, page 404, accordéon, squelettes, stabilité de la mise en page, alertes de bout en bout (message après saisie, cloche de l'enseignant et de l'admin, lu sur un appareil puis l'autre, suivi depuis la fiche, suivi confié à la directrice et sa cloche, résolution directe avec motif puis réouverture automatique, import CSV), version anglaise, dates identiques avec un navigateur en UTC ou à New York (fuseau du Bénin), aucun nombre décimal au format anglais ni période « Trimestre 1 2026-2027 » sur les pages principales de chaque rôle, cloche comprise, responsive (21 pages principales à 12 largeurs, zoom 200 %, grand texte, liste des comptes en cartes sur téléphone), mode contraste élevé sur les pages des 4 rôles (textes à 7:1, couleurs d'état, focus, cloche, fenêtres, graphiques, couleurs forcées de Windows), et pour chaque rôle, absence des actions qu'il n'a pas le droit de faire ; ni emoji ni pictogramme décoratif, icônes accessibles, contraste vérifié. À 375 px et à 1280 px.
 - **ESLint : 0 erreur, 0 avertissement.** Build TypeScript strict.
 
 ---
@@ -160,13 +163,13 @@ Le tableau décrit ce que chaque rôle peut faire dans l'interface ; chaque rout
 
 | Élève | Classe | Situation |
 |---|---|---|
-| Rodrigue Agossou | Première D | moyenne de 12,75 à 7,5 : alerte notes **Élevé**, en cours de suivi (entretien par l'enseignant, parents convoqués par la directrice) |
+| Rodrigue Agossou | Première D | moyenne de 12,75 à 7,5 : alerte notes **Élevé**, en cours de suivi, responsable l'enseignant (entretien par l'enseignant, parents convoqués par la directrice) |
 | Adéola Akanni | Terminale C | moyenne de 14,5 à 12 : alerte notes **Moyen**, nouvelle (pour montrer une première action) |
-| Inoussa Maïga | 3ème | 7 absences injustifiées ce trimestre, surtout le lundi : alerte absences **Moyen**, en cours de suivi (parents convoqués) |
+| Inoussa Maïga | 3ème | 7 absences injustifiées ce trimestre, surtout le lundi : alerte absences **Moyen**, en cours de suivi : parents convoqués par la directrice, qui confie ensuite le suivi à l'enseignant. À la connexion de l'enseignant, la cloche affiche « Suivi confié par Bernadette Sossou », non lu |
 | Sèna Dossou | Seconde D | 6 notes à 11 de moyenne contre 13,5 : alerte **Moyen**, qui s'aggrave pendant la démo |
 | Nafissatou Gounou | 6ème | arrivée ce trimestre : « Pas encore de période de comparaison » |
 
-Pour Sèna Dossou, saisir deux notes dans le trimestre proposé, par exemple **6 puis 6** (ou 5 puis 7). La première affiche « Note enregistrée » ; la seconde, « Alerte aggravée : Moyen → Élevé ». Règle : première note d'au moins 4, et les deux font moins de 14. Les autres élèves du CEG Zopah n'ont aucune alerte. Dans les autres établissements, quelques alertes sont en cours de suivi ou résolues, pour le pilotage de l'admin. Le seed calcule les périodes à partir du jour où il est lancé : le relancer la veille de la démo.
+Pour Sèna Dossou, saisir deux notes dans le trimestre proposé, par exemple **6 puis 6** (ou 5 puis 7). La première affiche « Note enregistrée » ; la seconde, « Alerte aggravée : Moyen → Élevé ». Règle : première note d'au moins 4, et les deux font moins de 14. Les autres élèves du CEG Zopah n'ont aucune alerte. Dans les autres établissements, quelques alertes sont en cours de suivi (responsable « à désigner » : aucun compte fictif n'y est créé) ou résolues avec un motif, pour le pilotage de l'admin. Le seed calcule les périodes à partir du jour où il est lancé : le relancer la veille de la démo.
 
 ---
 
@@ -206,6 +209,7 @@ Pour Sèna Dossou, saisir deux notes dans le trimestre proposé, par exemple **6
 - **Région.** La base Neon est dans l'Ohio (`us-east-2`) et les fonctions Vercel à Cleveland (`cle1`). Une migration vers l'Europe a été étudiée puis reportée (gain d'environ 100 ms par requête, hébergement des données à décider) : mesures et procédure complète dans [docs/migration-region.md](docs/migration-region.md).
 - **Évolutions de schéma d'octobre 2026.** Colonnes `Alerte.niveauModifieLe` (date de la dernière aggravation) et `User.notificationsVuesLe` (dernière ouverture de la cloche), nullables, ajoutées de façon purement additive : l'ancien code reste compatible.
 - **Suivi des alertes (fin octobre 2026).** Colonnes `Alerte.suiviDepuis` et `Alerte.resolueLe` (nullables) et table `SuiviAlerte` (une ligne par étape). Purement additif, sans donnée à migrer : le statut affiché se déduit de `statut` (« active » ou « traitee », inchangé) et de `suiviDepuis`. À appliquer en production avant de déployer le code, et avant de relancer le seed (qui écrit l'historique de démonstration).
+- **Responsable et motif de clôture (fin octobre 2026).** Colonnes `Alerte.responsableId`, `Alerte.responsableDepuis`, `Alerte.motifCloture`, `SuiviAlerte.motifCloture`, `SuiviAlerte.responsableId` et `SuiviAlerte.responsableNom` (nullables), 2 index, 2 clés étrangères vers `User` en `SET NULL` (un compte supprimé laisse l'alerte « à désigner », l'historique garde son nom). Purement additif. Même ordre : SQL en production, déploiement, puis seed.
 
 ### Lancer en local
 
@@ -260,7 +264,7 @@ Le seed remplace **toutes** les données de démonstration de la base (élèves,
 ### Lancer les tests
 
 ```bash
-npm test          # 656 tests unitaires
+npm test          # 685 tests unitaires
 npm run lint      # ESLint : 0 erreur, 0 avertissement attendus
 npm run build     # vérification TypeScript et build complet
 npm run e2e       # tests navigateur : connexions, excel, pagination, finitions, notifications, langues, droits, fuseaux, nombres, responsive, contraste

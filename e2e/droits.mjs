@@ -116,6 +116,8 @@ try {
     (await visible(ens, "Enregistrer la note")) && (await visible(ens, "Enregistrer l'absence")) && (await boutonsSupprimerAbsence(ens).count()) > 0);
   await ouvrir(ens, "/enseignant/alertes");
   check("Enseignant, alertes : « Suivre l'alerte » proposé, vers la fiche", (await ens.getByRole("link", { name: /^Suivre l'alerte/ }).count()) > 0);
+  check("Enseignant, alertes : filtre « Responsable » (Mes suivis) proposé",
+    (await ens.locator('select[id$="-suivi"]').count()) === 1);
   await ouvrir(ens, "/enseignant/import");
   check("Enseignant : page d'import accessible", (await ens.locator('input[type="file"]').count()) === 1 && (await visible(ens, "Importer")));
   for (const adresse of ["/admin/utilisateurs", "/directeur"]) {
@@ -177,13 +179,15 @@ try {
     ["Utilisateurs", "Importer", "Historique", "Assistant"].every((l) => navAdmin.includes(l)) && (await cloche(admin).count()) === 1, navAdmin.join(", "));
   check("Admin, tableau de bord : consultation seule (« Voir le suivi », pilotage du suivi, aucune action)",
     (await admin.getByRole("link", { name: /^Voir le suivi/ }).count()) > 0 && (await admin.locator("[data-pilotage-suivi]").count()) === 1 &&
-      !(await visible(admin, /Ajouter une action|Résoudre l'alerte|Marquer comme traitée/)));
+      !(await visible(admin, /Ajouter une action|Résoudre l'alerte|Changer le responsable|Marquer comme traitée/)));
   const alerteAdmin = (await getJson(admin, "/api/alertes?page=1")).corps.elements[0];
   check("Admin : l'API refuse le suivi d'une alerte (403)",
     (await statut(admin, "POST", `/api/alertes/${alerteAdmin.id}/suivis`, { transition: "suivre", action: "autre", commentaire: "Tentative de l'admin." })) === 403);
   await ouvrir(admin, `/admin/etudiants/${alerteAdmin.etudiant.id}`);
   check("Admin, fiche d'un élève en alerte : statut et historique visibles, sans action de suivi",
-    (await admin.locator('section[aria-labelledby="alerts-title"] article').count()) > 0 && !(await visible(admin, /Ajouter une action|Résoudre l'alerte|Rouvrir/)));
+    (await admin.locator('section[aria-labelledby="alerts-title"] article').count()) > 0 && !(await visible(admin, /Ajouter une action|Résoudre l'alerte|Rouvrir|Changer le responsable|Désigner un responsable/)));
+  await ouvrir(admin, "/admin/alertes");
+  check("Admin, alertes : pas de filtre « Mes suivis » (l'admin n'est responsable d'aucun suivi)", (await admin.locator('select[id$="-suivi"]').count()) === 0);
   await ouvrir(admin, "/admin");
   const fautifs = await admin.evaluate(() =>
     [...document.querySelectorAll("svg")]

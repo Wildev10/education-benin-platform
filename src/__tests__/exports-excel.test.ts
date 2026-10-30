@@ -218,8 +218,12 @@ describe("Fiche élève Excel — contenu relu", () => {
     expect(eleve.getCell(3).fill).toMatchObject({ fgColor: { argb: "FFFEE2E2" } });
     expect(moyen.getCell(3).value).toBe("Moyen");
     expect(moyen.getCell(3).fill).toMatchObject({ fgColor: { argb: "FFFEF3C7" } });
-    expect(eleve.getCell(8).value).toBe(38.3); // baisse en %
-    expect(moyen.getCell(9).value).toBe(6); // alerte d'absences : nombre d'absences
+    // Colonnes 5 et 6 : responsable et motif de clôture (alertes ouvertes : motif vide)
+    expect(f.getRow(titres.number).getCell(5).value).toBe("Responsable");
+    expect(f.getRow(titres.number).getCell(6).value).toBe("Motif de clôture");
+    expect(eleve.getCell(6).value).toBe("");
+    expect(eleve.getCell(10).value).toBe(38.3); // baisse en %
+    expect(moyen.getCell(11).value).toBe(6); // alerte d'absences : nombre d'absences
   });
 
   it("alertes : la période porte son année (l'historique couvre plusieurs années)", () => {
@@ -332,9 +336,11 @@ describe("GET /api/alertes/xlsx", () => {
     // Statut de suivi et dernière action, puis les moyennes
     expect(ligne.getCell(7).value).toBe("Nouvelle");
     expect(f.getRow(titres.number).getCell(8).value).toBe("Dernière action");
-    expect(ligne.getCell(10).value).toBe(11.15);
-    expect(ligne.getCell(11).value).toBe(8.5);
-    expect(ligne.getCell(11).numFmt).toBe("0.00");
+    expect(f.getRow(titres.number).getCell(9).value).toBe("Responsable");
+    expect(f.getRow(titres.number).getCell(10).value).toBe("Motif de clôture");
+    expect(ligne.getCell(12).value).toBe(11.15);
+    expect(ligne.getCell(13).value).toBe(8.5);
+    expect(ligne.getCell(13).numFmt).toBe("0.00");
     expect(f.views[0]).toMatchObject({ state: "frozen", ySplit: titres.number });
   });
 });

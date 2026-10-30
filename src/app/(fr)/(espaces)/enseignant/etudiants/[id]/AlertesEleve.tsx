@@ -1,8 +1,9 @@
 "use client";
 
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
-import { FormulaireSuivi } from "@/components/alertes/FormulaireSuivi";
+import { FormulaireSuivi, type Candidat } from "@/components/alertes/FormulaireSuivi";
 import { HistoriqueSuivi } from "@/components/alertes/HistoriqueSuivi";
+import { ResponsableEtMotif } from "@/components/alertes/ResponsableEtMotif";
 import { FUSEAU_BENIN } from "@/lib/dates";
 import { texteComparaison } from "@/lib/message-saisie";
 import { libellePeriode } from "@/lib/notes-trimestres";
@@ -23,6 +24,8 @@ export type AlerteEleve = {
   ecartPourcent: number;
   createdAt: string;
   suivis: EtapeSuivi[];
+  motifCloture: string | null;
+  responsable: { id: string; nom: string } | null;
 };
 
 export default function AlertesEleve({
@@ -32,6 +35,8 @@ export default function AlertesEleve({
   notes,
   absences,
   periodeEnCours,
+  candidats = [],
+  utilisateurId,
   onMiseAJour,
 }: {
   alertes: AlerteEleve[];
@@ -43,6 +48,9 @@ export default function AlertesEleve({
   absences: { motif: string; periode: string; anneeScolaire: string }[];
   /** Trimestre en cours au Bénin, calculé côté serveur (même rendu des deux côtés) */
   periodeEnCours: { anneeScolaire: string; periode: string };
+  /** Responsables possibles : enseignants et directeur de l'établissement de l'élève */
+  candidats?: Candidat[];
+  utilisateurId?: string;
   onMiseAJour?: (alerte: AlerteEleve) => void;
 }) {
   const mention = texteComparaison(comparaison);
@@ -81,6 +89,7 @@ export default function AlertesEleve({
                   <Badge variant={statusVariant(alerte)} />
                   <span className="text-sm font-semibold text-ink">{libellePeriode(alerte.periode, alerte.anneeScolaire)}</span>
                 </div>
+                <ResponsableEtMotif alerte={alerte} />
                 <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-border pt-5 min-[360px]:grid-cols-2 sm:grid-cols-3">
                   <div>
                     <dt className="text-sm font-semibold text-ink-secondary">Type</dt>
@@ -132,7 +141,12 @@ export default function AlertesEleve({
                 <HistoriqueSuivi etapes={alerte.suivis} />
 
                 {peutTraiter && onMiseAJour && (
-                  <FormulaireSuivi alerte={alerte} onMiseAJour={(maj) => onMiseAJour({ ...alerte, ...maj })} />
+                  <FormulaireSuivi
+                    alerte={alerte}
+                    candidats={candidats}
+                    utilisateurId={utilisateurId}
+                    onMiseAJour={(maj) => onMiseAJour({ ...alerte, ...maj })}
+                  />
                 )}
               </article>
             );

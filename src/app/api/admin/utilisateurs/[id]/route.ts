@@ -4,6 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { logAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { retirerResponsabilites } from "@/lib/responsables-server";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -98,16 +99,22 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (etablissementId !== undefined) data.etablissementId = etablissementId || null;
     if (password !== undefined) data.passwordHash = await bcrypt.hash(password, 10);
 
-    const updated = await prisma.user.update({
-      where: { id },
-      data,
-      select: utilisateurSelect,
+    // Changement d'établissement ou de rôle : les alertes dont il était responsable
+    // et qu'il ne voit plus passent « à désigner » (étape « Système »), dans la même transaction
+    const { updated, retirees } = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({ where: { id }, data, select: utilisateurSelect });
+      const retirees = await retirerResponsabilites(
+        tx,
+        { id, nom: updated.nom, prenom: updated.prenom },
+        { role: updated.role, etablissementId: updated.etablissementId }
+      );
+      return { updated, retirees };
     });
 
     await logAction({
       userId: access.user.id,
       action: "UTILISATEUR_MODIFIE",
-      description: `Compte modifié : ${updated.prenom} ${updated.nom}${password !== undefined ? " (mot de passe réinitialisé)" : ""}`,
+      description: `Compte modifié : ${updated.prenom} ${updated.nom}${password !== undefined ? " (mot de passe réinitialisé)" : ""}${retirees ? ` ; responsable retiré de ${retirees} alerte${retirees > 1 ? "s" : ""}` : ""}`,
       entityType: "utilisateur",
       entityId: updated.id,
     });

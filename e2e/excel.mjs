@@ -131,8 +131,14 @@ check("… en-tête : plateforme, « Tous les établissements », date, ligne fi
   feuille.getCell("A1").value.startsWith("EduTech Bénin") && feuille.getCell("A3").value === "Établissement : Tous les établissements" &&
   String(feuille.getCell("A4").value).startsWith("Exporté le") && feuille.views[0].state === "frozen");
 const cellNiveau = lignes.map((r) => r.getCell(6)).find((c) => c.value === "Élevé");
+// Colonne retrouvée par son titre : de nouvelles colonnes (responsable, motif) ne la déplacent pas pour le test
+let colAvant = 0;
+feuille.eachRow((r) => r.eachCell((c, n) => { if (c.value === "Moyenne avant") colAvant = n; }));
+const ligneNotes = lignes.find((r) => r.getCell(5).value === "Notes");
 check("… niveau Élevé coloré, moyennes en vrais nombres (0.00)",
-  (!cellNiveau || cellNiveau.fill?.fgColor?.argb === "FFFEE2E2") && (!lignes[0] || (typeof lignes[0].getCell(10).value === "number" && lignes[0].getCell(10).numFmt === "0.00")));
+  colAvant > 0 && (!cellNiveau || cellNiveau.fill?.fgColor?.argb === "FFFEE2E2") &&
+    (!ligneNotes || (typeof ligneNotes.getCell(colAvant).value === "number" && ligneNotes.getCell(colAvant).numFmt === "0.00")),
+  `colonne « Moyenne avant » : ${colAvant}`);
 
 f = await telecharger(admin, admin.getByRole("button", { name: `Exporter la liste des élèves de ${ETAB_AUTRE.nom} en Excel` }));
 feuille = f.classeur.getWorksheet("Élèves");

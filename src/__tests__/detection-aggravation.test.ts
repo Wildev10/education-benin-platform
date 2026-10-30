@@ -90,7 +90,7 @@ describe("analyserAlerte (notes)", () => {
     const data = prismaMock.alerte.update.mock.calls[0][0].data;
     expect(data).toMatchObject({ statut: "active", niveauRisque: "eleve", suiviDepuis: null, resolueLe: null });
     expect(data.niveauModifieLe).toBeInstanceOf(Date);
-    expect(data.suivis.create).toMatchObject({ action: "reouverture_auto", statutAvant: "resolue", statutApres: "nouvelle", auteurNom: "Système (détection automatique)" });
+    expect(data.suivis.create).toMatchObject({ action: "reouverture_auto", statutAvant: "resolue", statutApres: "nouvelle", auteurNom: "Système" });
   });
 
   it("alerte Moyen en cours de suivi qui s'aggrave : le suivi continue, étape « aggravation détectée »", async () => {

@@ -24,7 +24,7 @@ vi.mock("@/lib/pdf/fiche-etudiant", () => ({ FicheEtudiantPdf: vi.fn(() => null)
 const prismaMock = {
   alerte: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   suiviAlerte: { create: vi.fn() },
-  user: { findUnique: vi.fn() },
+  user: { findUnique: vi.fn(), findFirst: vi.fn() },
   absence: { findUnique: vi.fn(), delete: vi.fn(), findMany: vi.fn(), create: vi.fn() },
   note: { findMany: vi.fn(), create: vi.fn() },
   inscription: { findMany: vi.fn() },
@@ -89,7 +89,7 @@ beforeEach(() => {
 
 describe("POST /api/alertes/[id]/suivis", () => {
   function alerte(etudiant: typeof ELEVE_A_MOI) {
-    return { id: `alerte-${etudiant.id}`, etudiantId: etudiant.id, statut: "active", suiviDepuis: null, etudiant };
+    return { id: `alerte-${etudiant.id}`, etudiantId: etudiant.id, statut: "active", suiviDepuis: null, responsableId: null, etudiant };
   }
   const suivre = (id: string) =>
     alertesSuivis.POST(
@@ -100,6 +100,7 @@ describe("POST /api/alertes/[id]/suivis", () => {
   beforeEach(() => {
     prismaMock.alerte.updateMany.mockResolvedValue({ count: 1 });
     prismaMock.user.findUnique.mockResolvedValue({ nom: "Sossou", prenom: "Bernadette" });
+    prismaMock.user.findFirst.mockResolvedValue({ nom: "Sossou", prenom: "Bernadette" });
   });
 
   it("enseignant : forcer l'id d'une alerte d'un autre établissement → 404, rien n'est écrit", async () => {

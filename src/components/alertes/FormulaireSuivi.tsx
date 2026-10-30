@@ -11,71 +11,113 @@ import {
   COMMENTAIRE_MAX,
   COMMENTAIRE_MIN,
   LIBELLES_ACTION,
+  LIBELLES_MOTIF,
+  MOTIFS_CLOTURE,
   statutSuivi,
   type EtapeSuivi,
   type Transition,
 } from "@/lib/suivi-alertes";
 
-type MiseAJour = { statut: string; suiviDepuis: string | null; suivis: EtapeSuivi[] };
+/** Enseignant ou directeur de l'établissement de l'élève (liste calculée côté serveur). */
+export type Candidat = { id: string; nom: string; role: string };
+
+export type MiseAJourSuivi = {
+  statut: string;
+  suiviDepuis: string | null;
+  motifCloture: string | null;
+  responsable: { id: string; nom: string } | null;
+  suivis: EtapeSuivi[];
+};
 
 const TITRES: Record<Transition, string> = {
   suivre: "Ajouter une action de suivi",
   resoudre: "Résoudre l'alerte",
   rouvrir: "Rouvrir l'alerte",
+  confier: "Confier le suivi",
 };
 
 const ENREGISTRER: Record<Transition, string> = {
   suivre: "Enregistrer l'action",
   resoudre: "Résoudre l'alerte",
   rouvrir: "Rouvrir l'alerte",
+  confier: "Confier le suivi",
 };
 
 const SUCCES: Record<Transition, string> = {
   suivre: "Action enregistrée : alerte en cours de suivi.",
   resoudre: "Alerte résolue.",
   rouvrir: "Alerte rouverte.",
+  confier: "Suivi confié.",
 };
 
 const champCls =
   "w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-ink transition focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark";
+const choixCls =
+  "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm text-ink has-checked:border-brand-dark has-checked:bg-brand-light";
+
+const libelleCandidat = (c: Candidat, moi: string | undefined) =>
+  `${c.nom}${c.role === "directeur" ? " (direction)" : ""}${c.id === moi ? " (vous)" : ""}`;
 
 /**
  * Étapes du suivi d'une alerte (POST /api/alertes/[id]/suivis, qui vérifie le
- * rôle et l'établissement) : une action et un commentaire à chaque étape.
+ * rôle, l'établissement et le responsable choisi) :
+ * - action : action et commentaire obligatoires, responsable à désigner s'il n'y en a pas ;
+ * - résolution : motif en un clic, commentaire facultatif sauf pour « Autre » ;
+ * - réouverture : commentaire obligatoire ;
+ * - changement de responsable : commentaire facultatif.
  */
 export function FormulaireSuivi({
   alerte,
+  candidats,
+  utilisateurId,
   onMiseAJour,
 }: {
-  alerte: { id: string; statut: string; suiviDepuis: string | null };
-  onMiseAJour: (maj: MiseAJour) => void;
+  alerte: { id: string; statut: string; suiviDepuis: string | null; responsable: { id: string; nom: string } | null };
+  candidats: Candidat[];
+  /** Compte connecté : responsable proposé par défaut */
+  utilisateurId?: string;
+  onMiseAJour: (maj: MiseAJourSuivi) => void;
 }) {
   const id = useId();
   const horsLigne = useHorsLigne();
   const [transition, setTransition] = useState<Transition | null>(null);
   const [action, setAction] = useState("");
+  const [motif, setMotif] = useState("");
+  const [responsableId, setResponsableId] = useState("");
   const [commentaire, setCommentaire] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
-  const resolue = statutSuivi(alerte) === "resolue";
+  const statut = statutSuivi(alerte);
+  const responsableActuel = alerte.responsable?.id ?? null;
+
+  // Responsable proposé dans le formulaire « action » : seulement s'il n'y en a pas encore
+  const designer = transition === "suivre" && !responsableActuel;
+  const autresCandidats = candidats.filter((c) => c.id !== responsableActuel);
+  const commentaireObligatoire = transition === "suivre" || transition === "rouvrir" || (transition === "resoudre" && motif === "autre");
 
   function ouvrir(t: Transition) {
     setTransition(t);
     setAction("");
+    setMotif("");
     setCommentaire("");
     setErreur("");
+    // Par défaut : la personne qui fait l'action (si elle peut être responsable)
+    const parDefaut = candidats.some((c) => c.id === utilisateurId) ? utilisateurId! : candidats[0]?.id ?? "";
+    setResponsableId(t === "confier" ? autresCandidats[0]?.id ?? "" : parDefaut);
   }
 
   async function enregistrer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!transition) return;
-    if (transition !== "rouvrir" && !action) {
-      setErreur("Choisissez l'action menée.");
-      return;
-    }
-    if (commentaire.trim().length < COMMENTAIRE_MIN) {
-      setErreur(`Le commentaire est obligatoire (${COMMENTAIRE_MIN} caractères au moins).`);
-      return;
+    if (transition === "suivre" && !action) return setErreur("Choisissez l'action menée.");
+    if (transition === "resoudre" && !motif) return setErreur("Choisissez le motif de résolution.");
+    if (transition === "confier" && !responsableId) return setErreur("Choisissez la personne à qui confier le suivi.");
+    if (commentaireObligatoire && commentaire.trim().length < COMMENTAIRE_MIN) {
+      return setErreur(
+        transition === "resoudre"
+          ? `Pour le motif « Autre », le commentaire est obligatoire (${COMMENTAIRE_MIN} caractères au moins).`
+          : `Le commentaire est obligatoire (${COMMENTAIRE_MIN} caractères au moins).`
+      );
     }
     setEnvoi(true);
     setErreur("");
@@ -83,7 +125,13 @@ export function FormulaireSuivi({
       const response = await fetch(`/api/alertes/${alerte.id}/suivis`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transition, action, commentaire }),
+        body: JSON.stringify({
+          transition,
+          commentaire,
+          ...(transition === "suivre" ? { action } : {}),
+          ...(transition === "resoudre" ? { motifCloture: motif } : {}),
+          ...(transition === "confier" || designer ? { responsableId } : {}),
+        }),
       });
       if (response.status === 401) {
         redirigerVersConnexion();
@@ -94,6 +142,10 @@ export function FormulaireSuivi({
       onMiseAJour({
         statut: data.statut,
         suiviDepuis: data.suiviDepuis,
+        motifCloture: data.motifCloture,
+        responsable: data.responsable
+          ? { id: data.responsable.id, nom: `${data.responsable.prenom} ${data.responsable.nom}`.trim() }
+          : null,
         suivis: data.suivis.map((e: EtapeSuivi) => ({ ...e, createdAt: new Date(e.createdAt).toISOString() })),
       });
       void Toast.fire({ icon: "success", title: SUCCES[transition] });
@@ -110,7 +162,7 @@ export function FormulaireSuivi({
   if (!transition) {
     return (
       <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-5">
-        {resolue ? (
+        {statut === "resolue" ? (
           <Button variant="outline" size="sm" disabled={horsLigne} title={titreHorsLigne} onClick={() => ouvrir("rouvrir")}>
             Rouvrir l&apos;alerte
           </Button>
@@ -119,6 +171,11 @@ export function FormulaireSuivi({
             <Button variant="primary" size="sm" disabled={horsLigne} title={titreHorsLigne} onClick={() => ouvrir("suivre")}>
               Ajouter une action
             </Button>
+            {statut === "en_suivi" && autresCandidats.length > 0 && (
+              <Button variant="outline" size="sm" disabled={horsLigne} title={titreHorsLigne} onClick={() => ouvrir("confier")}>
+                {responsableActuel ? "Changer le responsable" : "Désigner un responsable"}
+              </Button>
+            )}
             <Button variant="outline" size="sm" disabled={horsLigne} title={titreHorsLigne} onClick={() => ouvrir("resoudre")}>
               Résoudre l&apos;alerte
             </Button>
@@ -128,6 +185,17 @@ export function FormulaireSuivi({
     );
   }
 
+  const choixResponsable = (liste: Candidat[], legende: string) => (
+    <div>
+      <label htmlFor={`${id}-responsable`} className="mb-1.5 block text-sm font-semibold text-ink">{legende}</label>
+      <select id={`${id}-responsable`} value={responsableId} onChange={(e) => setResponsableId(e.target.value)} className={champCls}>
+        {liste.map((c) => (
+          <option key={c.id} value={c.id}>{libelleCandidat(c, utilisateurId)}</option>
+        ))}
+      </select>
+    </div>
+  );
+
   return (
     <form
       onSubmit={enregistrer}
@@ -136,25 +204,17 @@ export function FormulaireSuivi({
       className="mt-5 space-y-4 border-t border-border pt-5"
       noValidate
     >
-      <h3 id={`${id}-titre`} className="font-semibold text-ink">{TITRES[transition]}</h3>
+      <h3 id={`${id}-titre`} className="font-semibold text-ink">
+        {transition === "confier" && !responsableActuel ? "Désigner un responsable" : TITRES[transition]}
+      </h3>
 
-      {transition !== "rouvrir" && (
+      {transition === "suivre" && (
         <fieldset>
           <legend className="mb-2 text-sm font-semibold text-ink">Action menée</legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {ACTIONS_SUIVI.map((a) => (
-              <label
-                key={a}
-                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm text-ink has-checked:border-brand-dark has-checked:bg-brand-light"
-              >
-                <input
-                  type="radio"
-                  name={`${id}-action`}
-                  value={a}
-                  checked={action === a}
-                  onChange={() => setAction(a)}
-                  className="h-4 w-4 accent-brand-dark"
-                />
+              <label key={a} className={choixCls}>
+                <input type="radio" name={`${id}-action`} value={a} checked={action === a} onChange={() => setAction(a)} className="h-4 w-4 accent-brand-dark" />
                 {LIBELLES_ACTION[a]}
               </label>
             ))}
@@ -162,9 +222,27 @@ export function FormulaireSuivi({
         </fieldset>
       )}
 
+      {transition === "resoudre" && (
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold text-ink">Motif de résolution</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {MOTIFS_CLOTURE.map((m) => (
+              <label key={m} className={choixCls}>
+                <input type="radio" name={`${id}-motif`} value={m} checked={motif === m} onChange={() => setMotif(m)} className="h-4 w-4 accent-brand-dark" />
+                {LIBELLES_MOTIF[m]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      {designer && candidats.length > 0 && choixResponsable(candidats, "Responsable du suivi")}
+      {transition === "confier" && choixResponsable(autresCandidats, "Confier le suivi à")}
+
       <div>
         <label htmlFor={`${id}-commentaire`} className="mb-1.5 block text-sm font-semibold text-ink">
           {transition === "resoudre" ? "Commentaire de clôture" : transition === "rouvrir" ? "Motif de la réouverture" : "Commentaire"}
+          {!commentaireObligatoire && <span className="font-normal text-ink-secondary"> (facultatif)</span>}
         </label>
         <textarea
           id={`${id}-commentaire`}
@@ -172,12 +250,12 @@ export function FormulaireSuivi({
           onChange={(e) => setCommentaire(e.target.value)}
           maxLength={COMMENTAIRE_MAX}
           rows={3}
-          required
+          required={commentaireObligatoire}
           aria-describedby={`${id}-aide`}
           className={champCls}
         />
         <p id={`${id}-aide`} className="mt-1 text-sm text-ink-secondary">
-          Obligatoire, {COMMENTAIRE_MIN} caractères au moins ({commentaire.trim().length}/{COMMENTAIRE_MAX}).
+          {commentaireObligatoire ? `Obligatoire, ${COMMENTAIRE_MIN} caractères au moins` : "Facultatif"} ({commentaire.trim().length}/{COMMENTAIRE_MAX}).
         </p>
       </div>
 

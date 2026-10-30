@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
 import { peutAccederEtudiant } from "@/lib/perimetre";
-import { inclureSuivis } from "@/lib/suivis-server";
+import { inclureSuivis, selectionResponsable } from "@/lib/suivis-server";
+import { nomComplet } from "@/lib/nom-utilisateur";
 import AdminStudentDetail from "./AdminStudentDetail";
 
 type PageProps = {
@@ -41,7 +42,9 @@ export default async function AdminStudentPage({ params }: PageProps) {
           statut: true,
           suiviDepuis: true,
           createdAt: true,
+          motifCloture: true,
           ...inclureSuivis,
+          ...selectionResponsable,
         },
         orderBy: { createdAt: "desc" },
       },
@@ -64,6 +67,7 @@ export default async function AdminStudentPage({ params }: PageProps) {
       createdAt: a.createdAt.toISOString(),
       suiviDepuis: a.suiviDepuis?.toISOString() ?? null,
       suivis: a.suivis.map((e) => ({ ...e, createdAt: e.createdAt.toISOString() })),
+      responsable: a.responsable ? { nom: nomComplet(a.responsable.prenom, a.responsable.nom) } : null,
     })),
     absences: etudiant.absences.map((a) => ({ ...a, date: a.date.toISOString() })),
   };

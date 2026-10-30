@@ -22,6 +22,7 @@ export function ZoneFiltresAlertes({
   filtres,
   taille,
   etablissements,
+  mesSuivis = false,
   children,
 }: {
   filtres: FiltresAlertes;
@@ -29,6 +30,8 @@ export function ZoneFiltresAlertes({
   taille: TaillePage;
   /** Liste des établissements : fournie uniquement pour l'admin */
   etablissements: { id: string; nom: string }[] | null;
+  /** Filtre « Mes suivis » : enseignant et directeur (l'admin n'est responsable d'aucun suivi) */
+  mesSuivis?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -184,6 +187,21 @@ export function ZoneFiltresAlertes({
               ))}
             </select>
           </div>
+
+          {mesSuivis && (
+            <div>
+              <label htmlFor={`${id}-suivi`} className={labelCls}>Responsable</label>
+              <select
+                id={`${id}-suivi`}
+                value={courants.suivi ?? ""}
+                onChange={(e) => appliquer({ suivi: e.target.value === "moi" ? "moi" : undefined })}
+                className={champCls}
+              >
+                <option value="">Tous les suivis</option>
+                <option value="moi">Mes suivis</option>
+              </select>
+            </div>
+          )}
 
           {etablissements && (
             <div>

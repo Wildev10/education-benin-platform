@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { Badge, riskVariant, statusVariant } from "@/components/ui/Badge";
 import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
 import { HistoriqueSuivi } from "@/components/alertes/HistoriqueSuivi";
+import { ResponsableEtMotif } from "@/components/alertes/ResponsableEtMotif";
 import { AccordeonTrimestres } from "@/components/notes/AccordeonTrimestres";
 import { SqueletteGraphiqueLigne } from "@/components/ui/Squelette";
 import { BlocAnnee } from "@/components/notes/BlocAnnee";
@@ -50,6 +51,8 @@ type Alerte = {
   suiviDepuis: string | null;
   createdAt: string;
   suivis: EtapeSuivi[];
+  motifCloture: string | null;
+  responsable: { nom: string } | null;
 };
 
 type Absence = {
@@ -292,7 +295,8 @@ export default function AdminStudentDetail({ student, enCours }: { student: Stud
             {alerts.map((alert) => (
               <article
                 key={alert.id}
-                className="rounded-2xl border border-border bg-surface p-5 shadow-sm"
+                id={`alerte-${alert.id}`}
+                className="scroll-mt-24 rounded-2xl border border-border bg-surface p-5 shadow-sm"
               >
                 <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                   <div className="flex flex-wrap items-center gap-3">
@@ -342,6 +346,7 @@ export default function AdminStudentDetail({ student, enCours }: { student: Stud
                     <dd className="mt-1 font-semibold text-ink">{libellePeriode(alert.periode, alert.anneeScolaire)}</dd>
                   </div>
                 </dl>
+                <ResponsableEtMotif alerte={alert} />
                 <HistoriqueSuivi etapes={alert.suivis} />
               </article>
             ))}

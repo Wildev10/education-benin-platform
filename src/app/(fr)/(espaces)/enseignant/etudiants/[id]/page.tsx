@@ -4,7 +4,9 @@ import { auth } from "@/auth";
 import { ExportExcelButton, ExportPdfButton } from "@/components/ExportPdfButton";
 import { peutAccederEtudiant, peutSupprimerAbsence, peutTraiterAlertes } from "@/lib/perimetre";
 import { periodeScolaireAuBenin } from "@/lib/annee-scolaire";
-import { inclureSuivis } from "@/lib/suivis-server";
+import { inclureSuivis, selectionResponsable } from "@/lib/suivis-server";
+import { candidatsResponsables } from "@/lib/responsables-server";
+import { nomComplet } from "@/lib/nom-utilisateur";
 import StudentDetail from "./StudentDetail";
 
 export default async function EtudiantPage({
@@ -22,12 +24,15 @@ export default async function EtudiantPage({
       etablissement: true,
       notes: { orderBy: { createdAt: "desc" } },
       absences: { orderBy: { date: "desc" } },
-      alertes: { orderBy: { createdAt: "desc" }, include: inclureSuivis },
+      alertes: { orderBy: { createdAt: "desc" }, include: { ...inclureSuivis, ...selectionResponsable } },
     },
   });
 
   // Élève d'un autre établissement : même page que s'il n'existait pas
   if (!etudiant || !peutAccederEtudiant(session.user, etudiant)) notFound();
+
+  // Responsables possibles, seulement pour qui peut suivre les alertes
+  const candidats = peutTraiterAlertes(session.user.role) ? await candidatsResponsables(etudiant.etablissementId) : [];
 
   // Calculée ici (heure du Bénin) plutôt que dans le navigateur : même rendu des deux côtés
   const { anneeScolaire, periode: periodeParDefaut } = periodeScolaireAuBenin(new Date());
@@ -88,7 +93,11 @@ export default async function EtudiantPage({
           ecartPourcent: a.ecartPourcent,
           createdAt: a.createdAt.toISOString(),
           suivis: a.suivis.map((e) => ({ ...e, createdAt: e.createdAt.toISOString() })),
+          motifCloture: a.motifCloture,
+          responsable: a.responsable ? { id: a.responsable.id, nom: nomComplet(a.responsable.prenom, a.responsable.nom) } : null,
         }))}
+        candidats={candidats}
+        utilisateurId={session.user.id}
       />
     </main>
   );

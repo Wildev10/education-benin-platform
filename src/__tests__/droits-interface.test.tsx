@@ -17,7 +17,8 @@ vi.mock("next/navigation", () => ({
     throw new Error(`redirect:${url}`);
   },
 }));
-const prismaMock = { etudiant: { findUnique: vi.fn() } };
+// user.findMany : candidats responsables de la fiche
+const prismaMock = { etudiant: { findUnique: vi.fn() }, user: { findMany: vi.fn().mockResolvedValue([]) } };
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/components/ExportPdfButton", () => ({ ExportPdfButton: () => null, ExportExcelButton: () => null }));
 

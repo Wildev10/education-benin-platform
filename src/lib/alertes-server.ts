@@ -21,6 +21,8 @@ const selectionAlerte = {
   resolueLe: true,
   // Dernière étape du suivi : affichée dans les listes et les exports
   suivis: { select: { action: true, auteurNom: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 1 },
+  motifCloture: true,
+  responsable: { select: { id: true, nom: true, prenom: true } },
   etudiant: {
     select: {
       id: true,

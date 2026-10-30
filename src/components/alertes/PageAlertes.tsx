@@ -18,6 +18,8 @@ import { lirePagination } from "@/lib/pagination";
 import { corrigerUrlPagination } from "@/lib/pagination-serveur";
 import { peutTraiterAlertes } from "@/lib/perimetre";
 import { LIBELLES_ACTION } from "@/lib/suivi-alertes";
+import { nomComplet } from "@/lib/nom-utilisateur";
+import { ResponsableEtMotif } from "./ResponsableEtMotif";
 import { ZoneFiltresAlertes } from "./ZoneFiltresAlertes";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -117,20 +119,24 @@ function CarteAlerte({
   );
 }
 
-/** Dernière action du suivi, ou « aucune action » pour une alerte nouvelle. */
+/** Responsable (ou motif de clôture) et dernière action du suivi, ou « aucune action » pour une alerte nouvelle. */
 function DerniereEtape({ alerte }: { alerte: AlerteFiltree }) {
   const derniere = alerte.suivis[0];
+  const responsable = alerte.responsable ? { nom: nomComplet(alerte.responsable.prenom, alerte.responsable.nom) } : null;
   return (
-    <p data-derniere-etape className="mt-4 text-sm text-ink-secondary">
-      {derniere ? (
-        <>
-          Dernière action : <span className="font-semibold text-ink">{LIBELLES_ACTION[derniere.action] ?? derniere.action}</span>,{" "}
-          le <time dateTime={derniere.createdAt.toISOString()}>{formaterDate(derniere.createdAt)}</time> ({derniere.auteurNom})
-        </>
-      ) : (
-        "Aucune action de suivi pour l'instant."
-      )}
-    </p>
+    <>
+      <ResponsableEtMotif alerte={{ ...alerte, responsable }} />
+      <p data-derniere-etape className="mt-4 text-sm text-ink-secondary">
+        {derniere ? (
+          <>
+            Dernière action : <span className="font-semibold text-ink">{LIBELLES_ACTION[derniere.action] ?? derniere.action}</span>,{" "}
+            le <time dateTime={derniere.createdAt.toISOString()}>{formaterDate(derniere.createdAt)}</time> ({derniere.auteurNom})
+          </>
+        ) : (
+          "Aucune action de suivi pour l'instant."
+        )}
+      </p>
+    </>
   );
 }
 
@@ -187,7 +193,7 @@ export async function PageAlertes({ chemin, searchParams }: { chemin: string; se
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
       {entete}
       <div className="mt-8">
-        <ZoneFiltresAlertes filtres={filtres} taille={resultat.taille} etablissements={etablissements}>
+        <ZoneFiltresAlertes filtres={filtres} taille={resultat.taille} etablissements={etablissements} mesSuivis={peutTraiter}>
           <p role="status" className="text-sm font-semibold text-ink-secondary">
             <span className="text-ink">{total}</span> alerte{total > 1 ? "s" : ""}
           </p>

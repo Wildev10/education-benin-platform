@@ -116,7 +116,9 @@ describe.each(Object.keys(DATES))("Données de démo, lancées en %s", (nom) => 
       const a = alertes.get(e.alerteId)!;
       expect(e.createdAt.getTime()).toBeGreaterThan(a.createdAt.getTime());
       expect(e.createdAt.getTime()).toBeLessThan(date.getTime());
-      expect(e.commentaire.length).toBeGreaterThanOrEqual(10);
+      // Commentaire obligatoire, sauf résolution (motif) et désignation du responsable
+      if (e.action === "resolution") expect(e.motifCloture).not.toBeNull();
+      else if (e.action !== "confie") expect(e.commentaire.length).toBeGreaterThanOrEqual(10);
     }
     for (const a of d.alertes) {
       const etapes = d.suivis.filter((e) => e.alerteId === a.id);
@@ -143,9 +145,24 @@ describe.each(Object.keys(DATES))("Données de démo, lancées en %s", (nom) => 
       expect(etapesDe(cle).every((e) => e.auteur === "enseignant" || e.auteur === "directeur")).toBe(true);
     }
     for (const cle of ["baisse", "aggravation"] as const) {
-      expect(alerteDe(cle)).toMatchObject({ statut: "active", suiviDepuis: null });
+      expect(alerteDe(cle)).toMatchObject({ statut: "active", suiviDepuis: null, responsable: null });
       expect(etapesDe(cle)).toEqual([]);
     }
+  });
+
+  it("responsables : Rodrigue suivi par l'enseignant ; Inoussa confié par la directrice à l'enseignant ; ailleurs, à désigner", () => {
+    const alerteDe = (cle: keyof typeof CAS) => d.alertes.find((a) => a.etudiantId === d.cas[cle].id)!;
+    const recente = (cle: keyof typeof CAS) => date.getTime() - alerteDe(cle).createdAt.getTime() < 25 * 60 * 60 * 1000;
+    if (!recente("chute")) expect(alerteDe("chute").responsable).toBe("enseignant");
+    if (!recente("absences")) {
+      expect(alerteDe("absences").responsable).toBe("enseignant");
+      const confie = d.suivis.find((e) => e.alerteId === alerteDe("absences").id && e.action === "confie")!;
+      expect(confie).toMatchObject({ auteur: "directeur", responsable: "enseignant", responsableNom: "Fulbert Gbaguidi" });
+      expect(alerteDe("absences").responsableDepuis).toEqual(confie.createdAt);
+    }
+    const autres = d.alertes.filter((a) => d.etudiants.find((e) => e.id === a.etudiantId)!.etablissementId !== demoId(d));
+    expect(autres.every((a) => a.responsable === null)).toBe(true);
+    for (const a of d.alertes.filter((x) => x.statut === "traitee")) expect(a.motifCloture).not.toBeNull();
   });
 
   it("Sèna Dossou : une note ne change rien, la deuxième fait passer l'alerte de Moyen à Élevé", () => {

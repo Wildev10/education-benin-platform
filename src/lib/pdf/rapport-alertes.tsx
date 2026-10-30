@@ -1,6 +1,7 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { EntetePdf, PiedPagePdf, couleurs, formatBaisse, formatNote, ligneStyle, styles } from "@/lib/pdf/commun";
 import { libellePeriode } from "@/lib/notes-trimestres";
+import { nomComplet } from "@/lib/nom-utilisateur";
 
 export type AlerteRapport = {
   type: string;
@@ -10,6 +11,8 @@ export type AlerteRapport = {
   anneeScolaire?: string | null;
   moyenneApres: number;
   ecartPourcent: number;
+  /** Responsable du suivi (null : à désigner) */
+  responsable?: { nom: string; prenom: string } | null;
   etudiant: {
     nom: string;
     prenom: string;
@@ -116,6 +119,11 @@ export function RapportAlertesPdf({
                       {a.etudiant.prenom} {a.etudiant.nom}
                     </Text>
                     <Text style={[styles.gris, { fontSize: 8, marginTop: 1 }]}>{a.etudiant.niveau}</Text>
+                    {a.responsable && (
+                      <Text style={[styles.gris, { fontSize: 8, marginTop: 1 }]}>
+                        Suivi : {nomComplet(a.responsable.prenom, a.responsable.nom)}
+                      </Text>
+                    )}
                   </View>
                   <Text style={[styles.cellule, { width: COLONNES[1].width }]}>{etablissement.nom}</Text>
                   <Text

@@ -2,6 +2,7 @@ import type { Alerte } from "@/generated/prisma/client";
 import type { AlerteSaisie } from "@/lib/message-saisie";
 import { prisma } from "@/lib/prisma";
 import { comparerMoyennes, compterAbsencesRecentes, estAggravation } from "@/lib/regles-alerte";
+import { nomComplet } from "@/lib/nom-utilisateur";
 import { etapeAggravation, statutSuivi } from "@/lib/suivi-alertes";
 
 // Règles pures, réexportées pour les appels existants
@@ -73,14 +74,18 @@ async function enregistrer(etudiantId: string, constat: Constat, simulation: boo
       OR: [{ anneeScolaire: constat.anneeScolaire }, { anneeScolaire: null }],
     },
     orderBy: { createdAt: "desc" },
+    include: { responsable: { select: { nom: true, prenom: true } } },
   });
 
   if (existante) {
     if (!estAggravation(existante, constat.niveauRisque)) return null;
-    // Résolue : rouverte en Nouvelle. En cours de suivi : le suivi continue.
+    // Résolue : rouverte En cours de suivi avec son responsable (prévenu par la
+    // cloche), ou en Nouvelle sans responsable. En cours de suivi : le suivi continue.
     // L'étape est écrite dans la même requête que la mise à jour.
     const rouverte = existante.statut !== "active";
-    const etape = etapeAggravation(statutSuivi(existante), existante.niveauRisque, constat.niveauRisque);
+    const responsableNom = existante.responsable ? nomComplet(existante.responsable.prenom, existante.responsable.nom) : null;
+    const etape = etapeAggravation(statutSuivi(existante), existante.niveauRisque, constat.niveauRisque, responsableNom);
+    const maintenant = new Date();
     const alerte = simulation
       ? undefined
       : await prisma.alerte.update({
@@ -90,8 +95,8 @@ async function enregistrer(etudiantId: string, constat: Constat, simulation: boo
             moyenneApres: constat.moyenneApres,
             ecartPourcent: constat.ecartPourcent,
             statut: "active",
-            niveauModifieLe: new Date(),
-            ...(rouverte ? { suiviDepuis: null, resolueLe: null } : {}),
+            niveauModifieLe: maintenant,
+            ...(rouverte ? { suiviDepuis: responsableNom ? maintenant : null, resolueLe: null, motifCloture: null } : {}),
             suivis: { create: etape },
           },
         });

@@ -4,6 +4,7 @@ import {
   FORMAT_NOTE,
   FORMAT_POURCENT,
   LIBELLES_NIVEAU,
+  libelleMotifExport,
   libelleStatut,
   LIBELLES_TYPE,
   ajouterLigne,
@@ -15,6 +16,7 @@ import {
   styliserTotal,
 } from "./commun";
 import { LIBELLES_ACTION } from "@/lib/suivi-alertes";
+import { nomComplet } from "@/lib/nom-utilisateur";
 
 export type AlerteExcel = {
   type: string;
@@ -23,6 +25,8 @@ export type AlerteExcel = {
   suiviDepuis?: Date | null;
   /** Dernière étape du suivi (au plus une) */
   suivis?: { action: string; createdAt: Date }[];
+  motifCloture?: string | null;
+  responsable?: { nom: string; prenom: string } | null;
   periode: string;
   /** Absente des anciennes alertes */
   anneeScolaire?: string | null;
@@ -70,6 +74,8 @@ export function classeurAlertes({
       { titre: "Niveau", cle: "niveau", largeur: 10 },
       { titre: "Statut", cle: "statut", largeur: 18 },
       { titre: "Dernière action", cle: "derniereAction", largeur: 24 },
+      { titre: "Responsable", cle: "responsable", largeur: 22 },
+      { titre: "Motif de clôture", cle: "motif", largeur: 26 },
       { titre: "Période", cle: "periode", largeur: 22 },
       { titre: "Moyenne avant", cle: "avant", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
       { titre: "Moyenne après", cle: "apres", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
@@ -92,6 +98,8 @@ export function classeurAlertes({
         niveau: LIBELLES_NIVEAU[a.niveauRisque] ?? a.niveauRisque,
         statut: libelleStatut(a),
         derniereAction: a.suivis?.[0] ? LIBELLES_ACTION[a.suivis[0].action] ?? a.suivis[0].action : "",
+        responsable: a.responsable ? nomComplet(a.responsable.prenom, a.responsable.nom) : "",
+        motif: libelleMotifExport(a),
         periode: libellePeriode(a.periode, a.anneeScolaire),
         avant: absence ? null : arrondi2(a.moyenneAvant),
         apres: absence ? null : arrondi2(a.moyenneApres),

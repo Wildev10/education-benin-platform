@@ -32,6 +32,8 @@ export type FiltresAlertes = {
   etablissement?: string;
   /** Recherche sur le nom ou le prénom de l'élève */
   q?: string;
+  /** « moi » : alertes dont l'utilisateur est responsable (enseignant, directeur) */
+  suivi?: "moi";
 };
 
 export const STATUT_PAR_DEFAUT: FiltreStatut = "active";
@@ -76,6 +78,7 @@ export function lireFiltres(params: ParamsEntree): FiltresAlertes {
     au: dateValide(lire(params, "au")),
     etablissement: lire(params, "etablissement"),
     q,
+    suivi: lire(params, "suivi") === "moi" ? "moi" : undefined,
   };
 }
 
@@ -89,6 +92,7 @@ export function filtresVersParams(filtres: FiltresAlertes): URLSearchParams {
   if (filtres.au) params.set("au", filtres.au);
   if (filtres.etablissement) params.set("etablissement", filtres.etablissement);
   if (filtres.q) params.set("q", filtres.q);
+  if (filtres.suivi) params.set("suivi", filtres.suivi);
   return params;
 }
 
@@ -104,7 +108,7 @@ export function periodeIncoherente(filtres: FiltresAlertes): boolean {
 
 export type PorteeAlertes =
   | { type: "toutes" }
-  | { type: "etablissement"; etablissementId: string }
+  | { type: "etablissement"; etablissementId: string; utilisateurId?: string }
   | { type: "aucune" };
 
 /**
@@ -112,10 +116,10 @@ export type PorteeAlertes =
  * l'admin voit tout, directeur et enseignant uniquement leur établissement,
  * et personne d'autre ne voit rien (y compris un directeur sans établissement).
  */
-export function porteeAlertes(user: { role: string; etablissementId: string | null }): PorteeAlertes {
+export function porteeAlertes(user: { id?: string; role: string; etablissementId: string | null }): PorteeAlertes {
   if (user.role === "admin") return { type: "toutes" };
   if ((user.role === "directeur" || user.role === "enseignant") && user.etablissementId) {
-    return { type: "etablissement", etablissementId: user.etablissementId };
+    return { type: "etablissement", etablissementId: user.etablissementId, ...(user.id ? { utilisateurId: user.id } : {}) };
   }
   return { type: "aucune" };
 }
@@ -132,8 +136,11 @@ export function construireWhereAlertes(
   portee: PorteeAlertes
 ): Prisma.AlerteWhereInput | null {
   if (portee.type === "aucune") return null;
+  // « Mes suivis » : réservé à qui peut être responsable (l'admin n'en a aucun)
+  if (filtres.suivi === "moi" && (portee.type !== "etablissement" || !portee.utilisateurId)) return null;
 
   const where: Prisma.AlerteWhereInput = {};
+  if (filtres.suivi === "moi" && portee.type === "etablissement") where.responsableId = portee.utilisateurId;
   const etudiant: Prisma.EtudiantWhereInput = {};
 
   if (filtres.statut === "nouvelle") Object.assign(where, { statut: "active", suiviDepuis: null });
@@ -193,6 +200,7 @@ export function decrireFiltres(filtres: FiltresAlertes, nomEtablissement?: strin
   if (filtres.du && filtres.au) lignes.push(`Du ${formaterJour(filtres.du)} au ${formaterJour(filtres.au)}`);
   else if (filtres.du) lignes.push(`Depuis le ${formaterJour(filtres.du)}`);
   else if (filtres.au) lignes.push(`Jusqu'au ${formaterJour(filtres.au)}`);
+  if (filtres.suivi === "moi") lignes.push("Mes suivis");
   if (nomEtablissement) lignes.push(nomEtablissement);
   if (filtres.q) lignes.push(`Recherche « ${filtres.q} »`);
   return lignes;

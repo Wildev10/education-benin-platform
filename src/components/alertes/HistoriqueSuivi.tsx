@@ -1,5 +1,5 @@
 import { FUSEAU_BENIN } from "@/lib/dates";
-import { LIBELLES_ACTION, LIBELLES_STATUT_SUIVI, type EtapeSuivi, type StatutSuivi } from "@/lib/suivi-alertes";
+import { LIBELLES_ACTION, LIBELLES_MOTIF, LIBELLES_STATUT_SUIVI, type EtapeSuivi, type StatutSuivi } from "@/lib/suivi-alertes";
 
 const dateHeure = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -25,6 +25,8 @@ export function HistoriqueSuivi({ etapes }: { etapes: EtapeSuivi[] }) {
           <li key={etape.id} data-etape={etape.action}>
             <p className="font-semibold text-ink">
               {LIBELLES_ACTION[etape.action] ?? etape.action}
+              {etape.motifCloture && <> : {LIBELLES_MOTIF[etape.motifCloture] ?? etape.motifCloture}</>}
+              {etape.responsableNom && <> {etape.action === "confie" ? "à" : "· responsable :"} {etape.responsableNom}</>}
               {etape.statutAvant !== etape.statutApres && (
                 <span className="font-normal text-ink-secondary">
                   {" "}· {libelleStatut(etape.statutAvant)}
@@ -37,7 +39,7 @@ export function HistoriqueSuivi({ etapes }: { etapes: EtapeSuivi[] }) {
             <p className="text-sm text-ink-secondary">
               {etape.auteurNom} · <time dateTime={etape.createdAt}>{dateHeure.format(new Date(etape.createdAt))}</time>
             </p>
-            <p className="mt-1 whitespace-pre-line break-words text-sm text-ink">{etape.commentaire}</p>
+            {etape.commentaire && <p className="mt-1 whitespace-pre-line break-words text-sm text-ink">{etape.commentaire}</p>}
           </li>
         ))}
       </ol>

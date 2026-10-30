@@ -229,6 +229,20 @@ export default function AdminDashboard({
               </dd>
             </div>
           </dl>
+          <div data-motifs-cloture className="mt-4 border-t border-border pt-3">
+            <h4 className="text-sm font-semibold text-ink">Motifs de clôture cette année</h4>
+            {pilotage.motifs.length === 0 ? (
+              <p className="mt-1 text-sm text-ink-secondary">Aucune alerte résolue cette année.</p>
+            ) : (
+              <ul className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-secondary">
+                {pilotage.motifs.map((m) => (
+                  <li key={m.motif}>
+                    {m.libelle} : <span className="font-semibold tabular-nums text-ink">{m.total}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
         {alerts.length === 0 ? (

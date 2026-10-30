@@ -17,6 +17,7 @@ import { periodeScolaireDuJour } from "@/lib/annee-scolaire";
 import { messageSaisie, type AlerteSaisie, type MessageSaisie } from "@/lib/message-saisie";
 import { comparerMoyennes } from "@/lib/regles-alerte";
 import { matieresDuNiveau } from "@/lib/programme";
+import type { Candidat } from "@/components/alertes/FormulaireSuivi";
 import AlertesEleve, { type AlerteEleve } from "./AlertesEleve";
 
 type Note = {
@@ -67,11 +68,13 @@ function fusionnerAlerte(alertes: AlerteEleve[], alerte: AlerteSaisie): AlerteEl
     ecartPourcent: alerte.ecartPourcent,
     createdAt: alerte.createdAt,
     suivis: [],
+    motifCloture: null,
+    responsable: null,
   };
   // Aggravation : l'historique déjà affiché est gardé (l'étape écrite par la
   // détection apparaît au prochain chargement de la fiche)
   return alertes.some((a) => a.id === alerte.id)
-    ? alertes.map((a) => (a.id === alerte.id ? { ...ligne, suivis: a.suivis } : a))
+    ? alertes.map((a) => (a.id === alerte.id ? { ...ligne, suivis: a.suivis, responsable: a.responsable } : a))
     : [ligne, ...alertes];
 }
 
@@ -110,6 +113,8 @@ export default function StudentDetail({
   periodeParDefaut,
   peutSupprimerAbsence = false,
   peutTraiter = false,
+  candidats = [],
+  utilisateurId,
 }: {
   etudiantId: string;
   /** Classe de l'élève : la saisie ne propose que ses matières */
@@ -125,6 +130,9 @@ export default function StudentDetail({
   peutSupprimerAbsence?: boolean;
   /** Suivi des alertes : enseignant et directeur (même règle que POST /api/alertes/[id]/suivis). */
   peutTraiter?: boolean;
+  /** Responsables possibles des alertes (enseignants et directeur de l'établissement) */
+  candidats?: Candidat[];
+  utilisateurId?: string;
 }) {
   const horsLigne = useHorsLigne();
   const [notes, setNotes] = useState(initialNotes);
@@ -565,6 +573,8 @@ export default function StudentDetail({
         notes={notes}
         absences={absences}
         periodeEnCours={{ anneeScolaire, periode: periodeParDefaut }}
+        candidats={candidats}
+        utilisateurId={utilisateurId}
         onMiseAJour={(maj) => setAlertes((courantes) => courantes.map((a) => (a.id === maj.id ? maj : a)))}
       />
     </div>

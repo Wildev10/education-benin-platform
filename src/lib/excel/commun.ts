@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { dateIso, formatDateHeure } from "@/lib/pdf/commun";
 import { jourAuBenin } from "@/lib/dates";
+import { LIBELLE_MOTIF_ABSENT, LIBELLES_MOTIF } from "@/lib/suivi-alertes";
 
 /** Format numérique à 2 décimales : Excel l'affiche avec la virgule en français. */
 export const FORMAT_NOTE = "0.00";
@@ -21,6 +22,12 @@ export const LIBELLES_NIVEAU: Record<string, string> = { eleve: "Élevé", moyen
 export const LIBELLES_TYPE: Record<string, string> = { baisse_moyenne: "Notes", absences: "Absences" };
 // Statut de suivi (Nouvelle, En cours de suivi, Résolue) : libelleStatut de src/lib/suivi-alertes.ts
 export { libelleStatut } from "@/lib/suivi-alertes";
+
+/** Motif de clôture d'une alerte résolue ; vide pour une alerte ouverte. */
+export function libelleMotifExport(a: { statut: string; motifCloture?: string | null }): string {
+  if (a.statut !== "traitee") return "";
+  return a.motifCloture ? LIBELLES_MOTIF[a.motifCloture] ?? a.motifCloture : LIBELLE_MOTIF_ABSENT;
+}
 
 export type Colonne = {
   titre: string;

@@ -4,8 +4,11 @@ export const FENETRE_NOTIFICATIONS_MS = FENETRE_NOTIFICATIONS_JOURS * 24 * 60 * 
 /** Nombre d'alertes renvoyées à la cloche (les plus récentes). */
 export const MAX_NOTIFICATIONS = 20;
 
-/** Ce qui a déclenché la notification : une alerte créée, ou une alerte aggravée. */
-export type EvenementAlerte = "creee" | "aggravee";
+/**
+ * Ce qui a déclenché la notification : une alerte créée, aggravée, ou dont le
+ * suivi vient d'être confié à l'utilisateur par quelqu'un d'autre.
+ */
+export type EvenementAlerte = "creee" | "aggravee" | "confiee";
 
 export type NotificationAlerte = {
   id: string;
@@ -16,10 +19,14 @@ export type NotificationAlerte = {
   anneeScolaire: string | null;
   createdAt: string;
   evenement: EvenementAlerte;
-  /** Date de l'événement : création, ou aggravation */
+  /** Date de l'événement : création, aggravation ou désignation */
   date: string;
   /** Niveau avant l'aggravation (« moyen ») ; absent pour une création */
   niveauPrecedent?: string;
+  /** Suivi confié : la personne qui l'a confié */
+  confiePar?: string;
+  /** L'utilisateur est le responsable du suivi de cette alerte */
+  votreSuivi?: boolean;
   etudiant: { id: string; nom: string; prenom: string; niveau: string };
   etablissement: { id: string; nom: string };
 };

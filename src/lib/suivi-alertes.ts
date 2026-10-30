@@ -44,29 +44,52 @@ export const LIBELLES_ACTION: Record<string, string> = {
   parents_convoques: "Parents convoqués",
   soutien_scolaire: "Soutien scolaire",
   autre: "Autre action",
+  resolution: "Résolution",
+  confie: "Suivi confié",
   reouverture: "Réouverture",
-  // Étapes écrites par la détection (src/lib/detection-alerte.ts), sans auteur
+  // Étapes écrites par le système, sans auteur : détection (src/lib/detection-alerte.ts)
+  // et changement d'établissement d'un responsable (src/lib/responsables-server.ts)
   aggravation: "Aggravation détectée",
   reouverture_auto: "Réouverture automatique",
+  retrait_responsable: "Responsable retiré",
 };
 
-/** Auteur affiché des étapes écrites par la détection. */
-export const AUTEUR_SYSTEME = "Système (détection automatique)";
+/** Motifs de résolution, choisis en un clic ; commentaire obligatoire pour « autre » seulement. */
+export const MOTIFS_CLOTURE = ["situation_retablie", "suivi_externe", "erreur_saisie", "autre"] as const;
+export type MotifCloture = (typeof MOTIFS_CLOTURE)[number];
 
-/** Étape écrite par la détection quand une alerte existante s'aggrave (Moyen → Élevé). */
+export const LIBELLES_MOTIF: Record<string, string> = {
+  situation_retablie: "Situation rétablie",
+  suivi_externe: "Suivi fait en dehors de la plateforme",
+  erreur_saisie: "Erreur de saisie",
+  autre: "Autre",
+};
+
+/** Résolutions antérieures aux motifs : comptées à part dans le pilotage. */
+export const LIBELLE_MOTIF_ABSENT = "Motif non renseigné";
+
+/** Auteur affiché des étapes écrites par le système (détection, changement d'établissement). */
+export const AUTEUR_SYSTEME = "Système";
+
+/**
+ * Étape écrite par la détection quand une alerte existante s'aggrave (Moyen → Élevé).
+ * Résolue : rouverte En cours de suivi avec son responsable s'il y en a un, sinon Nouvelle.
+ */
 export function etapeAggravation(
   statutAvant: StatutSuivi,
   niveauPrecedent: string,
-  niveau: string
+  niveau: string,
+  responsableNom: string | null = null
 ): { auteurNom: string; action: string; commentaire: string; statutAvant: StatutSuivi; statutApres: StatutSuivi } {
   const libelle = (n: string) => (n === "eleve" ? "Élevé" : "Moyen");
   const rouverte = statutAvant === "resolue";
+  const reprise = rouverte && responsableNom ? ` L'alerte résolue est rouverte, suivi repris par ${responsableNom}.` : rouverte ? " L'alerte résolue est rouverte." : "";
   return {
     auteurNom: AUTEUR_SYSTEME,
     action: rouverte ? "reouverture_auto" : "aggravation",
-    commentaire: `Risque ${libelle(niveauPrecedent)} → ${libelle(niveau)}.${rouverte ? " L'alerte résolue est rouverte." : ""}`,
+    commentaire: `Risque ${libelle(niveauPrecedent)} → ${libelle(niveau)}.${reprise}`,
     statutAvant,
-    statutApres: rouverte ? "nouvelle" : statutAvant,
+    statutApres: rouverte ? (responsableNom ? "en_suivi" : "nouvelle") : statutAvant,
   };
 }
 
@@ -79,58 +102,111 @@ export type EtapeSuivi = {
   statutAvant: string;
   statutApres: string;
   createdAt: string;
+  /** Résolution : motif choisi */
+  motifCloture: string | null;
+  /** Désignation : personne à qui le suivi est confié */
+  responsableNom: string | null;
 };
 
 /**
- * - suivre : Nouvelle ou En cours → En cours (ajoute une action) ;
- * - resoudre : Nouvelle ou En cours → Résolue ;
- * - rouvrir : Résolue → En cours (l'action enregistrée est « reouverture »).
+ * - suivre : Nouvelle ou En cours → En cours (ajoute une action, désigne le responsable s'il n'y en a pas) ;
+ * - resoudre : Nouvelle ou En cours → Résolue, avec un motif (sans action ni responsable) ;
+ * - rouvrir : Résolue → En cours (l'action enregistrée est « reouverture ») ;
+ * - confier : En cours → En cours, avec un autre responsable.
  */
-export type Transition = "suivre" | "resoudre" | "rouvrir";
-export const TRANSITIONS: Transition[] = ["suivre", "resoudre", "rouvrir"];
+export type Transition = "suivre" | "resoudre" | "rouvrir" | "confier";
+export const TRANSITIONS: Transition[] = ["suivre", "resoudre", "rouvrir", "confier"];
 
 export function statutApres(avant: StatutSuivi, transition: Transition): StatutSuivi | null {
   if (transition === "rouvrir") return avant === "resolue" ? "en_suivi" : null;
+  if (transition === "confier") return avant === "en_suivi" ? "en_suivi" : null;
   if (avant === "resolue") return null;
   return transition === "suivre" ? "en_suivi" : "resolue";
+}
+
+/**
+ * Responsable après l'étape : suivre et rouvrir gardent celui de l'alerte (ou
+ * désignent celui choisi, par défaut l'auteur) ; confier prend celui choisi ;
+ * resoudre ne change rien.
+ */
+export function responsableApres(
+  transition: Transition,
+  choisi: string | null,
+  actuel: string | null,
+  auteurId: string
+): string | null {
+  if (transition === "resoudre") return actuel;
+  if (transition === "confier") return choisi;
+  return choisi ?? actuel ?? auteurId;
 }
 
 export const COMMENTAIRE_MIN = 10;
 export const COMMENTAIRE_MAX = 1000;
 
-export type SaisieSuivi = { transition: Transition; action: string; commentaire: string };
+export type SaisieSuivi = {
+  transition: Transition;
+  action: string;
+  /** Chaîne vide quand le commentaire est facultatif et absent */
+  commentaire: string;
+  motifCloture: MotifCloture | null;
+  /** Responsable choisi (suivre, confier) ; null : par défaut */
+  responsableId: string | null;
+};
 
-/** Corps de POST /api/alertes/[id]/suivis : action et commentaire obligatoires. */
+const ERREUR_COMMENTAIRE = `Le commentaire est obligatoire (${COMMENTAIRE_MIN} caractères au moins).`;
+
+/**
+ * Corps de POST /api/alertes/[id]/suivis :
+ * - suivre : action et commentaire obligatoires, responsable facultatif ;
+ * - resoudre : motif obligatoire, commentaire facultatif sauf pour « autre » ;
+ * - rouvrir : commentaire obligatoire ;
+ * - confier : responsable obligatoire, commentaire facultatif.
+ */
 export function validerSaisieSuivi(corps: unknown): { ok: true; saisie: SaisieSuivi } | { ok: false; erreur: string } {
-  const { transition, action, commentaire } = (corps ?? {}) as Record<string, unknown>;
+  const { transition, action, commentaire, motifCloture, responsableId } = (corps ?? {}) as Record<string, unknown>;
   if (typeof transition !== "string" || !TRANSITIONS.includes(transition as Transition)) {
-    return { ok: false, erreur: "Étape inconnue : suivre, resoudre ou rouvrir." };
+    return { ok: false, erreur: "Étape inconnue : suivre, resoudre, rouvrir ou confier." };
   }
   const texte = typeof commentaire === "string" ? commentaire.trim() : "";
-  if (texte.length < COMMENTAIRE_MIN) {
-    return { ok: false, erreur: `Le commentaire est obligatoire (${COMMENTAIRE_MIN} caractères au moins).` };
-  }
   if (texte.length > COMMENTAIRE_MAX) {
     return { ok: false, erreur: `Le commentaire ne peut pas dépasser ${COMMENTAIRE_MAX} caractères.` };
   }
+  const responsable = typeof responsableId === "string" && responsableId.trim() ? responsableId.trim() : null;
+  const saisie = (s: Omit<SaisieSuivi, "transition">) => ({ ok: true as const, saisie: { transition: transition as Transition, ...s } });
+
+  if (transition === "resoudre") {
+    if (typeof motifCloture !== "string" || !MOTIFS_CLOTURE.includes(motifCloture as MotifCloture)) {
+      return { ok: false, erreur: "Choisissez le motif de résolution." };
+    }
+    if (motifCloture === "autre" && texte.length < COMMENTAIRE_MIN) {
+      return { ok: false, erreur: `Pour le motif « Autre », le commentaire est obligatoire (${COMMENTAIRE_MIN} caractères au moins).` };
+    }
+    return saisie({ action: "resolution", commentaire: texte, motifCloture: motifCloture as MotifCloture, responsableId: null });
+  }
+  if (transition === "confier") {
+    if (!responsable) return { ok: false, erreur: "Choisissez la personne à qui confier le suivi." };
+    return saisie({ action: "confie", commentaire: texte, motifCloture: null, responsableId: responsable });
+  }
+  if (texte.length < COMMENTAIRE_MIN) return { ok: false, erreur: ERREUR_COMMENTAIRE };
   if (transition === "rouvrir") {
-    return { ok: true, saisie: { transition, action: "reouverture", commentaire: texte } };
+    return saisie({ action: "reouverture", commentaire: texte, motifCloture: null, responsableId: null });
   }
   if (typeof action !== "string" || !ACTIONS_SUIVI.includes(action as ActionSuivi)) {
     return { ok: false, erreur: "Choisissez l'action menée : entretien, parents convoqués, soutien scolaire ou autre." };
   }
-  return { ok: true, saisie: { transition: transition as Transition, action, commentaire: texte } };
+  return saisie({ action, commentaire: texte, motifCloture: null, responsableId: responsable });
 }
 
 /** Colonnes de l'alerte à écrire pour une transition (suiviDepuis gardé s'il existe). */
 export function donneesTransition(
   transition: Transition,
   alerte: { suiviDepuis: Date | null },
-  maintenant: Date
-): { statut: "active" | "traitee"; suiviDepuis: Date | null; resolueLe: Date | null } {
-  if (transition === "resoudre") return { statut: "traitee", suiviDepuis: alerte.suiviDepuis, resolueLe: maintenant };
-  if (transition === "rouvrir") return { statut: "active", suiviDepuis: maintenant, resolueLe: null };
-  return { statut: "active", suiviDepuis: alerte.suiviDepuis ?? maintenant, resolueLe: null };
+  maintenant: Date,
+  motifCloture: MotifCloture | null = null
+): { statut: "active" | "traitee"; suiviDepuis: Date | null; resolueLe: Date | null; motifCloture: MotifCloture | null } {
+  if (transition === "resoudre") return { statut: "traitee", suiviDepuis: alerte.suiviDepuis, resolueLe: maintenant, motifCloture };
+  if (transition === "rouvrir") return { statut: "active", suiviDepuis: maintenant, resolueLe: null, motifCloture: null };
+  return { statut: "active", suiviDepuis: alerte.suiviDepuis ?? maintenant, resolueLe: null, motifCloture: null };
 }
 
 // ── Suggestion de clôture ────────────────────────────────────────────────────

@@ -13,7 +13,7 @@ import {
 import { messageAucun, titreRecapitulatif, type AnneeExport } from "@/lib/annee-export";
 import { libellePeriode } from "@/lib/notes-trimestres";
 import { comparerMatieres } from "@/lib/programme";
-import { libelleStatut } from "@/lib/suivi-alertes";
+import { LIBELLES_MOTIF, libelleStatut } from "@/lib/suivi-alertes";
 
 type NotePdf = { matiere: string; valeur: number; periode: string; anneeScolaire: string };
 type AbsencePdf = { motif: string; periode: string; anneeScolaire: string };
@@ -38,6 +38,7 @@ export type DonneesFicheEtudiant = {
     anneeScolaire?: string | null;
     statut: string;
     suiviDepuis?: Date | null;
+    motifCloture?: string | null;
     moyenneAvant: number;
     moyenneApres: number;
     ecartPourcent: number;
@@ -265,6 +266,7 @@ export function FicheEtudiantPdf({ etudiant, anneeScolaire, notes, absences, ale
                   </Text>
                   <Text style={[styles.cellule, styles.gras, { width: "14%" }, a.statut === "active" ? styles.rouge : { color: couleurs.vert }]}>
                     {libelleStatut(a)}
+                    {a.statut === "traitee" && a.motifCloture ? ` · ${LIBELLES_MOTIF[a.motifCloture] ?? a.motifCloture}` : ""}
                   </Text>
                   <Text style={[styles.cellule, styles.gris, { width: "18%" }]}>{formatDateLongue(a.createdAt)}</Text>
                 </View>

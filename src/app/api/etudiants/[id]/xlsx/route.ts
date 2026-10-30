@@ -23,7 +23,7 @@ export async function GET(_request: Request, context: RouteContext) {
         notes: { select: { matiere: true, valeur: true, periode: true, anneeScolaire: true } },
         absences: { select: { date: true, motif: true, periode: true, anneeScolaire: true } },
         // L'élève ne voit pas ses alertes (ni leur existence) : rien n'est lu pour lui
-        alertes: access.user.role === "etudiant" ? false : { orderBy: { createdAt: "desc" } },
+        alertes: access.user.role === "etudiant" ? false : { orderBy: { createdAt: "desc" }, include: { responsable: { select: { nom: true, prenom: true } } } },
       },
     });
 

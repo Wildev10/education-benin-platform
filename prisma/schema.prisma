@@ -85,10 +85,18 @@ model Alerte {
   suiviDepuis     DateTime?
   resolueLe       DateTime?
   suivis          SuiviAlerte[]
+  // Responsable du suivi : un enseignant ou le directeur de l'établissement de
+  // l'élève (null : à désigner). responsableDepuis : date de la désignation.
+  responsableId     String?
+  responsable       User?     @relation("ResponsableAlerte", fields: [responsableId], references: [id], onDelete: SetNull)
+  responsableDepuis DateTime?
+  // Motif de la dernière résolution ; effacé à la réouverture (gardé dans l'historique)
+  motifCloture      String?   // "situation_retablie" | "suivi_externe" | "erreur_saisie" | "autre"
 
   @@index([etudiantId])
   @@index([statut, createdAt])
   @@index([niveauModifieLe])
+  @@index([responsableId])
 }
 
 // Une étape du suivi d'une alerte : action menée, commentaire, auteur et date.
@@ -99,16 +107,23 @@ model SuiviAlerte {
   alerteId    String
   alerte      Alerte   @relation(fields: [alerteId], references: [id], onDelete: Cascade)
   auteurId    String?
-  auteur      User?    @relation(fields: [auteurId], references: [id], onDelete: SetNull)
+  auteur      User?    @relation("AuteurEtape", fields: [auteurId], references: [id], onDelete: SetNull)
   auteurNom   String
-  action      String   // "entretien_eleve" | "parents_convoques" | "soutien_scolaire" | "autre" | "reouverture" | "reouverture_auto"
+  action      String   // "entretien_eleve" | "parents_convoques" | "soutien_scolaire" | "autre" | "resolution" | "confie" | "reouverture" | "aggravation" | "reouverture_auto" | "retrait_responsable"
   commentaire String
   statutAvant String   // "nouvelle" | "en_suivi" | "resolue"
   statutApres String
   createdAt   DateTime @default(now())
+  // Résolution : motif choisi. Désignation du responsable : la personne
+  // désignée (nom figé, comme auteurNom).
+  motifCloture   String?
+  responsableId  String?
+  responsable    User?   @relation("ResponsableEtape", fields: [responsableId], references: [id], onDelete: SetNull)
+  responsableNom String?
 
   @@index([alerteId, createdAt])
   @@index([auteurId])
+  @@index([responsableId, createdAt])
 }
 
 model Absence {
@@ -142,7 +157,9 @@ model User {
   notificationsVuesLe DateTime?
   actionLogs       ActionLog[]
   resetRequests    ResetRequest[]
-  suivisAlertes    SuiviAlerte[]
+  suivisAlertes    SuiviAlerte[] @relation("AuteurEtape")
+  etapesConfiees   SuiviAlerte[] @relation("ResponsableEtape")
+  alertesSuivies   Alerte[]      @relation("ResponsableAlerte")
 }
 
 model ResetRequest {

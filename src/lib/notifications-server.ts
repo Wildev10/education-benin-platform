@@ -20,6 +20,7 @@ export function perimetreNotifications(user: Destinataire): Prisma.AlerteWhereIn
 }
 
 const avecEleve = {
+  responsable: { select: { id: true } },
   etudiant: {
     select: {
       id: true,
@@ -32,10 +33,11 @@ const avecEleve = {
 } satisfies Prisma.AlerteInclude;
 
 /**
- * Alertes actives créées ou aggravées (Moyen → Élevé) depuis 30 jours, les
- * plus récentes d'abord, et la dernière ouverture de la cloche par l'utilisateur.
- * Deux requêtes (créations, aggravations) : une alerte ancienne aggravée hier
- * passe ainsi avant une création d'avant-hier. Le périmètre s'applique aux deux.
+ * Alertes actives créées ou aggravées (Moyen → Élevé) depuis 30 jours, et
+ * celles dont le suivi a été confié à l'utilisateur par quelqu'un d'autre, les
+ * plus récentes d'abord, avec la dernière ouverture de la cloche par l'utilisateur.
+ * Une requête par événement : une alerte ancienne aggravée hier passe ainsi
+ * avant une création d'avant-hier. Le périmètre s'applique à toutes.
  */
 export async function getNotifications(
   user: Destinataire,
@@ -45,7 +47,7 @@ export async function getNotifications(
   if (!perimetre) return { notifications: [], vuesLe: null };
 
   const depuis = new Date(maintenant.getTime() - FENETRE_NOTIFICATIONS_MS);
-  const [compte, creees, aggravees] = await Promise.all([
+  const [compte, creees, aggravees, confiees] = await Promise.all([
     prisma.user.findUnique({ where: { id: user.id }, select: { notificationsVuesLe: true } }),
     prisma.alerte.findMany({
       where: { statut: "active", createdAt: { gte: depuis }, ...perimetre },
@@ -59,26 +61,54 @@ export async function getNotifications(
       orderBy: { niveauModifieLe: "desc" },
       take: MAX_NOTIFICATIONS,
     }),
+    // Désignations par une autre personne, encore valables (toujours responsable, alerte ouverte)
+    prisma.suiviAlerte.findMany({
+      where: {
+        responsableId: user.id,
+        createdAt: { gte: depuis },
+        OR: [{ auteurId: null }, { auteurId: { not: user.id } }],
+        alerte: { statut: "active", responsableId: user.id, ...perimetre },
+      },
+      select: { createdAt: true, auteurNom: true, alerte: { include: avecEleve } },
+      orderBy: { createdAt: "desc" },
+      take: MAX_NOTIFICATIONS,
+    }),
   ]);
 
-  // Une entrée par alerte : son événement le plus récent (l'aggravation, s'il y en a une)
+  type AlerteNotifiee = (typeof creees)[number];
+  const entree = (a: AlerteNotifiee, evenement: NotificationAlerte["evenement"], date: Date, confiePar?: string): NotificationAlerte => ({
+    id: a.id,
+    type: a.type,
+    niveauRisque: a.niveauRisque,
+    periode: a.periode,
+    anneeScolaire: a.anneeScolaire,
+    createdAt: a.createdAt.toISOString(),
+    evenement,
+    date: date.toISOString(),
+    // Seule aggravation possible : Moyen → Élevé (voir estAggravation)
+    ...(evenement === "aggravee" ? { niveauPrecedent: "moyen" } : {}),
+    ...(confiePar ? { confiePar } : {}),
+    ...(a.responsable?.id === user.id ? { votreSuivi: true } : {}),
+    etudiant: { id: a.etudiant.id, nom: a.etudiant.nom, prenom: a.etudiant.prenom, niveau: a.etudiant.niveau },
+    etablissement: a.etudiant.etablissement,
+  });
+
+  // Une entrée par alerte : son événement le plus récent
   const parId = new Map<string, NotificationAlerte>();
+  const garder = (n: NotificationAlerte) => {
+    const deja = parId.get(n.id);
+    if (!deja || n.date > deja.date) parId.set(n.id, n);
+  };
   for (const a of [...creees, ...aggravees]) {
     const aggravation = a.niveauModifieLe && a.niveauModifieLe >= depuis ? a.niveauModifieLe : null;
-    parId.set(a.id, {
-      id: a.id,
-      type: a.type,
-      niveauRisque: a.niveauRisque,
-      periode: a.periode,
-      anneeScolaire: a.anneeScolaire,
-      createdAt: a.createdAt.toISOString(),
-      evenement: aggravation ? "aggravee" : "creee",
-      date: (aggravation ?? a.createdAt).toISOString(),
-      // Seule aggravation possible : Moyen → Élevé (voir estAggravation)
-      ...(aggravation ? { niveauPrecedent: "moyen" } : {}),
-      etudiant: { id: a.etudiant.id, nom: a.etudiant.nom, prenom: a.etudiant.prenom, niveau: a.etudiant.niveau },
-      etablissement: a.etudiant.etablissement,
-    });
+    garder(entree(a, aggravation ? "aggravee" : "creee", aggravation ?? a.createdAt));
+  }
+  // La plus récente désignation de chaque alerte (triées de la plus récente à la plus ancienne)
+  const vues = new Set<string>();
+  for (const etape of confiees) {
+    if (vues.has(etape.alerte.id)) continue;
+    vues.add(etape.alerte.id);
+    garder(entree(etape.alerte, "confiee", etape.createdAt, etape.auteurNom));
   }
 
   return {

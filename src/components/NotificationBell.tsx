@@ -100,7 +100,7 @@ export default function NotificationBell({
           <p className="border-b border-border px-4 py-3 text-sm font-semibold">
             Dernières alertes
             <span className="block text-xs font-normal text-ink-secondary">
-              Créées ou aggravées ces {FENETRE_NOTIFICATIONS_JOURS} derniers jours
+              Créées, aggravées ou confiées ces {FENETRE_NOTIFICATIONS_JOURS} derniers jours
             </span>
           </p>
           {notifications.length === 0 ? (
@@ -113,11 +113,12 @@ export default function NotificationBell({
                 const niveau = libellesNiveau[n.niveauRisque];
                 const nouvelle = estNonLue(n, vuAvantOuverture);
                 const aggravee = n.evenement === "aggravee";
+                const confiee = n.evenement === "confiee";
                 const precedent = libellesNiveau[n.niveauPrecedent ?? ""]?.label ?? n.niveauPrecedent;
                 return (
                   <li key={n.id}>
                     <Link
-                      href={`${baseFiche}/${n.etudiant.id}`}
+                      href={`${baseFiche}/${n.etudiant.id}#alerte-${n.id}`}
                       onClick={() => setOpen(false)}
                       className={`block px-4 py-3 transition hover:bg-page focus:bg-page focus:outline-none ${nouvelle ? "bg-brand-light" : ""}`}
                     >
@@ -133,13 +134,27 @@ export default function NotificationBell({
                         {n.etablissement.nom} · {n.etudiant.niveau}
                       </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span
-                          data-evenement={aggravee ? "aggravee" : "creee"}
-                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${niveau?.cls ?? "border-border bg-page text-ink-secondary"}`}
-                        >
-                          <IconeAlerte taille={12} />
-                          {aggravee ? `Aggravée : ${precedent} → ${niveau?.label ?? n.niveauRisque}` : niveau?.label ?? n.niveauRisque}
-                        </span>
+                        {confiee ? (
+                          <span
+                            data-evenement="confiee"
+                            className="inline-flex items-center rounded-full border border-blue-300 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-900"
+                          >
+                            Suivi confié par {n.confiePar}
+                          </span>
+                        ) : (
+                          <span
+                            data-evenement={aggravee ? "aggravee" : "creee"}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${niveau?.cls ?? "border-border bg-page text-ink-secondary"}`}
+                          >
+                            <IconeAlerte taille={12} />
+                            {aggravee ? `Aggravée : ${precedent} → ${niveau?.label ?? n.niveauRisque}` : niveau?.label ?? n.niveauRisque}
+                          </span>
+                        )}
+                        {n.votreSuivi && !confiee && (
+                          <span data-votre-suivi className="inline-flex items-center rounded-full border border-blue-300 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-900">
+                            Votre suivi
+                          </span>
+                        )}
                         <span className="text-xs text-ink-secondary">
                           {libellesType[n.type] ?? n.type} · {libellePeriode(n.periode, n.anneeScolaire)}
                         </span>

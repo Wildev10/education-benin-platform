@@ -100,7 +100,8 @@ async function main() {
   console.log(`  ${d.notes.length} notes, ${d.absences.length} absences, ${d.alertes.length} alertes, ${d.journal.length} entrées d'historique`);
   const resolues = d.alertes.filter((a) => a.statut === "traitee").length;
   const enSuivi = d.alertes.filter((a) => a.statut === "active" && a.suiviDepuis).length;
-  console.log(`  Suivi : ${enSuivi} alerte(s) en cours de suivi, ${resolues} résolue(s), ${d.suivis.length} étape(s)`);
+  const avecResponsable = d.alertes.filter((a) => a.statut === "active" && a.responsable).length;
+  console.log(`  Suivi : ${enSuivi} alerte(s) en cours de suivi (${avecResponsable} avec un responsable), ${resolues} résolue(s), ${d.suivis.length} étape(s)`);
   for (const e of d.etablissements) {
     console.log(`    - ${e.nom} (${e.statut}, ${e.commune}, ${e.departement}) : ${d.etudiants.filter((x) => x.etablissementId === e.id).length} élèves`);
   }
@@ -150,13 +151,15 @@ async function main() {
       await parLots(d.inscriptions, (lot) => tx.inscription.createMany({ data: lot }));
       await parLots(d.notes, (lot) => tx.note.createMany({ data: lot }));
       await parLots(d.absences, (lot) => tx.absence.createMany({ data: lot }));
-      await tx.alerte.createMany({ data: d.alertes });
 
-      // 3. Comptes : noms des deux champs, établissement, élève ; cloche lue
+      // 3. Comptes : noms des deux champs, établissement, élève ; cloche lue, sauf
+      // le suivi confié par la directrice à l'enseignant, qui reste à lire (démo de la cloche)
+      const confie = d.suivis.find((e) => e.action === "confie" && e.responsable === "enseignant");
+      const vuesLe = (role: RoleCompte) => (role === "enseignant" && confie ? new Date(confie.createdAt.getTime() - 60_000) : maintenant);
       const ids = {} as Partial<Record<RoleCompte, string>>;
       for (const role of ["admin", "enseignant", "directeur", "etudiant"] as RoleCompte[]) {
         const c = d.comptes[role];
-        const data = { nom: c.nom, prenom: c.prenom, etablissementId: c.etablissementId, etudiantId: c.etudiantId, notificationsVuesLe: maintenant };
+        const data = { nom: c.nom, prenom: c.prenom, etablissementId: c.etablissementId, etudiantId: c.etudiantId, notificationsVuesLe: vuesLe(role) };
         const u = conserves.get(role);
         if (u) {
           await tx.user.update({ where: { id: u.id }, data });
@@ -170,9 +173,12 @@ async function main() {
       // 4. Historique des saisies, au nom de l'enseignant
       await parLots(d.journal, (lot) => tx.actionLog.createMany({ data: lot.map((j) => ({ ...j, userId: ids.enseignant! })) }));
 
-      // 5. Suivi des alertes : auteur relié au compte de démonstration quand il existe
+      // 5. Alertes et suivi, après les comptes : auteur et responsable reliés aux
+      // comptes de démonstration quand ils existent
+      const compte = (role: "enseignant" | "directeur" | null) => (role ? (ids[role] ?? null) : null);
+      await tx.alerte.createMany({ data: d.alertes.map(({ responsable, ...a }) => ({ ...a, responsableId: compte(responsable) })) });
       await tx.suiviAlerte.createMany({
-        data: d.suivis.map(({ auteur, ...etape }) => ({ ...etape, auteurId: auteur ? (ids[auteur] ?? null) : null })),
+        data: d.suivis.map(({ auteur, responsable, ...etape }) => ({ ...etape, auteurId: compte(auteur), responsableId: compte(responsable) })),
       });
     },
     { maxWait: 30_000, timeout: 300_000 }

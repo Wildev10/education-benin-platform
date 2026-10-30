@@ -7,6 +7,7 @@ import {
   FORMAT_NOTE,
   FORMAT_POURCENT,
   LIBELLES_NIVEAU,
+  libelleMotifExport,
   libelleStatut,
   LIBELLES_TYPE,
   ajouterLigne,
@@ -18,6 +19,7 @@ import {
   nouvelleFeuille,
   styliserTotal,
 } from "./commun";
+import { nomComplet as nomAffiche } from "@/lib/nom-utilisateur";
 
 const PERIODES = ["Trimestre 1", "Trimestre 2", "Trimestre 3"];
 
@@ -40,6 +42,8 @@ export type DonneesFicheExcel = {
     niveauRisque: string;
     statut: string;
     suiviDepuis?: Date | null;
+    motifCloture?: string | null;
+    responsable?: { nom: string; prenom: string } | null;
     periode: string;
     /** Absente des anciennes alertes */
     anneeScolaire?: string | null;
@@ -187,6 +191,8 @@ export function classeurFicheEleve(d: DonneesFicheExcel) {
         { titre: "Type", cle: "type", largeur: 12 },
         { titre: "Niveau", cle: "niveau", largeur: 10 },
         { titre: "Statut", cle: "statut", largeur: 18 },
+        { titre: "Responsable", cle: "responsable", largeur: 22 },
+        { titre: "Motif de clôture", cle: "motif", largeur: 26 },
         { titre: "Période", cle: "periode", largeur: 22 },
         { titre: "Moyenne avant", cle: "avant", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
         { titre: "Moyenne après", cle: "apres", largeur: 15, format: FORMAT_NOTE, alignement: "right" },
@@ -203,6 +209,8 @@ export function classeurFicheEleve(d: DonneesFicheExcel) {
           type: LIBELLES_TYPE[a.type] ?? a.type,
           niveau: LIBELLES_NIVEAU[a.niveauRisque] ?? a.niveauRisque,
           statut: libelleStatut(a),
+          responsable: a.responsable ? nomAffiche(a.responsable.prenom, a.responsable.nom) : "",
+          motif: libelleMotifExport(a),
           // L'historique couvre toutes les années : la période porte la sienne
           periode: libellePeriode(a.periode, a.anneeScolaire),
           avant: absence ? null : arrondi2(a.moyenneAvant),

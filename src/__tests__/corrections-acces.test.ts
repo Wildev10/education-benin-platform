@@ -35,9 +35,12 @@ vi.mock("@/components/ExportPdfButton", () => ({ ExportPdfButton: () => null, Ex
 
 const prismaMock = {
   etudiant: { findUnique: vi.fn() },
-  user: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  user: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  alerte: { findMany: vi.fn(), update: vi.fn() },
 };
-vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+// Transaction : les mêmes modèles simulés
+const $transaction = vi.fn(async (fn: (tx: typeof prismaMock) => unknown) => fn(prismaMock));
+vi.mock("@/lib/prisma", () => ({ prisma: { ...prismaMock, $transaction } }));
 
 // Import AFTER mocks are set up
 const { default: FichePage } = await import("@/app/(fr)/(espaces)/enseignant/etudiants/[id]/page");
@@ -112,6 +115,9 @@ beforeEach(() => {
   for (const modele of Object.values(prismaMock)) {
     for (const fn of Object.values(modele)) fn.mockReset();
   }
+  // Candidats responsables de la fiche, alertes dont le compte modifié est responsable
+  prismaMock.user.findMany.mockResolvedValue([]);
+  prismaMock.alerte.findMany.mockResolvedValue([]);
 });
 
 // ── 1. Suivi des alertes (enseignant et directeur) ──────────────────────────────────────

@@ -187,6 +187,24 @@ describe("construireWhereAlertes — périmètre", () => {
   });
 });
 
+describe("construireWhereAlertes — Mes suivis", () => {
+  it("enseignant ou directeur : alertes dont il est responsable, toujours dans son établissement", () => {
+    expect(where("suivi=moi", "enseignant", MON_ETAB)).toMatchObject({ responsableId: "u1", etudiant: { etablissementId: MON_ETAB } });
+    expect(where("suivi=moi", "directeur", MON_ETAB)).toMatchObject({ responsableId: "u1", etudiant: { etablissementId: MON_ETAB } });
+  });
+
+  it("admin (aucun suivi) ou valeur inconnue : rien, ou filtre ignoré", () => {
+    expect(where("suivi=moi", "admin")).toBeNull();
+    expect(where("suivi=tous", "enseignant", MON_ETAB)).not.toHaveProperty("responsableId");
+  });
+
+  it("gardé dans l'URL et rappelé dans les exports", () => {
+    const filtres = lireFiltres(new URLSearchParams("suivi=moi"));
+    expect(filtresVersParams(filtres).get("suivi")).toBe("moi");
+    expect(decrireFiltres(filtres)).toContain("Mes suivis");
+  });
+});
+
 describe("decrireFiltres", () => {
   it("résume les filtres pour le PDF", () => {
     const f = lireFiltres(new URLSearchParams("niveau=eleve&type=notes&du=2026-10-01&au=2026-10-31&q=hane"));

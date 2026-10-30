@@ -74,7 +74,7 @@ const session = async (compte, options) => {
 };
 
 const lireAlertes = async (etudiantId) =>
-  (await base.query(`SELECT id, type, "niveauRisque", "niveauModifieLe", statut, "suiviDepuis", "createdAt" FROM "Alerte" WHERE "etudiantId" = $1`, [etudiantId])).rows;
+  (await base.query(`SELECT id, type, "niveauRisque", "niveauModifieLe", statut, "suiviDepuis", "motifCloture", "createdAt" FROM "Alerte" WHERE "etudiantId" = $1`, [etudiantId])).rows;
 
 const cloche = (page) => page.locator('button[aria-haspopup="true"][aria-label^="Notifications"]');
 const dropdown = (page) => page.getByRole("dialog", { name: "Dernières alertes" });
@@ -219,35 +219,85 @@ try {
   check("Fiche : statut « En cours de suivi » et historique (action, auteur, commentaire) sans recharger",
     /En cours de suivi/.test(carte) && /Entretien avec l'élève/.test(carte) && /Fulbert Gbaguidi|Gbaguidi/.test(carte) && /manque de travail/.test(carte), carte.slice(0, 200));
 
-  // ── 8. Alerte résolue par l'enseignant, puis aggravation : rouverte ─────────
-  const resolution = await ens.evaluate(async (id) => (await fetch(`/api/alertes/${id}/suivis`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ transition: "resoudre", action: "entretien_eleve", commentaire: "Entretien e2e : alerte résolue pour le test." }),
-  })).status, alerteMoyen.id);
-  check("Enseignant : alerte Moyen résolue (action et commentaire)", resolution === 201);
+  check("Fiche : responsable du suivi désigné par défaut, l'auteur de la première action",
+    /Responsable du suivi : Fulbert Gbaguidi/.test(carte), carte.slice(0, 200));
+
+  // ── 8. Suivi confié à la directrice : historique, cloche, « Mes suivis » ────
+  const dir = COMPTES.directeur ? await session(COMPTES.directeur) : null;
+  const memeEtab = dir && (await getJson(dir, "/api/etudiants?page=1")).corps.elements[0]?.etablissement?.id === etab.id;
+  if (dir && memeEtab) {
+    await ens.getByRole("button", { name: "Changer le responsable" }).click();
+    const confier = ens.locator('[data-formulaire-suivi="confier"]');
+    await confier.getByLabel("Confier le suivi à").selectOption({ label: "Bernadette Sossou (direction)" });
+    const reponseConfie = ens.waitForResponse((r) => r.url().endsWith(`/api/alertes/${alerteMoyen.id}/suivis`));
+    await confier.getByRole("button", { name: "Confier le suivi" }).click();
+    check("Changer le responsable : suivi confié à la directrice (201), commentaire facultatif", (await reponseConfie).status() === 201);
+    await ens.locator('[data-etape="confie"]').waitFor();
+    const carteConfiee = await texte(alertesFiche);
+    check("Fiche : « Responsable du suivi : Bernadette Sossou » et « Suivi confié à Bernadette Sossou » dans l'historique",
+      /Responsable du suivi : Bernadette Sossou/.test(carteConfiee) && /Suivi confié à Bernadette Sossou/.test(carteConfiee), carteConfiee.slice(0, 300));
+    const notifsDir = (await getJson(dir, "/api/notifications/alertes")).corps.notifications;
+    const confiee = notifsDir.find((n) => n.id === alerteMoyen.id);
+    check("Cloche de la directrice : « Suivi confié par Fulbert Gbaguidi », marquée comme son suivi",
+      confiee?.evenement === "confiee" && confiee.confiePar === "Fulbert Gbaguidi" && confiee.votreSuivi === true, JSON.stringify(confiee ?? null));
+    const notifEns = (await getJson(ens, "/api/notifications/alertes")).corps.notifications.find((n) => n.id === alerteMoyen.id);
+    check("Cloche de l'enseignant : pas de « Suivi confié » (ce n'est plus son suivi)", notifEns?.evenement !== "confiee" && !notifEns?.votreSuivi);
+    const mesSuivisDir = (await getJson(dir, "/api/alertes?page=1&statut=toutes&suivi=moi")).corps;
+    const mesSuivisEns = (await getJson(ens, "/api/alertes?page=1&statut=toutes&suivi=moi")).corps;
+    check("« Mes suivis » : l'alerte est dans ceux de la directrice, plus dans ceux de l'enseignant ; le total compte ce qui est affiché",
+      mesSuivisDir.elements.some((a) => a.id === alerteMoyen.id) && !mesSuivisEns.elements.some((a) => a.id === alerteMoyen.id) &&
+        mesSuivisDir.elements.every((a) => a.responsable?.id) && mesSuivisDir.total >= mesSuivisDir.elements.length);
+  } else {
+    rapport.ignorer("Suivi confié à la directrice", "compte directeur absent ou d'un autre établissement");
+  }
+
+  // ── 9. Résolution directe (motif en un clic), puis aggravation : rouverte ────
+  await ens.getByRole("button", { name: "Résoudre l'alerte" }).click();
+  const resoudre = ens.locator('[data-formulaire-suivi="resoudre"]');
+  await resoudre.getByLabel("Autre", { exact: true }).check();
+  await resoudre.getByRole("button", { name: "Résoudre l'alerte" }).click();
+  check("Résolution, motif « Autre » sans commentaire : refusée avec un message",
+    /« Autre », le commentaire est obligatoire/.test(await texte(resoudre.locator('[role="alert"]'))));
+  await resoudre.getByLabel("Situation rétablie").check();
+  const reponseResolution = ens.waitForResponse((r) => r.url().endsWith(`/api/alertes/${alerteMoyen.id}/suivis`));
+  await resoudre.getByRole("button", { name: "Résoudre l'alerte" }).click();
+  check("Résolution directe : motif « Situation rétablie », sans commentaire (201)", (await reponseResolution).status() === 201);
+  await ens.locator('[data-etape="resolution"]').waitFor();
+  check("Fiche : « Résolue », motif dans l'historique et sous l'alerte",
+    /Résolution : Situation rétablie/.test(await texte(alertesFiche)) && /Motif de clôture : Situation rétablie/.test(await texte(alertesFiche)));
   check("Admin : le suivi lui est refusé (consultation seule, 403)",
     (await admin.evaluate(async (id) => (await fetch(`/api/alertes/${id}/suivis`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ transition: "rouvrir", commentaire: "Tentative de l'admin, refusée." }),
     })).status, alerteMoyen.id)) === 403);
+  const responsableAttendu = dir && memeEtab ? "Bernadette Sossou" : "Fulbert Gbaguidi";
   // Moyenne (12 + 12,5 + 3) / 3 = 9,17 contre 15 : −39 % et < 10 → Élevé
   const message3 = await saisirNote(ens, 3);
   const apres = await lireAlertes(etudiantId);
   check(`Note 3/20 : « Alerte rouverte et aggravée : Moyen → Élevé pour ${nomComplet} »`,
     message3.startsWith(`Alerte rouverte et aggravée : Moyen → Élevé pour ${nomComplet}`), message3);
-  check("Base : la même alerte, rouverte (Nouvelle), niveau Élevé, date d'aggravation remplie",
-    apres.length === 1 && apres[0].statut === "active" && apres[0].suiviDepuis === null && apres[0].niveauRisque === "eleve" && apres[0].niveauModifieLe instanceof Date,
+  check("Base : la même alerte, rouverte En cours de suivi (elle avait un responsable), niveau Élevé, motif effacé",
+    apres.length === 1 && apres[0].statut === "active" && apres[0].suiviDepuis instanceof Date && apres[0].motifCloture === null &&
+      apres[0].niveauRisque === "eleve" && apres[0].niveauModifieLe instanceof Date,
     `${apres.length} alerte(s), ${apres[0]?.statut}, ${apres[0]?.niveauRisque}`);
-  const etapes = (await base.query(`SELECT action, "statutAvant", "statutApres", "auteurId" FROM "SuiviAlerte" WHERE "alerteId" = $1 ORDER BY "createdAt"`, [alerteMoyen.id])).rows;
-  check("Base : historique entretien (En cours), résolution par l'enseignant, puis réouverture automatique par la détection",
-    etapes.length === 3 && etapes[0].statutApres === "en_suivi" && etapes[1].statutAvant === "en_suivi" && etapes[1].statutApres === "resolue" &&
-      etapes[1].auteurId !== null && etapes[2].action === "reouverture_auto" && etapes[2].statutApres === "nouvelle" && etapes[2].auteurId === null,
+  const etapes = (await base.query(`SELECT action, "statutAvant", "statutApres", "auteurId", "motifCloture" FROM "SuiviAlerte" WHERE "alerteId" = $1 ORDER BY "createdAt"`, [alerteMoyen.id])).rows;
+  const finEtapes = etapes.slice(-2);
+  check("Base : résolution avec son motif, puis réouverture automatique En cours de suivi par la détection",
+    finEtapes[0]?.action === "resolution" && finEtapes[0].motifCloture === "situation_retablie" && finEtapes[0].statutApres === "resolue" &&
+      finEtapes[1]?.action === "reouverture_auto" && finEtapes[1].statutApres === "en_suivi" && finEtapes[1].auteurId === null,
     etapes.map((e) => `${e.action}:${e.statutAvant}→${e.statutApres}`).join(", "));
   await ens.reload();
   await ens.waitForLoadState("networkidle");
-  check("Fiche : l'alerte à jour (Élevé, Nouvelle) et son historique (Réouverture automatique)",
-    (await alertesFiche.count()) === 1 && /Risque élevé/.test(await texte(alertesFiche)) && /Nouvelle/.test(await texte(alertesFiche)) &&
-      /Réouverture automatique/.test(await texte(alertesFiche)));
+  const carteRouverte = await texte(alertesFiche);
+  check(`Fiche : l'alerte rouverte (Élevé, En cours de suivi, responsable ${responsableAttendu}), « suivi repris par » dans l'historique`,
+    (await alertesFiche.count()) === 1 && /Risque élevé/.test(carteRouverte) && /En cours de suivi/.test(carteRouverte) &&
+      carteRouverte.includes(`Responsable du suivi : ${responsableAttendu}`) && carteRouverte.includes(`suivi repris par ${responsableAttendu}`), carteRouverte.slice(0, 300));
+  if (dir && memeEtab) {
+    const aggrDir = (await getJson(dir, "/api/notifications/alertes")).corps.notifications.find((n) => n.id === alerteMoyen.id);
+    check("Cloche de la directrice, responsable : aggravation de son suivi (« Votre suivi »)",
+      aggrDir?.evenement === "aggravee" && aggrDir.votreSuivi === true, JSON.stringify(aggrDir ?? null));
+    await dir.context().close();
+  }
   const libelleAggr = await rafraichirCloche(mobile);
   const vueAggr = await ouvrirEtLire(mobile, prenom);
   const boite = await dropdown(mobile).boundingBox();
@@ -259,14 +309,14 @@ try {
   await mobile.screenshot({ path: path.join(CAPTURES, "aggravation-375.png") });
   await mobile.context().close();
 
-  // ── 9. Absence isolée : enregistrée, sans alerte (5 injustifiées nécessaires) ─
+  // ── 10. Absence isolée : enregistrée, sans alerte (5 injustifiées nécessaires) ─
   const reponseAbs = ens.waitForResponse((r) => r.url().endsWith("/api/absences") && r.request().method() === "POST");
   await ens.getByRole("button", { name: "Enregistrer l'absence" }).click();
   await reponseAbs;
   const messageAbs = await texte(ens.locator("#new-absence-title ~ div [data-retour]"));
   check("Absence injustifiée isolée : « Absence enregistrée », sans alerte", messageAbs.startsWith("Absence enregistrée") && messageAbs.includes("Aucune alerte"), messageAbs);
 
-  // ── 10. Directeur ─────────────────────────────────────────────────────────────
+  // ── 11. Directeur ─────────────────────────────────────────────────────────────
   if (COMPTES.directeur) {
     const dir = await session(COMPTES.directeur);
     const etabDir = (await getJson(dir, "/api/etudiants?page=1")).corps.elements[0]?.etablissement?.id;
@@ -278,7 +328,7 @@ try {
     rapport.ignorer("Périmètre directeur", "E2E_DIRECTEUR_EMAIL et E2E_DIRECTEUR_MOT_DE_PASSE non définis");
   }
 
-  // ── 11. Import CSV : mêmes règles, après toutes les lignes ───────────────────
+  // ── 12. Import CSV : mêmes règles, après toutes les lignes ───────────────────
   const idImport = `e2e-import-${suffixe}`;
   const prenomImport = `Import${suffixe}`;
   const emailImport = `e2e-import-${suffixe}@edutech.test`;
